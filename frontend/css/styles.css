@@ -1,0 +1,42 @@
+/* =============================================================================
+   Joy Curry & Tandoor — Global Design System
+   Phase 2 will expand this with full design tokens, responsive grid, and components
+   ============================================================================= */
+
+:root {
+  --color-primary: #d4602a;      /* Warm orange — Indian spice theme */
+  --color-secondary: #f4a742;
+  --color-text-dark: #2c2c2c;
+  --color-text-light: #666;
+  --color-bg-light: #fafafa;
+  --color-border: #e0e0e0;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --font-family-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-family-mono: 'Monaco', 'Courier New', monospace;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --transition-fast: 150ms ease-out;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family-body);
+  color: var(--color-text-dark);
+  background-color: var(--color-bg-light);
+  line-height: 1.6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Phase 1: Placeholder. Full styles in Phase 2. */

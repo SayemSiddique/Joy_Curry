@@ -1,33 +1,73 @@
 # Joy Curry & Tandoor — Ordering Website
 
-A full-stack food ordering website for Joy Curry & Tandoor, a real Halal Indian 
-restaurant in Midtown Manhattan (Est. 1994).
-
-Built from scratch as a JavaScript learning project — covering vanilla JS, DOM 
-manipulation, cart logic, Node.js backend, REST API, SQLite database, user 
-authentication, and deployment.
-
-## The Restaurant
-- **Address:** 148 East 46th St, New York, NY (between Lex & 3rd Ave)
-- **Phone:** 212-490-1277
-- **Website:** joycurry.net
-- **Halal | Vegan-friendly | Casual dining & fast food**
-
-## Tech Stack
-| Layer | Technology |
-|---|---|
-| Frontend | Vanilla JavaScript, HTML, CSS |
-| Backend | Node.js, Express |
-| Database | SQLite |
-| Auth | JWT / Sessions |
+Learning JavaScript by building a production-grade food-ordering website for a real Halal Indian restaurant in NYC (est. 1994).
 
 ## Project Structure
-\`\`\`
-joy-curry-tandoor/
-├── frontend/          # HTML, CSS, JavaScript
-├── backend/           # Node.js server, routes, database
-└── docs/              # Cheat sheets and learning notes
-\`\`\`
 
-## Status
-🚧 In progress — Phase 0 complete (setup & repo structure)
+- **`frontend/`** — ES modules, vanilla JS, CSS design system, DOM rendering
+- **`backend/`** — Node.js + Express REST API, SQLite database
+- **`docs/`** — Learning notes, cheat sheets, API documentation
+
+## Quick Start
+
+**Phase 1: JavaScript Foundations**
+
+Frontend only (no backend yet):
+
+```bash
+cd frontend
+# Open index.html in your browser with Live Server
+```
+
+**Phase 5+: Full Stack**
+
+Backend:
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Frontend (in a new terminal):
+```bash
+cd frontend
+# Use Live Server to serve index.html
+```
+
+## Menu Data
+
+Real menu items from Joy Curry & Tandoor are stored in `frontend/js/data/menu/` as ES modules.
+
+Restaurant Info:
+- Name: Joy Curry & Tandoor (Est. 1994)
+- Address: 148 East 46th St, between Lex. & 3rd Ave, NYC
+- Website: joycurry.net
+- Phone: 212-490-1277
+
+## Tech Stack
+
+- **Frontend:** Vanilla JavaScript (ES Modules), HTML5, CSS3 (Mobile-first, responsive)
+- **Backend:** Node.js, Express.js
+- **Database:** SQLite
+- **Auth:** JWT (Phase 6+)
+- **Hosting:** Vercel (frontend) + Render (backend)
+
+## Roadmap
+
+- **Phase 0:** Setup ✓
+- **Phase 1:** JavaScript Foundations (in progress)
+- **Phase 2:** CSS Architecture
+- **Phase 3:** DOM & Interactivity
+- **Phase 4:** State, Cart, Frontend Polish
+- **Phase 5:** Backend (Node.js + Express + SQLite)
+- **Phase 6:** Auth & API Integration
+- **Phase 7:** Bundles, Checkout, Email
+- **Phase 8:** Polish, Deploy, Go Live
+
+## Learning Resources
+
+See `/docs/cheatsheets/` for per-phase summaries.
+
+## Author
+
+Sam Siddique (@SayemSiddique on GitHub)
