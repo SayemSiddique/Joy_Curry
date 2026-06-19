@@ -22,3 +22,49 @@ export const SPICE_LEVELS = {
   'Medium': { label: 'Medium', icon: '🌶️🌶️' },
   'Hot': { label: 'Hot', icon: '🌶️🌶️🌶️' }
 };
+
+// ============================================================================
+// Bundle constraint pools — single source of truth for Joy Combos and
+// Dinner Specials. slot.optionIds in bundle files reference these arrays.
+// Source: Roadmap §6 "Permitted entrées in combos".
+// ============================================================================
+
+export const COMBO_VEG_IDS = [
+  'mixed-vegetables',
+  'palak-paneer',
+  'aloo-gobi-mattar',
+  'chana-masala',
+  'bhindi-masala',
+  'chana-saag',
+  'baingan-bharta',
+  'tarka-daal',
+];
+
+export const COMBO_MEAT_IDS = [
+  'chk-tikka-masala',
+  'chk-curry',
+  'chk-vindaloo',
+  'chk-korma',
+  'chk-karahi',
+  'chk-saag',
+  'lamb-curry-entree',
+  'lamb-vindaloo-entree',
+  'lamb-saag-entree',
+  'goat-curry-entree',
+  'beef-curry-entree',
+];
+
+export const DINNER_SPECIAL_APPETIZER_IDS = [
+  'veg-samosa',
+  'meat-samosa',
+  'pakora',
+  'aloo-tikki',
+  'papadum',
+  'aloo-papri-chaat',
+];
+
+export const DINNER_SPECIAL_DESSERT_IDS = [
+  'gulab-jamun-dessert',
+  'rasmalai-dessert',
+  'kheer-dessert',
+];
