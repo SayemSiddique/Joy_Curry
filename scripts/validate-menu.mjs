@@ -52,10 +52,39 @@ const KNOWN_CATEGORIES = new Set([
   'appetizer', 'salad', 'soup', 'vegetable-entree', 'vegan-entree',
   'chicken-entree', 'meat-entree', 'fish-shrimp', 'tandoori', 'rice-biryani',
   'express-lunch', 'side', 'condiment', 'bread', 'dessert', 'beverage',
+  'dinner-special', 'combo',  // Phase 7 bundle categories
 ]);
 
 const SPICE_LEVELS = new Set([null, 'Mild', 'Medium', 'Hot']);
 const KEBAB_CASE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+// Expected item count per category slug. If the aggregated menu deviates, a
+// violation is raised — this catches the silent-data-loss bug class where a
+// file exports the correct name but not the full union of items (see D17
+// defect log: salads-soups.js incident). Updated when new categories are added.
+// NOTE: some files export items across multiple category slugs (e.g.
+// salads-soups.js exports both 'salad' and 'soup'), so the map key is the
+// category slug, not the file name.
+const EXPECTED_COUNTS = {
+  appetizer:           12,  // +1 Pakora added in Phase 7
+  salad:                2,
+  soup:                 1,
+  'vegetable-entree':   6,
+  'vegan-entree':       8,
+  'chicken-entree':    10,
+  'meat-entree':       10,
+  'fish-shrimp':        4,
+  tandoori:            12,
+  'rice-biryani':       9,
+  'express-lunch':      9,
+  side:                16,
+  condiment:            6,
+  bread:               11,
+  dessert:              3,
+  beverage:             8,
+  'dinner-special':     3,  // Phase 7 bundles
+  combo:               15,  // Phase 7 Joy Combos
+};
 
 // Required scalar fields with their expected JS type (typeof result, or a
 // custom predicate key resolved in assertType()). Every §4a field is enforced.
@@ -154,13 +183,66 @@ function assertType(value, expected) {
   }
 }
 
+// Bundle items (type: 'dinner-special' | 'combo') follow §4c schema, not §4a.
+// Required bundle fields — validated separately from REQUIRED_FIELDS.
+const BUNDLE_REQUIRED_FIELDS = [
+  ['id',           'string'],
+  ['name',         'string'],
+  ['type',         'string'],
+  ['category',     'string'],
+  ['description',  'string'],
+  ['basePrice',    'finiteNumber'],
+  ['isVegan',      'boolean'],
+  ['isVegetarian', 'boolean'],
+  ['inStock',      'boolean'],
+  ['isActive',     'boolean'],
+  ['tags',         'stringArray'],
+  ['imageUrl',     'imageUrl'],
+];
+
+const BUNDLE_TYPES = new Set(['dinner-special', 'combo']);
+
 // ----------------------------------------------------------------------------
-// Core validation: returns an array of {item, field, message} violations.
+// Bundle slot validation: each slot must have id, label, choose ≥ 1, optionIds.
+// ----------------------------------------------------------------------------
+function validateBundleSlots(item) {
+  const violations = [];
+  if (!Array.isArray(item.slots)) {
+    violations.push({ field: 'slots', message: 'slots must be an array' });
+    return violations;
+  }
+  for (const slot of item.slots) {
+    if (!slot || typeof slot !== 'object') {
+      violations.push({ field: 'slots', message: 'each slot must be an object' });
+      continue;
+    }
+    if (typeof slot.id !== 'string' || !KEBAB_CASE.test(slot.id)) {
+      violations.push({ field: 'slots', message: `slot.id "${slot.id}" is not valid kebab-case` });
+    }
+    if (typeof slot.label !== 'string' || slot.label.length === 0) {
+      violations.push({ field: 'slots', message: `slot "${slot.id}" missing label` });
+    }
+    if (!Number.isInteger(slot.choose) || slot.choose < 1) {
+      violations.push({ field: 'slots', message: `slot "${slot.id}" choose must be a positive integer` });
+    }
+    if (!Array.isArray(slot.optionIds) || slot.optionIds.length === 0) {
+      violations.push({ field: 'slots', message: `slot "${slot.id}" optionIds must be a non-empty array` });
+    }
+  }
+  return violations;
+}
+
+// ----------------------------------------------------------------------------
+// Core validation: routes to bundle or regular schema based on item.type.
+// Returns an array of {item, field, message} violations.
 // ----------------------------------------------------------------------------
 function validateItem(item) {
   const violations = [];
 
-  for (const [field, expected] of REQUIRED_FIELDS) {
+  const isBundle = typeof item.type === 'string' && BUNDLE_TYPES.has(item.type);
+  const fieldsToCheck = isBundle ? BUNDLE_REQUIRED_FIELDS : REQUIRED_FIELDS;
+
+  for (const [field, expected] of fieldsToCheck) {
     if (!(field in item)) {
       violations.push({ field, message: `missing required field "${field}"` });
       continue;
@@ -170,6 +252,16 @@ function validateItem(item) {
         field,
         message: `field "${field}" has invalid value ${JSON.stringify(item[field])} (expected ${expected})`,
       });
+    }
+  }
+
+  if (isBundle) {
+    for (const v of validateBundleSlots(item)) violations.push(v);
+    if (!Array.isArray(item.fixedItemIds)) {
+      violations.push({ field: 'fixedItemIds', message: 'fixedItemIds must be an array' });
+    }
+    if (!Array.isArray(item.includes)) {
+      violations.push({ field: 'includes', message: 'includes must be an array' });
     }
   }
 
@@ -329,15 +421,44 @@ function main() {
 
   const violations = run(menu);
   const count = report(violations, menu.length);
-  if (count === 0) {
-    console.log('Per-file item counts:');
-    for (const [file, exp] of Object.entries(FILE_EXPORT_MAP)) {
-      // Counts are derived from the aggregated array by category slug for
-      // stable reporting even when items are spread across files.
-      console.log(`  ${file.padEnd(20)} (export: ${exp})`);
+
+  // Per-category count check: catches silent data loss where a file exports
+  // the right name but fewer items than expected (see D17 defect log).
+  const actualCounts = {};
+  for (const item of menu) {
+    if (typeof item.category === 'string') {
+      actualCounts[item.category] = (actualCounts[item.category] || 0) + 1;
     }
   }
-  process.exit(count === 0 ? 0 : 1);
+  let countViolations = 0;
+  for (const [cat, expected] of Object.entries(EXPECTED_COUNTS)) {
+    const actual = actualCounts[cat] || 0;
+    if (actual !== expected) {
+      console.error(`  ✗ count mismatch: category "${cat}" has ${actual} items (expected ${expected})`);
+      countViolations++;
+    }
+  }
+  // Also flag categories that appear in the data but not in EXPECTED_COUNTS
+  // (a new category was added without updating this map).
+  for (const cat of Object.keys(actualCounts)) {
+    if (!(cat in EXPECTED_COUNTS)) {
+      console.error(`  ✗ unknown category in data: "${cat}" (${actualCounts[cat]} items) — add to EXPECTED_COUNTS`);
+      countViolations++;
+    }
+  }
+
+  if (count === 0 && countViolations === 0) {
+    console.log('Per-category item counts (all match expected):');
+    for (const [cat, expected] of Object.entries(EXPECTED_COUNTS)) {
+      const actual = actualCounts[cat] || 0;
+      const mark = actual === expected ? '✓' : '✗';
+      console.log(`  ${mark} ${cat.padEnd(20)} ${actual} / ${expected}`);
+    }
+    console.log(`  ${'─'.repeat(40)}`);
+    console.log(`  Total: ${menu.length} items`);
+  }
+
+  process.exit(count === 0 && countViolations === 0 ? 0 : 1);
 }
 
 main();

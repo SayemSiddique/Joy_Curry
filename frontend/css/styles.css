@@ -139,6 +139,9 @@
   box-sizing: border-box;
 }
 
+/* Enforce the HTML spec: [hidden] elements must not be visible */
+[hidden] { display: none !important; }
+
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
@@ -1099,6 +1102,72 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
   margin-top: var(--spacing-sm);
 }
 
+/* Order summary rows (rendered by CheckoutModal.js) */
+.checkout-summary__heading {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-sm);
+}
+
+.checkout-summary__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.checkout-summary__row--total {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
+  margin-top: var(--spacing-xs);
+  margin-bottom: 0;
+}
+
+/* Confirmation screen */
+.checkout-confirmation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl) var(--spacing-md);
+  text-align: center;
+}
+
+.checkout-confirmation__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+  color: #fff;
+  font-size: 1.75rem;
+  line-height: 56px;
+  text-align: center;
+}
+
+.checkout-confirmation__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.checkout-confirmation__msg,
+.checkout-confirmation__detail,
+.checkout-confirmation__total,
+.checkout-confirmation__contact {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  max-width: 340px;
+}
+
+.checkout-confirmation__total {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+}
+
+.checkout-confirmation__close-btn {
+  margin-top: var(--spacing-sm);
+  min-width: 160px;
+}
+
 
 /* ---- 5h. FORM INPUTS ---- */
 
@@ -1246,6 +1315,53 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
 .state-empty::before {
   content: '🍽️';
   font-size: var(--font-size-3xl);
+}
+
+.state-error::before {
+  content: '⚠️';
+  font-size: var(--font-size-3xl);
+}
+
+/* Skeleton loading cards — shimmer animation until real content replaces them */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.menu-card--skeleton {
+  pointer-events: none;
+}
+
+.menu-card--skeleton .menu-card__image,
+.menu-card--skeleton .menu-card__name,
+.menu-card--skeleton .menu-card__description,
+.menu-card--skeleton .menu-card__meta {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-secondary) 25%,
+    var(--color-bg-tertiary, #e8e8e8) 50%,
+    var(--color-bg-secondary) 75%
+  );
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+  color: transparent;
+}
+
+.menu-card--skeleton .menu-card__name {
+  height: 1.25rem;
+  width: 60%;
+  margin-bottom: var(--spacing-xs);
+}
+
+.menu-card--skeleton .menu-card__description {
+  height: 0.875rem;
+  width: 85%;
+}
+
+.menu-card--skeleton .menu-card__meta {
+  height: 2rem;
+  width: 40%;
 }
 
 /* =============================================================================
@@ -1430,11 +1546,193 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
    9. PRINT
    =========================================================================== */
 
+/* ============================================================================
+   ORDER HISTORY DRAWER (Phase 7D)
+   Slides in from the left; same z-index tier as cart drawer (right).
+   ============================================================================ */
+
+.order-history-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: min(420px, 92vw);
+  height: 100vh;
+  background-color: var(--color-surface-raised);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  z-index: var(--z-modal);
+  transform: translateX(-100%);
+  transition: transform var(--transition-normal);
+  overflow: hidden;
+}
+
+.order-history-drawer--open {
+  transform: translateX(0);
+}
+
+.order-history-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-light);
+  flex-shrink: 0;
+}
+
+.order-history-drawer__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.order-history-drawer__close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xl);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+  cursor: pointer;
+}
+
+.order-history-drawer__close:hover {
+  background-color: var(--color-bg-alt);
+}
+
+.order-history-drawer__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.order-history-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.order-history-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+}
+
+.order-history-card__id {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-mono, monospace);
+  color: var(--color-brand-primary);
+  word-break: break-all;
+}
+
+.order-history-card__date {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  margin-left: var(--spacing-sm);
+}
+
+.order-history-card__type {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-xs);
+}
+
+.order-history-card__items {
+  list-style: none;
+  margin: 0 0 var(--spacing-sm);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-history-card__item {
+  font-size: var(--font-size-sm);
+}
+
+.order-history-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.order-history-card__total {
+  font-weight: var(--font-weight-bold);
+}
+
+.order-history__empty,
+.order-history__loading {
+  text-align: center;
+  color: var(--color-text-secondary);
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.order-history__error {
+  text-align: center;
+  color: var(--color-error, #c0392b);
+  padding: var(--spacing-md);
+  font-size: var(--font-size-sm);
+}
+
+/* "My Orders" button in the navbar */
+.navbar__orders-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: background-color var(--transition-fast);
+}
+
+.navbar__orders-btn:hover {
+  background-color: var(--color-bg-alt);
+}
+
+/* Inline form-level error in checkout modal */
+.checkout-form__global-error {
+  background-color: #fef2f2;
+  color: var(--color-error, #c0392b);
+  border: 1px solid var(--color-error, #c0392b);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Real order ID line in confirmation screen */
+.checkout-confirmation__order-id {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Brief reorder-skipped notice in cart drawer header */
+.cart-drawer__reorder-notice {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-warning, #d97706);
+  margin-top: var(--spacing-xs);
+  width: 100%;
+}
+
 @media print {
   .navbar,
   .cart-drawer,
   .cart-overlay,
   .modal-overlay,
+  .order-history-drawer,
   .skip-nav,
   .menu-card__add-btn {
     display: none !important;
