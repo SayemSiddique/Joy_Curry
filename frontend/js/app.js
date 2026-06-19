@@ -137,6 +137,7 @@ const debounce = (fn, ms) => {
 // ============================================================================
 // Event wiring — all listeners registered once on DOMContentLoaded.
 // ============================================================================
+
 function wireSearchInput() {
   const input = document.getElementById('search-input');
   if (!input) return;
@@ -149,11 +150,108 @@ function wireSearchInput() {
   input.addEventListener('input', handleInput);
 }
 
+function wireCategoryFilter() {
+  const select = document.getElementById('category-filter');
+  if (!select) return;
+
+  select.addEventListener('change', (e) => {
+    filterState.category = e.target.value;
+    renderMenu();
+  });
+}
+
+function wireDietaryToggles() {
+  const group = document.getElementById('dietary-filter');
+  if (!group) return;
+
+  // Single event listener on the parent — event delegation per M3.6 mandate.
+  group.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-dietary]');
+    if (!btn) return;
+
+    const value = btn.dataset.dietary;
+    const isActive = btn.getAttribute('aria-pressed') === 'true';
+
+    // Click the active button → clear the filter (toggle off).
+    const next = isActive ? null : value;
+    filterState.dietary = next;
+
+    // Sync aria-pressed on all buttons in the group.
+    group.querySelectorAll('[data-dietary]').forEach((b) => {
+      b.setAttribute('aria-pressed', b.dataset.dietary === next ? 'true' : 'false');
+    });
+
+    renderMenu();
+  });
+}
+
+function wireSpiceFilter() {
+  const select = document.getElementById('spice-filter');
+  if (!select) return;
+
+  select.addEventListener('change', (e) => {
+    filterState.spice = e.target.value;
+    renderMenu();
+  });
+}
+
+function wirePriceFilter() {
+  const range = document.getElementById('price-filter');
+  const label = document.getElementById('price-filter-label');
+  if (!range) return;
+
+  range.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    filterState.maxPrice = value;
+    if (label) label.textContent = `$${value % 1 === 0 ? value : value.toFixed(2)}`;
+    renderMenu();
+  });
+}
+
+function wireResetButton() {
+  const btn = document.getElementById('reset-filters');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => {
+    // Reset state
+    filterState.query    = '';
+    filterState.category = 'all';
+    filterState.dietary  = null;
+    filterState.spice    = 'all';
+    filterState.maxPrice = 25;
+
+    // Sync DOM controls back to their default values
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = '';
+
+    const categorySelect = document.getElementById('category-filter');
+    if (categorySelect) categorySelect.value = 'all';
+
+    const spiceSelect = document.getElementById('spice-filter');
+    if (spiceSelect) spiceSelect.value = 'all';
+
+    const priceRange = document.getElementById('price-filter');
+    const priceLabel = document.getElementById('price-filter-label');
+    if (priceRange) priceRange.value = '25';
+    if (priceLabel) priceLabel.textContent = '$25';
+
+    document.querySelectorAll('[data-dietary]').forEach((b) => {
+      b.setAttribute('aria-pressed', 'false');
+    });
+
+    renderMenu();
+  });
+}
+
 // ============================================================================
 // Bootstrap
 // ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
   renderMenu();
   wireSearchInput();
-  // Chunk C: wireCategoryFilter(), wireDietaryToggles(), wireSpiceFilter(), wirePriceFilter()
+  wireCategoryFilter();
+  wireDietaryToggles();
+  wireSpiceFilter();
+  wirePriceFilter();
+  wireResetButton();
 });
