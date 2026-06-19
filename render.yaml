@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: joy-curry-tandoor-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node db/seed.js && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: ./joy-curry.db
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        value: https://joycurry.sayemsiddique.com
+      - key: JWT_SECRET
+        sync: false
