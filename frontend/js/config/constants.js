@@ -7,8 +7,9 @@ export const DELIVERY_FEE = 3.00;      // In dollars
 export const TAX_RATE = 0.0875;        // NYC tax: 8.75%
 export const MIN_ORDER = 10.00;        // Minimum order for delivery
 
-// API Base URL — switches from local data (Phase 1–5) to API (Phase 6+)
-export const API_BASE_URL = 'http://localhost:3000/api';
+export const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3000/api'
+  : 'https://joy-curry-tandoor-api.onrender.com/api';
 
 // Allergen disclaimer — displayed as site-wide banner
 export const ALLERGEN_NOTE_DEFAULT = 
