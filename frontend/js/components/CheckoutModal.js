@@ -16,6 +16,7 @@ import { formatPrice } from '../utils/formatters.js';
 import { TAX_RATE, DELIVERY_FEE } from '../config/constants.js';
 import { placeOrder } from '../api/orderService.js';
 import { getAuth } from '../state/authState.js';
+import { trapFocus } from '../utils/focusTrap.js';
 
 // ============================================================================
 // DOM references (resolved once at init)
@@ -30,6 +31,10 @@ let form;
 let summaryPanel;
 /** @type {HTMLButtonElement} */
 let submitBtn;
+
+/** Element focused before the modal opened — restored on close. */
+let _checkoutTriggerEl  = null;
+let _checkoutTrapCleanup = null;
 
 // ============================================================================
 // Helpers
@@ -222,6 +227,8 @@ function renderConfirmation(details) {
 export function openCheckoutModal() {
   if (!overlay) return;
 
+  _checkoutTriggerEl = document.activeElement;
+
   form.reset();
   clearFormErrors();
   renderSummary();
@@ -237,6 +244,8 @@ export function openCheckoutModal() {
   overlay.removeAttribute('aria-hidden');
   overlay.setAttribute('aria-modal', 'true');
 
+  _checkoutTrapCleanup = trapFocus(overlay);
+
   requestAnimationFrame(() => {
     form.querySelector('input, textarea, select')?.focus();
   });
@@ -244,9 +253,13 @@ export function openCheckoutModal() {
 
 export function closeCheckoutModal() {
   if (!overlay) return;
+  _checkoutTrapCleanup?.();
+  _checkoutTrapCleanup = null;
   overlay.classList.remove('modal-overlay--visible');
   overlay.setAttribute('aria-hidden', 'true');
   overlay.removeAttribute('aria-modal');
+  _checkoutTriggerEl?.focus();
+  _checkoutTriggerEl = null;
 }
 
 // ============================================================================

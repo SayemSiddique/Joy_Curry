@@ -52,6 +52,11 @@
       📋 Orders
     </button>
 
+    <!-- Admin panel button (shown only to admin users) -->
+    <button class="navbar__admin-btn" id="navbar-admin-btn" aria-label="Open admin panel" hidden>
+      ⚙️ Admin
+    </button>
+
     <!-- Cart button -->
     <button class="navbar__cart-btn" aria-label="Shopping cart, 2 items">
       <span class="navbar__cart-icon">🛒</span>
@@ -171,6 +176,9 @@
 
   </main>
 
+
+  <!-- Backdrop behind cart drawer — click to close -->
+  <div class="cart-overlay" id="cart-overlay" aria-hidden="true"></div>
 
   <aside class="cart-drawer" id="cart-drawer" role="complementary" aria-label="Shopping cart">
     <div class="cart-drawer__header">
@@ -344,6 +352,26 @@
     </div>
     <div class="order-history-drawer__content" id="order-history-content">
       <p class="order-history__loading">Loading your orders…</p>
+    </div>
+  </aside>
+
+  <!-- ====================================================================
+       ADMIN PANEL (Phase 7F) — right-side drawer, visible to role:admin only.
+       app.js toggles .admin-panel--open and removes/adds hidden attribute.
+       ==================================================================== -->
+  <aside
+    class="admin-panel"
+    id="admin-panel"
+    role="complementary"
+    aria-label="Admin panel"
+    hidden
+  >
+    <div class="admin-panel__header">
+      <h2 class="admin-panel__title">⚙️ Admin Panel</h2>
+      <button class="admin-panel__close" aria-label="Close admin panel">✕</button>
+    </div>
+    <div id="admin-panel-content" class="admin-panel__content">
+      <p class="admin-loading">Loading…</p>
     </div>
   </aside>
 

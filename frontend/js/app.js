@@ -7,7 +7,7 @@
 import { getMenu } from './api/menuService.js';
 import { getOrderHistory } from './api/orderService.js';
 import { renderOrderHistory } from './components/OrderHistory.js';
-import { getAuth, subscribe as subscribeAuth } from './state/authState.js';
+import { getAuth, clearAuth, subscribe as subscribeAuth } from './state/authState.js';
 import { dinnerSpecials } from './data/menu/dinner-specials.js';
 import { joyCombos } from './data/menu/joy-combos.js';
 import { MenuSection } from './components/MenuSection.js';
@@ -40,7 +40,9 @@ import {
   getSelectedOptions,
 } from './options.js';
 import { formatPrice } from './utils/formatters.js';
+import { trapFocus } from './utils/focusTrap.js';
 import { initCheckoutModal, openCheckoutModal } from './components/CheckoutModal.js';
+import { initAdminPanel, openAdminPanel, closeAdminPanel } from './components/AdminPanel.js';
 
 // Phase 7 bundle categories — not rendered as standard menu cards.
 const BUNDLE_CATEGORIES = new Set(['dinner-special', 'combo']);
@@ -179,6 +181,40 @@ function renderMenu() {
 // ============================================================================
 // Utilities
 // ============================================================================
+
+/**
+ * Show a transient toast notification at the bottom of the screen.
+ * Automatically dismisses after durationMs. Variant: 'default' | 'error' | 'success'.
+ *
+ * @param {string} message
+ * @param {{ variant?: string, durationMs?: number }} options
+ */
+function showToast(message, { variant = 'default', durationMs = 4000 } = {}) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.setAttribute('aria-live', 'polite');
+    container.setAttribute('aria-atomic', 'false');
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast${variant !== 'default' ? ` toast--${variant}` : ''}`;
+  toast.textContent = message;
+  toast.setAttribute('role', 'status');
+  container.appendChild(toast);
+
+  // Trigger CSS transition on next frame.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => toast.classList.add('toast--visible'));
+  });
+
+  setTimeout(() => {
+    toast.classList.remove('toast--visible');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  }, durationMs);
+}
 
 /** Minimal HTML escaping for user-supplied strings inserted into innerHTML. */
 const escapeHtml = (str) =>
@@ -327,17 +363,21 @@ let itemById = new Map();
 
 /** Currently open item — needed for price-preview recalculation on change. */
 let _modalItem = null;
+/** Element that triggered the options modal — focus returns here on close. */
+let _optionsTriggerEl  = null;
+let _optionsTrapCleanup = null;
 
 function openOptionsModal(item) {
   const overlay = document.getElementById('options-modal-overlay');
   if (!overlay) return;
 
+  _optionsTriggerEl = document.activeElement;
   _modalItem = item;
   overlay.innerHTML = buildOptionsModal(item);
   overlay.classList.add('modal-overlay--visible');
   overlay.removeAttribute('hidden');
-  // Move focus into the modal for keyboard accessibility.
   overlay.querySelector('#options-modal-close')?.focus();
+  _optionsTrapCleanup = trapFocus(overlay);
 
   // Qty stepper — hidden input holds value; display span shows it.
   const qtyInput = overlay.querySelector('#options-qty');
@@ -381,10 +421,14 @@ function openOptionsModal(item) {
 function closeOptionsModal() {
   const overlay = document.getElementById('options-modal-overlay');
   if (!overlay) return;
+  _optionsTrapCleanup?.();
+  _optionsTrapCleanup = null;
   overlay.classList.remove('modal-overlay--visible');
   overlay.setAttribute('hidden', '');
   overlay.innerHTML = '';
   _modalItem = null;
+  _optionsTriggerEl?.focus();
+  _optionsTriggerEl = null;
 }
 
 function refreshPricePreview(overlay, item) {
@@ -482,22 +526,29 @@ function renderCartDrawer(cart) {
 }
 
 function openCartDrawer() {
-  const drawer = document.getElementById('cart-drawer');
+  const drawer   = document.getElementById('cart-drawer');
+  const overlay  = document.getElementById('cart-overlay');
   if (!drawer) return;
   drawer.classList.add('cart-drawer--open');
   drawer.removeAttribute('hidden');
+  overlay?.classList.add('cart-overlay--visible');
   drawer.querySelector('.cart-drawer__close')?.focus();
 }
 
 function closeCartDrawer() {
-  const drawer = document.getElementById('cart-drawer');
+  const drawer  = document.getElementById('cart-drawer');
+  const overlay = document.getElementById('cart-overlay');
   if (!drawer) return;
   drawer.classList.remove('cart-drawer--open');
+  overlay?.classList.remove('cart-overlay--visible');
 }
 
 function wireCartDrawer() {
   // Open on navbar cart button click.
   document.querySelector('.navbar__cart-btn')?.addEventListener('click', openCartDrawer);
+
+  // Clicking the backdrop closes the drawer.
+  document.getElementById('cart-overlay')?.addEventListener('click', closeCartDrawer);
 
   const drawer = document.getElementById('cart-drawer');
   if (!drawer) return;
@@ -573,16 +624,21 @@ function renderBundles() {
 // ============================================================================
 
 let _modalBundle = null;
+/** Element that triggered the bundle modal — focus returns here on close. */
+let _bundleTriggerEl  = null;
+let _bundleTrapCleanup = null;
 
 function openBundleModal(bundle) {
   const overlay = document.getElementById('bundle-modal-overlay');
   if (!overlay) return;
 
+  _bundleTriggerEl = document.activeElement;
   _modalBundle = bundle;
   overlay.innerHTML = buildBundleModal(bundle, itemById);
   overlay.classList.add('modal-overlay--visible');
   overlay.removeAttribute('hidden');
   overlay.querySelector('#bundle-modal-close')?.focus();
+  _bundleTrapCleanup = trapFocus(overlay);
 
   // Qty stepper
   const qtyInput   = overlay.querySelector('#bundle-qty');
@@ -634,10 +690,14 @@ function openBundleModal(bundle) {
 function closeBundleModal() {
   const overlay = document.getElementById('bundle-modal-overlay');
   if (!overlay) return;
+  _bundleTrapCleanup?.();
+  _bundleTrapCleanup = null;
   overlay.classList.remove('modal-overlay--visible');
   overlay.setAttribute('hidden', '');
   overlay.innerHTML = '';
   _modalBundle = null;
+  _bundleTriggerEl?.focus();
+  _bundleTriggerEl = null;
 }
 
 /**
@@ -716,8 +776,14 @@ async function openOrderHistoryDrawer() {
     const { orders } = await getOrderHistory();
     _orderHistoryCache = orders;
     content.innerHTML = renderOrderHistory(orders);
-  } catch {
-    content.innerHTML = '<p class="order-history__error">Unable to load orders. Please try again.</p>';
+  } catch (err) {
+    if (err.status === 401) {
+      clearAuth();
+      closeOrderHistoryDrawer();
+      showToast('Your session has expired. Please log in again.', { variant: 'error' });
+    } else {
+      content.innerHTML = '<p class="order-history__error">Unable to load orders. Please try again.</p>';
+    }
   }
 }
 
@@ -810,32 +876,71 @@ async function handleReorder(orderId, triggerBtn) {
 }
 
 // ============================================================================
-// Auth state — show/hide "My Orders" navbar button based on login status.
+// Auth state — show/hide "My Orders" and "Admin" navbar buttons based on login
+// status and role.
 // ============================================================================
 
 function wireAuthState() {
   const ordersBtn = document.getElementById('navbar-orders-btn');
+  const adminBtn  = document.getElementById('navbar-admin-btn');
 
-  subscribeAuth(({ isLoggedIn }) => {
-    if (!ordersBtn) return;
-    if (isLoggedIn) {
-      ordersBtn.removeAttribute('hidden');
-    } else {
-      ordersBtn.setAttribute('hidden', '');
-      closeOrderHistoryDrawer();
-      _orderHistoryCache = [];
+  function syncAuthUI({ isLoggedIn, role }) {
+    if (ordersBtn) {
+      if (isLoggedIn) ordersBtn.removeAttribute('hidden');
+      else { ordersBtn.setAttribute('hidden', ''); closeOrderHistoryDrawer(); _orderHistoryCache = []; }
     }
-  });
-
-  // Sync to initial auth state (token may already be restored from localStorage).
-  if (getAuth().isLoggedIn && ordersBtn) {
-    ordersBtn.removeAttribute('hidden');
+    if (adminBtn) {
+      if (isLoggedIn && role === 'admin') adminBtn.removeAttribute('hidden');
+      else { adminBtn.setAttribute('hidden', ''); closeAdminPanel(); }
+    }
   }
+
+  subscribeAuth(syncAuthUI);
+  syncAuthUI(getAuth());
+}
+
+// ============================================================================
+// Admin Panel — open / close wiring.
+// ============================================================================
+
+function wireAdminPanel() {
+  document.getElementById('navbar-admin-btn')?.addEventListener('click', openAdminPanel);
+
+  const panel = document.getElementById('admin-panel');
+  if (!panel) return;
+
+  panel.querySelector('.admin-panel__close')?.addEventListener('click', closeAdminPanel);
 }
 
 // ============================================================================
 // Bootstrap
 // ============================================================================
+
+/**
+ * After the menu loads, remove any restored cart items whose menu item is now
+ * out of stock. Shows a toast listing the removed items so the user understands
+ * why their cart changed.
+ */
+function reconcileCartWithMenu() {
+  const cart = getCart();
+  if (cart.length === 0) return;
+
+  const removed = [];
+  for (const li of cart) {
+    const menuItem = itemById.get(li.itemId);
+    if (menuItem && menuItem.inStock === false) {
+      removeItem(li.cartItemId);
+      removed.push(li.name);
+    }
+  }
+
+  if (removed.length > 0) {
+    showToast(
+      `Removed from cart (now out of stock): ${removed.join(', ')}`,
+      { variant: 'error', durationMs: 6000 }
+    );
+  }
+}
 
 async function initMenu() {
   renderSkeleton();
@@ -848,6 +953,7 @@ async function initMenu() {
     ...menu.map((item) => [item.id, item]),
     ...bundleItems.map((b) => [b.id, b]),
   ]);
+  reconcileCartWithMenu();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -869,6 +975,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     wireBundleCards();
     initCheckoutModal();
     wireOrderHistoryDrawer();
+    initAdminPanel();
+    wireAdminPanel();
     wireAuthState();
     updateCartBadge();
     renderCartDrawer(getCart());

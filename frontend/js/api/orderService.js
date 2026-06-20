@@ -1,11 +1,31 @@
 import { API_BASE_URL } from '../config/constants.js';
 import { getToken } from '../state/authState.js';
 
+const ORDER_TIMEOUT_MS   = 15000;
+const HISTORY_TIMEOUT_MS = 10000;
+
 function authHeaders() {
   const token = getToken();
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      const e = new Error('Request timed out. Please check your connection and try again.');
+      e.code = 'TIMEOUT';
+      throw e;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -20,11 +40,15 @@ function authHeaders() {
  * @returns {Promise<{ order: object, lineItems: object[] }>}
  */
 export async function placeOrder({ deliveryType, deliveryAddress, items, idempotencyKey }) {
-  const res = await fetch(`${API_BASE_URL}/orders`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify({ deliveryType, deliveryAddress, items, idempotencyKey }),
-  });
+  const res = await fetchWithTimeout(
+    `${API_BASE_URL}/orders`,
+    {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ deliveryType, deliveryAddress, items, idempotencyKey }),
+    },
+    ORDER_TIMEOUT_MS
+  );
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -48,9 +72,11 @@ export async function getOrderHistory() {
     throw err;
   }
 
-  const res = await fetch(`${API_BASE_URL}/orders/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await fetchWithTimeout(
+    `${API_BASE_URL}/orders/me`,
+    { headers: { Authorization: `Bearer ${token}` } },
+    HISTORY_TIMEOUT_MS
+  );
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
