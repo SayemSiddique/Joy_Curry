@@ -80,13 +80,24 @@ Environment, Git, folder structure, Node.js. Complete.
 | B | M7.2 + M7.3 + M7.4 — BundleModal UI; cartState bundle support; CartItem bundle render; app.js wiring | ✅ Done |
 | C | M7.5 — Order backend: `models/order.js`, `routes/orders.js`, `validate.js` validateOrder | ✅ Done |
 | D | M7.6 + M7.7 — Frontend checkout→confirmation→history→reorder; `orderService.js` | ✅ Done |
-| E | M7.8 — Email confirmations via Resend; `email.js` real implementation | ⬜ |
-| F | M7.9 — Admin UI: `AdminPanel.js` wired to admin endpoints | ⬜ |
+| E | M7.8 — Email confirmations via Resend; `email.js` real implementation | ✅ Done |
+| F | M7.9 — Admin UI: `AdminPanel.js` wired to admin endpoints | ✅ Done |
+
+**Phase 7 Deliverable:** Complete ordering + admin system. Bundles, checkout, order history, email confirmations, and admin panel all production-ready. Admin UI (role:'admin' only) provides: paginated item list with stock badges, inline stock toggle (PATCH /api/admin/menu/:id/stock), inline edit form (PUT — name, price in $, description), deactivate/soft-delete (DELETE), and add new item (POST). `GET /api/admin/menu` returns all non-hard-deleted items. Auth role decoded from JWT on restore — admin button persists across page loads.
 
 ---
 
-## Phase 8 — Polish, Security & Deployment ⬜
-Security audit, CSP headers, rate limiting, Vercel (frontend) + Render (backend) deployment, final QA. Not started.
+## Phase 8 — Polish, Security & Deployment 🔄
+
+| Chunk | Milestone | Status |
+|-------|-----------|--------|
+| A | M8.1 — Error handling & edge cases: AbortController timeout (8s menu / 10s history / 15s orders) in menuService + orderService; `showToast()` utility in app.js; `reconcileCartWithMenu()` removes out-of-stock items on cart restore; 401 in order-history drawer → `clearAuth()` + toast; toast CSS added to styles.css | ✅ Done |
+| B | M8.2 — Loading skeletons & transitions: skeleton shimmer verified; cart overlay (`#cart-overlay`) added to index.html + wired in app.js (open/close toggles `cart-overlay--visible`, click backdrop closes drawer); all existing CSS transitions confirmed (cart slide, modal fade, filter toggles) | ✅ Done |
+| C | M8.3 — Accessibility audit: `focusTrap.js` utility created; Tab trap wired to options modal, bundle modal, and checkout modal; return-focus-on-close wired to all three; existing ARIA roles/labels/landmarks confirmed correct; `aria-live` on cart badge and `#menu-root` confirmed; MenuCard add button `aria-label` confirmed; skip-nav `href="#main"` confirmed working | ✅ Done |
+| D | M8.4 + M8.5 — Performance + Security audit: `compression`, `helmet`, `cors` installed; manual CORS block replaced with `cors` package; CSP/X-Frame-Options/HSTS/X-Content-Type/Referrer-Policy headers confirmed via curl; `GET /api/health` route added; sqlite3→6.0.1, bcrypt→6.0.0, nodemon→3 upgraded; `npm audit --omit=dev` = 0 vulnerabilities | ✅ Done |
+| E | M8.6 — CI/CD + integration stubs: `.github/workflows/ci.yml` (ESLint + optional Render health check); `backend/eslint.config.js` (ESLint 9 flat config, 0 warnings); `cloverService.js`, `deliveryService.js` (Haversine 4-mile radius), `paymentService.js` (Stripe), `routes/payments.js` (503 stub) created; `.env.example` updated with all future env var slots | ✅ Done |
+| F | M8.7 + M8.8 — Deployment to joycurry.sayemsiddique.com | ⬜ Not Started |
+| G | M8.9 — Final documentation + Docsify | ⬜ Not Started |
 
 ---
 
