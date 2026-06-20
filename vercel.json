@@ -1,5 +1,4 @@
 {
-  "root": "frontend",
   "outputDirectory": "frontend",
   "buildCommand": null,
   "installCommand": null,
