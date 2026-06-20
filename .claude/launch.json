@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "joy-curry-frontend",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-l", "3456", "frontend"],
+      "port": 3456
+    }
+  ]
+}
