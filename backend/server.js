@@ -1,5 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import compression from 'compression';
 import { initializeSchema } from './db/setup.js';
 import logger from './utils/logger.js';
 import errorHandler from './middleware/errorHandler.js';
@@ -10,20 +13,41 @@ import usersRoutes from './routes/users.js';
 import ordersRoutes from './routes/orders.js';
 
 const app = express();
-const PORT = process.env.PORT ?? 3000;
+const PORT        = process.env.PORT ?? 3000;
 const CORS_ORIGIN = process.env.CORS_ORIGIN ?? 'http://localhost:5500';
 
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', CORS_ORIGIN);
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
-  next();
-});
+// Security headers — helmet sets CSP, X-Frame-Options, HSTS, X-Content-Type-Options, etc.
+// unsafe-inline on styleSrc is required because the frontend uses inline CSS custom properties.
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'"],
+      styleSrc:   ["'self'", "'unsafe-inline'"],
+      imgSrc:     ["'self'", 'data:'],
+      connectSrc: ["'self'", CORS_ORIGIN],
+    },
+  },
+}));
+
+// CORS — replace manual headers with the cors package for correctness and OPTIONS pre-flight.
+app.use(cors({
+  origin:  CORS_ORIGIN,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Gzip compression for all JSON and text responses.
+app.use(compression());
 
 app.use(express.json({ limit: '10kb' }));
 app.use(logger.request);
 app.use(globalLimiter);
+
+// Health check — used by CI/CD (GitHub Actions) and Render health checks.
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', ts: new Date().toISOString() });
+});
 
 app.use('/api/menu', menuRoutes);
 app.use('/api/users/login', loginLimiter);

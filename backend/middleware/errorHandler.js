@@ -11,7 +11,7 @@ const STATUS_MAP = {
   RATE_LIMITED:       429,
 };
 
-export default function errorHandler(err, req, res, next) {
+export default function errorHandler(err, req, res, _next) {
   const status = STATUS_MAP[err.code] ?? 500;
 
   if (status >= 500) {

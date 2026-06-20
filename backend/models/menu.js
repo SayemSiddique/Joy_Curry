@@ -91,6 +91,13 @@ export async function getAllMenuItems(filters = {}) {
   return Promise.all(rows.map(attachRelations));
 }
 
+export async function getAllMenuItemsAdmin() {
+  const rows = await db.all(
+    'SELECT * FROM menu_items WHERE deleted_at IS NULL ORDER BY category, name'
+  );
+  return Promise.all(rows.map(attachRelations));
+}
+
 export async function getMenuItemById(id) {
   const row = await db.get(
     'SELECT * FROM menu_items WHERE id = ? AND is_active = 1 AND deleted_at IS NULL',

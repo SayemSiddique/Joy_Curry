@@ -13,14 +13,20 @@
   "author": "Sam Siddique",
   "license": "MIT",
   "dependencies": {
-    "bcrypt": "^5.1.0",
+    "bcrypt": "^6.0.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.0",
-    "sqlite3": "^5.1.6"
+    "resend": "^6.14.0",
+    "sqlite3": "^6.0.1"
   },
   "devDependencies": {
-    "nodemon": "^2.0.20"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^9.39.4",
+    "nodemon": "^3.1.14"
   }
 }
