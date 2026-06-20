@@ -96,7 +96,7 @@ Environment, Git, folder structure, Node.js. Complete.
 | C | M8.3 — Accessibility audit: `focusTrap.js` utility created; Tab trap wired to options modal, bundle modal, and checkout modal; return-focus-on-close wired to all three; existing ARIA roles/labels/landmarks confirmed correct; `aria-live` on cart badge and `#menu-root` confirmed; MenuCard add button `aria-label` confirmed; skip-nav `href="#main"` confirmed working | ✅ Done |
 | D | M8.4 + M8.5 — Performance + Security audit: `compression`, `helmet`, `cors` installed; manual CORS block replaced with `cors` package; CSP/X-Frame-Options/HSTS/X-Content-Type/Referrer-Policy headers confirmed via curl; `GET /api/health` route added; sqlite3→6.0.1, bcrypt→6.0.0, nodemon→3 upgraded; `npm audit --omit=dev` = 0 vulnerabilities | ✅ Done |
 | E | M8.6 — CI/CD + integration stubs: `.github/workflows/ci.yml` (ESLint + optional Render health check); `backend/eslint.config.js` (ESLint 9 flat config, 0 warnings); `cloverService.js`, `deliveryService.js` (Haversine 4-mile radius), `paymentService.js` (Stripe), `routes/payments.js` (503 stub) created; `.env.example` updated with all future env var slots | ✅ Done |
-| F | M8.7 + M8.8 — Deployment to joycurry.sayemsiddique.com | ⬜ Not Started |
+| F | M8.7 + M8.8 — Deployment to joycurry.sayemsiddique.com | ✅ Done |
 | G | M8.9 — Final documentation + Docsify | ⬜ Not Started |
 
 ---
