@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "-l", "3456", "frontend"],
       "port": 3456
+    },
+    {
+      "name": "joy-curry-docs",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-l", "3457", "docs"],
+      "port": 3457
     }
   ]
 }

@@ -97,7 +97,9 @@ Environment, Git, folder structure, Node.js. Complete.
 | D | M8.4 + M8.5 — Performance + Security audit: `compression`, `helmet`, `cors` installed; manual CORS block replaced with `cors` package; CSP/X-Frame-Options/HSTS/X-Content-Type/Referrer-Policy headers confirmed via curl; `GET /api/health` route added; sqlite3→6.0.1, bcrypt→6.0.0, nodemon→3 upgraded; `npm audit --omit=dev` = 0 vulnerabilities | ✅ Done |
 | E | M8.6 — CI/CD + integration stubs: `.github/workflows/ci.yml` (ESLint + optional Render health check); `backend/eslint.config.js` (ESLint 9 flat config, 0 warnings); `cloverService.js`, `deliveryService.js` (Haversine 4-mile radius), `paymentService.js` (Stripe), `routes/payments.js` (503 stub) created; `.env.example` updated with all future env var slots | ✅ Done |
 | F | M8.7 + M8.8 — Deployment to joycurry.sayemsiddique.com | ✅ Done |
-| G | M8.9 — Final documentation + Docsify | ⬜ Not Started |
+| G | M8.9 — Final documentation + Docsify | ✅ Done |
+
+**Phase 8 Deliverable:** All 8 phases complete. 9 cheatsheets written to `docs/cheatsheets/` (one per phase, concept → syntax → Joy Curry example → Common Mistakes format). Docsify site in `docs/` with `index.html`, `_sidebar.md`, `README.md`, `.nojekyll`. `deploy-docs.yml` GitHub Actions workflow deploys `/docs` to `gh-pages` branch under `/docs/` subdirectory → accessible at `https://joycurry.sayemsiddique.com/docs`. `README.md` updated with live URLs, full setup guide, architecture decisions, and project structure.
 
 ---
 

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Joy Curry & Tandoor — Dev Docs</title>
+  <meta name="description" content="Phase-by-phase cheat sheets for the Joy Curry & Tandoor ordering website build." />
+  <link rel="icon" href="https://joycurry.sayemsiddique.com/favicon.ico" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple-dark.css" />
+  <style>
+    :root {
+      --theme-color: #c8953a;
+      --sidebar-background: #1a1a1a;
+      --sidebar-nav-link-color: #f5f5f5;
+      --sidebar-nav-link-color--active: #c8953a;
+      --base-background-color: #121212;
+      --base-color: #f0f0f0;
+      --code-theme-background: #1e1e1e;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">Loading docs...</div>
+  <script>
+    window.$docsify = {
+      name:        'Joy Curry & Tandoor',
+      repo:        'https://github.com/SayemSiddique/joy-curry-tandoor',
+      homepage:    'README.md',
+      loadSidebar: '_sidebar.md',
+      loadNavbar:  false,
+      auto2top:    true,
+      maxLevel:    3,
+      subMaxLevel: 2,
+      search: {
+        placeholder: 'Search docs...',
+        noData:      'No results.',
+        depth:       3,
+      },
+      copyCode: {
+        buttonText: 'Copy',
+        errorText:  'Error',
+        successText: 'Copied',
+      },
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@2/dist/docsify-copy-code.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-sql.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-yaml.min.js"></script>
+</body>
+</html>

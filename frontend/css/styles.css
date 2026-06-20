@@ -30,8 +30,13 @@
   --color-primary:         #c94a1a;   /* Warm spice orange — buttons, links, accents */
   --color-primary-hover:   #a83d15;   /* Darker for hover/focus states */
   --color-primary-light:   #fceadb;   /* Tinted background for primary content */
-  --color-secondary:       #f4a742;   /* Gold accent — stars, highlights */
-  --color-secondary-light: #fef6e6;   /* Tinted background */
+  --color-secondary:       #c8953a;   /* Saffron gold — accents, highlights */
+  --color-secondary-light: #fdf3d8;   /* Tinted background */
+
+  /* ---- Navbar ---- */
+  --color-navbar-bg:       #180800;   /* Rich dark brown — premium restaurant feel */
+  --color-navbar-text:     #f0e4d0;   /* Warm cream — readable on dark */
+  --color-navbar-hover:    rgba(255, 255, 255, 0.08);
 
   /* ---- Semantic colors ---- */
   /* WCAG AA verified against white (#fff) unless noted */
@@ -51,22 +56,23 @@
   --color-gf:              #558b2f;   /* Gluten-free — olive green */
 
   /* ---- Neutral palette ---- */
-  --color-text-primary:    #1a1a1a;   /* Body text — 15.3:1 on #fff */
-  --color-text-secondary:  #555;      /* Subtle text — 5.74:1 on #fff */
-  --color-text-muted:      #888;      /* Disabled / placeholder — 3.54:1 on #fff */
+  --color-text-primary:    #1a0d00;   /* Rich dark brown — body text */
+  --color-text-secondary:  #5c3d1e;   /* Warm brown — secondary text */
+  --color-text-muted:      #9a7050;   /* Muted warm — placeholders */
   --color-text-inverse:    #fff;      /* Text on dark backgrounds */
-  --color-bg:              #fff;
-  --color-bg-alt:          #f8f7f4;   /* Warm off-white — alternating sections */
-  --color-surface:         #fff;      /* Card / elevated surface */
-  --color-surface-raised:  #fff;      /* Higher elevation — modals, drawers */
-  --color-border:          #e0ddd8;   /* Warm gray borders */
-  --color-border-light:    #eeecea;   /* Subtle dividers */
-  --color-overlay:         rgba(0, 0, 0, 0.5);  /* Modal / drawer backdrop */
+  --color-bg:              #faf6ef;   /* Warm cream — main background */
+  --color-bg-alt:          #f2e8d8;   /* Deeper cream — alternating sections */
+  --color-surface:         #ffffff;   /* Card / elevated surface */
+  --color-surface-raised:  #ffffff;   /* Higher elevation — modals, drawers */
+  --color-border:          #e0cdb5;   /* Warm tan borders */
+  --color-border-light:    #ecdec8;   /* Subtle warm dividers */
+  --color-overlay:         rgba(24, 8, 0, 0.6);  /* Modal / drawer backdrop */
 
   /* ---- Typography ---- */
-  --font-family-body:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-                        Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
-  --font-family-mono:   'Monaco', 'Courier New', monospace;
+  --font-family-body:    'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                          Roboto, sans-serif;
+  --font-family-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-family-mono:    'Monaco', 'Courier New', monospace;
   --font-size-xs:       0.75rem;    /* 12px */
   --font-size-sm:       0.875rem;   /* 14px */
   --font-size-base:     1rem;       /* 16px */
@@ -100,9 +106,9 @@
   --radius-full: 9999px;
 
   /* ---- Shadows ---- */
-  --shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md:    0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg:    0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-sm:    0 1px 4px rgba(80, 30, 0, 0.08);
+  --shadow-md:    0 4px 16px rgba(80, 30, 0, 0.12);
+  --shadow-lg:    0 8px 32px rgba(80, 30, 0, 0.18);
   --shadow-focus: 0 0 0 3px rgba(201, 74, 26, 0.35);  /* Primary color ring */
 
   /* ---- Transitions ---- */
@@ -269,12 +275,14 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
 }
 
 .section__title {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
+  font-weight: 700;
   color: var(--color-text-primary);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 2px solid var(--color-primary);
+  border-bottom: 2px solid var(--color-secondary);
   margin-bottom: var(--spacing-md);
+  letter-spacing: 0.01em;
 }
 
 /* Menu card grid — 1 column by default (mobile) */
@@ -313,21 +321,24 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
   justify-content: space-between;
   padding-block: var(--spacing-sm);
   padding-inline: var(--spacing-md);
-  background-color: rgba(255, 255, 255, 0.92);
+  background-color: var(--color-navbar-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
 .navbar__logo {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
+  font-weight: 700;
+  color: var(--color-secondary);
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .navbar__logo span {
-  color: var(--color-text-primary);
+  color: var(--color-navbar-text);
 }
 
 /* Hamburger toggle — CSS-only: input + label */
@@ -345,7 +356,7 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
   display: block;
   width: 100%;
   height: 2px;
-  background-color: var(--color-text-primary);
+  background-color: var(--color-navbar-text);
   border-radius: 1px;
   transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
@@ -409,11 +420,12 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-md);
   font-weight: var(--font-weight-medium);
+  color: var(--color-navbar-text);
   transition: background-color var(--transition-fast);
 }
 
 .navbar__cart-btn:hover {
-  background-color: var(--color-bg-alt);
+  background-color: var(--color-navbar-hover);
 }
 
 .navbar__cart-icon {
@@ -464,11 +476,12 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
   top: var(--navbar-height, 64px);
   z-index: 90;
   background-color: var(--color-bg);
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border);
   padding: var(--spacing-sm) var(--spacing-md);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  box-shadow: 0 2px 8px rgba(80, 30, 0, 0.06);
 }
 
 .toolbar__row {
@@ -590,27 +603,43 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
   display: flex;
   flex-direction: column;
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border-light);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+  transition: box-shadow var(--transition-normal), transform var(--transition-normal),
+              border-color var(--transition-normal);
 }
 
 .menu-card:hover {
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  border-color: var(--color-secondary);
 }
 
-/* Image area — placeholder with colored background */
+/* Image area — placeholder with warm spice gradient */
 .menu-card__image {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 10;
-  background-color: var(--color-bg-alt);
+  aspect-ratio: 16 / 9;
+  background-color: #e8c890;
   background-image:
-    linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-bg-alt) 100%);
+    linear-gradient(145deg, #f5dba0 0%, #e8bc70 45%, #c8953a 100%);
   overflow: hidden;
+}
+
+/* Food emoji watermark — centered in every card image placeholder */
+.menu-card__image::before {
+  content: "🍛";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -58%);
+  font-size: 4rem;
+  line-height: 1;
+  opacity: 0.28;
+  pointer-events: none;
+  user-select: none;
 }
 
 .menu-card__image img {
@@ -624,12 +653,15 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
   position: absolute;
   bottom: var(--spacing-sm);
   right: var(--spacing-sm);
-  background-color: var(--color-surface);
+  background-color: rgba(24, 8, 0, 0.72);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-md);
+  letter-spacing: 0.02em;
 }
 
 /* Out-of-stock overlay */
@@ -663,13 +695,15 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
 }
 
 .menu-card__name {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
+  font-weight: 700;
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
   flex-wrap: wrap;
+  line-height: 1.3;
 }
 
 .menu-card__description {
@@ -1518,6 +1552,13 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
   .navbar__links a {
     padding: var(--spacing-xs) var(--spacing-sm);
     font-size: var(--font-size-sm);
+    color: var(--color-navbar-text);
+  }
+
+  .navbar__links a:hover,
+  .navbar__links a:focus-visible {
+    background-color: var(--color-navbar-hover);
+    color: var(--color-secondary);
   }
 
   .navbar__nav-close {
@@ -1737,11 +1778,12 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-sm);
   white-space: nowrap;
+  color: var(--color-navbar-text);
   transition: background-color var(--transition-fast);
 }
 
 .navbar__orders-btn:hover {
-  background-color: var(--color-bg-alt);
+  background-color: var(--color-navbar-hover);
 }
 
 /* Inline form-level error in checkout modal */
@@ -2034,8 +2076,9 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
   font-size: var(--font-size-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
-  background-color: var(--color-primary);
-  color: #fff;
+  background-color: var(--color-secondary);
+  color: #1a0800;
+  font-weight: var(--font-weight-bold);
   border: none;
   cursor: pointer;
   transition: opacity var(--transition-fast);
@@ -2043,7 +2086,61 @@ h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-bold); }
 }
 
 .navbar__admin-btn:hover {
-  opacity: 0.88;
+  opacity: 0.85;
+}
+
+/* ============================================================================
+   PAGE HERO — atmospheric tagline below the toolbar
+   ============================================================================ */
+
+.page-hero {
+  text-align: center;
+  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: var(--spacing-sm);
+}
+
+.page-hero__tagline {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-base);
+  font-style: italic;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.04em;
+}
+
+/* ============================================================================
+   SITE FOOTER — dark version to bookend the dark navbar
+   ============================================================================ */
+
+.site-footer {
+  background-color: var(--color-navbar-bg);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  color: var(--color-navbar-text);
+}
+
+.site-footer .site-footer__info {
+  color: rgba(240, 228, 208, 0.75);
+}
+
+.site-footer .site-footer__info a {
+  color: var(--color-secondary);
+}
+
+.site-footer .allergen-banner {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(240, 228, 208, 0.7);
+}
+
+/* ============================================================================
+   ADD TO CART BUTTON — more prominent on cards
+   ============================================================================ */
+
+.menu-card__add-btn.btn--primary {
+  border-radius: var(--radius-full);
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.02em;
 }
 
 @media print {
