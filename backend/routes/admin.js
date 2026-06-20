@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  getAllMenuItemsAdmin,
   createMenuItem,
   updateMenuItem,
   softDeleteMenuItem,
@@ -12,6 +13,15 @@ import { createError } from '../middleware/errorHandler.js';
 const router = Router();
 
 router.use(verifyToken, requireRole('admin'));
+
+router.get('/menu', async (req, res, next) => {
+  try {
+    const items = await getAllMenuItemsAdmin();
+    res.json({ data: items });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.post(
   '/menu',

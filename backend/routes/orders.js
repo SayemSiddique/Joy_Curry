@@ -3,6 +3,8 @@ import { verifyToken } from '../middleware/auth.js';
 import { validateIdParam, validateOrder } from '../middleware/validate.js';
 import { createError } from '../middleware/errorHandler.js';
 import { createOrder, getOrdersByUserId, getOrderById } from '../models/order.js';
+import { getUserById } from '../models/user.js';
+import { sendOrderConfirmation } from '../utils/email.js';
 
 const router = Router();
 
@@ -18,6 +20,15 @@ router.post('/', validateOrder, async (req, res, next) => {
       items,
       idempotencyKey,
     });
+
+    if (!duplicate) {
+      const user = await getUserById(req.user.sub);
+      if (user?.email) {
+        sendOrderConfirmation(order, lineItems, user.email).catch((err) =>
+          console.error('[orders] email dispatch error:', err)
+        );
+      }
+    }
 
     if (duplicate) res.set('X-Idempotent-Replay', 'true');
     res.status(duplicate ? 200 : 201).json({ order, lineItems });
