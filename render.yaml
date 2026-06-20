@@ -14,6 +14,6 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: CORS_ORIGIN
-        value: https://joycurry.sayemsiddique.com
+        value: https://joycurry.sayemsiddique.com,https://joy-curry-tandoor.vercel.app
       - key: JWT_SECRET
         sync: false

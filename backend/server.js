@@ -14,8 +14,14 @@ import usersRoutes from './routes/users.js';
 import ordersRoutes from './routes/orders.js';
 
 const app = express();
-const PORT        = process.env.PORT ?? 3000;
-const CORS_ORIGIN = process.env.CORS_ORIGIN ?? 'http://localhost:5500';
+const PORT = process.env.PORT ?? 3000;
+
+// CORS_ORIGIN accepts a comma-separated list so we can allow both the custom
+// domain and the Vercel preview URL without opening the API to all origins.
+const CORS_ORIGINS = (process.env.CORS_ORIGIN ?? 'http://localhost:5500')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
 
 // Security headers — helmet sets CSP, X-Frame-Options, HSTS, X-Content-Type-Options, etc.
 // unsafe-inline on styleSrc is required because the frontend uses inline CSS custom properties.
@@ -26,14 +32,20 @@ app.use(helmet({
       scriptSrc:  ["'self'"],
       styleSrc:   ["'self'", "'unsafe-inline'"],
       imgSrc:     ["'self'", 'data:'],
-      connectSrc: ["'self'", CORS_ORIGIN],
+      connectSrc: ["'self'", ...CORS_ORIGINS],
     },
   },
 }));
 
-// CORS — replace manual headers with the cors package for correctness and OPTIONS pre-flight.
+// CORS — allow every explicitly listed origin; rejects everything else.
 app.use(cors({
-  origin:  CORS_ORIGIN,
+  origin(requestOrigin, callback) {
+    if (!requestOrigin || CORS_ORIGINS.includes(requestOrigin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin ${requestOrigin} not allowed`));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
