@@ -1,0 +1,72 @@
+---
+// Static footer — dark, address, hours, halal + allergen disclaimers.
+---
+
+<footer class="footer" aria-label="Site footer">
+  <div class="container">
+    <div class="footer__grid">
+
+      <!-- Brand column -->
+      <div class="footer__brand">
+        <p class="footer__logo-text">Joy Curry &amp; <span>Tandoor</span></p>
+        <p class="footer__tagline">
+          Authentic Halal Indian cuisine crafted with care since 1994.
+          Serving Midtown Manhattan's finest curries, biryanis, and tandoor specialties.
+        </p>
+
+        <div class="footer__allergen" role="note" aria-label="Allergen information">
+          <strong>⚠ Allergen Notice:</strong> Our kitchen handles nuts, dairy, gluten, and shellfish.
+          Please inform us of any dietary requirements when ordering. Not all items are gluten-free.
+        </div>
+      </div>
+
+      <!-- Contact & Hours column -->
+      <div>
+        <p class="footer__heading">Visit Us</p>
+        <address style="font-style: normal;">
+          <a
+            href="https://maps.google.com/?q=148+East+46th+Street+New+York+NY+10017"
+            class="footer__link"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Get directions to Joy Curry & Tandoor"
+          >
+            148 East 46th Street<br />New York, NY 10017
+          </a>
+          <a href="tel:+12126972000" class="footer__link" aria-label="Call us">
+            (212) 697-2000
+          </a>
+        </address>
+
+        <p class="footer__heading" style="margin-top: var(--space-6)">Hours</p>
+        <p class="footer__link" style="cursor: default">Mon – Fri: 11 am – 10 pm</p>
+        <p class="footer__link" style="cursor: default">Sat – Sun: 12 pm – 10 pm</p>
+      </div>
+
+      <!-- Links column -->
+      <div>
+        <p class="footer__heading">Order</p>
+        <a href="#menu" class="footer__link">Full Menu</a>
+        <a href="#menu" class="footer__link">Dinner Specials</a>
+        <a href="#menu" class="footer__link">Lunch Combos</a>
+        <a href="#menu" class="footer__link">Vegetarian</a>
+
+        <p class="footer__heading" style="margin-top: var(--space-6)">Info</p>
+        <span class="footer__link" style="cursor: default">
+          🌙 100% Halal Certified
+        </span>
+        <span class="footer__link" style="cursor: default">
+          🌱 Vegetarian &amp; Vegan Options
+        </span>
+      </div>
+
+    </div>
+
+    <hr class="footer__divider" />
+
+    <div class="footer__bottom">
+      <p>© {new Date().getFullYear()} Joy Curry &amp; Tandoor. All rights reserved.</p>
+      <p>Made with ❤ in New York City</p>
+    </div>
+  </div>
+</footer>

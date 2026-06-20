@@ -1,0 +1,115 @@
+---
+import type { MenuItem } from '@lib/api';
+import { formatPrice } from '@lib/formatters';
+
+interface Props {
+  item: MenuItem;
+  galleryMode?: boolean;
+}
+
+const { item, galleryMode = false } = Astro.props;
+
+const {
+  id,
+  name,
+  description,
+  basePriceCents,
+  imageUrl,
+  inStock,
+  isVegan,
+  isVegetarian,
+  isGlutenFree,
+  isHalal,
+  spiceLevel,
+  category,
+} = item;
+
+// Emoji placeholder when no image
+const CATEGORY_EMOJI: Record<string, string> = {
+  'appetizer': '🥗',
+  'salad': '🥗',
+  'soup': '🍲',
+  'vegetable-entree': '🥦',
+  'vegan-entree': '🌱',
+  'chicken-entree': '🍗',
+  'meat-entree': '🥩',
+  'fish-shrimp': '🦐',
+  'tandoori': '🔥',
+  'rice-biryani': '🍚',
+  'express-lunch': '⚡',
+  'bread': '🫓',
+  'side': '🍛',
+  'condiment': '🧄',
+  'dessert': '🍮',
+  'beverage': '🥤',
+};
+
+const emoji = CATEGORY_EMOJI[category] ?? '🍽️';
+---
+
+<article
+  class:list={['menu-card', { 'menu-card--out-of-stock': !inStock }]}
+  data-category={category}
+  data-name={name}
+  data-keywords={(item.searchKeywords ?? []).join(' ')}
+  data-is-vegan={String(isVegan)}
+  data-is-vegetarian={String(isVegetarian)}
+  data-is-gluten-free={String(isGlutenFree)}
+  data-spice-level={spiceLevel ?? ''}
+  data-price-cents={basePriceCents}
+>
+  <div class="menu-card__img-wrap">
+    {imageUrl ? (
+      <img
+        class="menu-card__img"
+        src={imageUrl}
+        alt={name}
+        loading="lazy"
+        decoding="async"
+        width="400"
+        height="300"
+      />
+    ) : (
+      <div class="menu-card__img-placeholder">{emoji}</div>
+    )}
+    {!galleryMode && (
+      <span class="menu-card__price-badge">{formatPrice(basePriceCents)}</span>
+    )}
+  </div>
+
+  <div class="menu-card__body">
+    <div class="menu-card__name-row">
+      <h3 class="menu-card__name">{name}</h3>
+    </div>
+
+    {description && (
+      <p class="menu-card__desc">{description}</p>
+    )}
+
+    <div class="menu-card__badges">
+      {isVegan && <span class="badge badge--vegan">🌱 Vegan</span>}
+      {!isVegan && isVegetarian && <span class="badge badge--veg">🟢 Veg</span>}
+      {!isVegan && !isVegetarian && <span class="badge badge--nonveg">🔴 Non-Veg</span>}
+      {isGlutenFree && <span class="badge badge--gf">GF</span>}
+      {isHalal && <span class="badge badge--halal">Halal</span>}
+      {spiceLevel && spiceLevel !== 'Mild' && (
+        <span class="badge badge--spicy">
+          {spiceLevel === 'Hot' ? '🌶🌶🌶' : '🌶🌶'} {spiceLevel}
+        </span>
+      )}
+    </div>
+
+    {!galleryMode && (
+      <button
+        class="menu-card__add-btn"
+        disabled={!inStock}
+        data-item-id={id}
+        data-item-name={name}
+        data-price-cents={basePriceCents}
+        aria-label={inStock ? `Add ${name} to cart` : `${name} — sold out`}
+      >
+        {inStock ? '+ Add to Order' : 'Sold Out'}
+      </button>
+    )}
+  </div>
+</article>

@@ -1,0 +1,31 @@
+---
+import type { MenuItem } from '@lib/api';
+import MenuCard from './MenuCard.astro';
+
+interface Props {
+  category: string;
+  label: string;
+  emoji: string;
+  items: MenuItem[];
+  galleryMode?: boolean;
+}
+
+const { category, label, emoji, items, galleryMode = false } = Astro.props;
+---
+
+<section
+  class="menu-section"
+  id={category}
+  aria-labelledby={`section-title-${category}`}
+>
+  <div class="menu-section__header">
+    <h2 class="menu-section__title" id={`section-title-${category}`}>
+      {emoji} {label}
+    </h2>
+    <span class="menu-section__count">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+  </div>
+
+  <div class="menu-grid" data-section={category}>
+    {items.map((item) => <MenuCard item={item} galleryMode={galleryMode} />)}
+  </div>
+</section>

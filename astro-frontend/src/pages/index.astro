@@ -1,0 +1,121 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Navbar from '@components/static/Navbar.astro';
+import TimeBasedHero from '@components/islands/TimeBasedHero';
+import Footer from '@components/static/Footer.astro';
+import BentoGrid from '@components/static/BentoGrid.astro';
+import MenuCard from '@components/static/MenuCard.astro';
+import type { MenuItem } from '@lib/api';
+import { CATEGORIES } from '@lib/constants';
+
+const API_BASE = import.meta.env.PROD
+  ? 'https://joy-curry-tandoor-api.onrender.com'
+  : 'http://localhost:3000';
+
+let menuItems: MenuItem[] = [];
+let fetchError: string | null = null;
+
+try {
+  const res = await fetch(`${API_BASE}/api/menu`);
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const json = await res.json();
+  menuItems = json.data ?? [];
+} catch (err) {
+  fetchError = (err as Error).message;
+}
+
+const byCategory = new Map<string, MenuItem[]>();
+for (const cat of CATEGORIES) byCategory.set(cat.id, []);
+for (const item of menuItems) {
+  if (!byCategory.has(item.category)) byCategory.set(item.category, []);
+  byCategory.get(item.category)!.push(item);
+}
+
+const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length ?? 0) > 0);
+
+// Pick the first item from each showcase category as "best sellers"
+const FEATURED_CATEGORIES = ['chicken-entree', 'meat-entree', 'beverage', 'appetizer'] as const;
+const featuredItems = FEATURED_CATEGORIES
+  .map((catId) => byCategory.get(catId)?.[0])
+  .filter((item): item is MenuItem => item !== undefined);
+---
+
+<BaseLayout>
+  <Navbar />
+  <TimeBasedHero client:load />
+
+  <main id="main-content">
+
+    {/* ── Featured Best Sellers ───────────────────────────────── */}
+    {!fetchError && featuredItems.length > 0 && (
+      <section class="landing-featured" aria-label="Signature dishes">
+        <div class="container">
+          <p class="landing-featured__eyebrow">Artisan Favourites</p>
+          <h2 class="landing-featured__title">The Signatures</h2>
+          <div class="landing-featured__grid">
+            {featuredItems.map((item) => (
+              <MenuCard item={item} galleryMode={true} />
+            ))}
+          </div>
+          <div class="landing-featured__cta">
+            <a href="/order" class="btn btn--cta btn--lg">Order Online →</a>
+            <a href="/menu" class="btn btn--outline btn--lg">Full Menu</a>
+          </div>
+        </div>
+      </section>
+    )}
+
+    {/* ── Brand Story ─────────────────────────────────────────── */}
+    <section class="landing-story" aria-label="Our story">
+      <div class="container landing-story__inner">
+        <div class="landing-story__quote">
+          <blockquote>
+            "Every dish is crafted fresh, every day — no shortcuts, no compromises."
+          </blockquote>
+          <cite>— Joy Curry & Tandoor Kitchen</cite>
+        </div>
+        <div class="landing-story__copy">
+          <h2>Halal Indian Cuisine Since 1994</h2>
+          <p>
+            From our clay tandoor oven in Midtown Manhattan, we have been crafting authentic
+            Indian flavours for over three decades. Every curry is slow-simmered with heritage
+            spices, every bread baked to order, every dish 100% Halal certified.
+          </p>
+          <div class="landing-story__badges">
+            <span class="landing-story__badge">🌙 100% Halal Certified</span>
+            <span class="landing-story__badge">🌱 Vegan & Veg Options</span>
+            <span class="landing-story__badge">🔥 Clay Tandoor Oven</span>
+            <span class="landing-story__badge">📍 148 E 46th St, NYC</span>
+          </div>
+          <a href="/menu" class="btn btn--outline btn--lg" style="color: var(--color-hero-text); border-color: rgba(253,246,239,0.35);">
+            Explore Our Menu
+          </a>
+        </div>
+      </div>
+    </section>
+
+    {/* ── Category Bento Showcase ─────────────────────────────── */}
+    {!fetchError && activeCategories.length > 0 && (
+      <BentoGrid
+        activeCategories={activeCategories.map((c) => c.id)}
+        linkPrefix="/order"
+      />
+    )}
+
+    {/* ── CTA Strip ───────────────────────────────────────────── */}
+    <div class="landing-cta-strip">
+      <div class="container landing-cta-strip__inner">
+        <div>
+          <p class="landing-cta-strip__text">Ready to experience it?</p>
+          <p class="landing-cta-strip__sub">Delivery & pickup · Midtown Manhattan</p>
+        </div>
+        <a href="/order" class="btn btn--lg" style="background: #fff; color: var(--color-primary); font-weight: var(--weight-bold);">
+          Order Online →
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <Footer />
+</BaseLayout>

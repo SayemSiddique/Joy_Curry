@@ -1,0 +1,35 @@
+---
+import '@styles/global.css';
+import CartDrawer from '@components/islands/CartDrawer';
+
+export interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Joy Curry & Tandoor — Halal Indian Cuisine, Midtown Manhattan',
+  description = 'Authentic Halal Indian cuisine since 1994. Order online from Joy Curry & Tandoor, 148 East 46th St, New York City.',
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip-nav" href="#main-content">Skip to main content</a>
+    <slot />
+    <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+    <CartDrawer client:idle />
+  </body>
+</html>

@@ -1,0 +1,88 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Navbar from '@components/static/Navbar.astro';
+import Footer from '@components/static/Footer.astro';
+import MenuSection from '@components/static/MenuSection.astro';
+import SearchFilterBar from '@components/islands/SearchFilterBar';
+import type { MenuItem } from '@lib/api';
+import { CATEGORIES } from '@lib/constants';
+
+const API_BASE = import.meta.env.PROD
+  ? 'https://joy-curry-tandoor-api.onrender.com'
+  : 'http://localhost:3000';
+
+let menuItems: MenuItem[] = [];
+let fetchError: string | null = null;
+
+try {
+  const res = await fetch(`${API_BASE}/api/menu`);
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const json = await res.json();
+  menuItems = json.data ?? [];
+} catch (err) {
+  fetchError = (err as Error).message;
+}
+
+const byCategory = new Map<string, MenuItem[]>();
+for (const cat of CATEGORIES) byCategory.set(cat.id, []);
+for (const item of menuItems) {
+  if (!byCategory.has(item.category)) byCategory.set(item.category, []);
+  byCategory.get(item.category)!.push(item);
+}
+
+const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length ?? 0) > 0);
+---
+
+<BaseLayout
+  title="Order Online — Joy Curry & Tandoor | Halal Indian Cuisine, NYC"
+  description="Order authentic halal Indian cuisine online for delivery or pickup. Browse our full menu, add to cart, and enjoy Chicken Tikka Masala, Goat Curry, Biryani and more."
+>
+  <Navbar />
+
+  <!-- Order page header -->
+  <div class="order-page__header">
+    <div class="container">
+      <h1 class="order-page__title">Order Online</h1>
+      <p class="order-page__sub">100% Halal · Delivery & Pickup · Midtown Manhattan</p>
+    </div>
+  </div>
+
+  <SearchFilterBar client:idle menuItems={menuItems} />
+
+  <main id="main-content">
+    {fetchError ? (
+      <div class="container" style="padding: var(--space-20) 0; text-align: center;">
+        <p style="color: var(--color-error); font-size: var(--text-lg);">
+          Menu unavailable — {fetchError}
+        </p>
+        <p style="color: var(--color-text-muted); margin-top: var(--space-3);">
+          Start the backend: <code>cd backend && node server.js</code>
+        </p>
+      </div>
+    ) : (
+      <div id="menu" class="container" style="padding-bottom: var(--space-20)">
+        {activeCategories.map((cat) => {
+          const items = byCategory.get(cat.id) ?? [];
+          return (
+            <MenuSection
+              category={cat.id}
+              label={cat.label}
+              emoji={cat.emoji}
+              items={items}
+            />
+          );
+        })}
+      </div>
+    )}
+  </main>
+
+  <!-- CartDrawer is mounted in BaseLayout (all pages) -->
+
+  <!-- CheckoutModal island mounts here (Chunk F) -->
+  <!-- <CheckoutModal client:visible /> -->
+
+  <!-- BundleModal island mounts here (Chunk I) -->
+  <!-- <BundleModal client:visible /> -->
+
+  <Footer />
+</BaseLayout>

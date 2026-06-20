@@ -1,0 +1,69 @@
+---
+// Cart count and auth state are managed by React islands (Chunk E & G).
+// This static component renders the shell; islands update #cart-count and swap auth buttons.
+const path = Astro.url.pathname;
+---
+
+<nav class="navbar" aria-label="Main navigation">
+  <div class="container navbar__inner">
+    <a href="/" class="navbar__logo" aria-label="Joy Curry &amp; Tandoor — Home">
+      <span class="navbar__logo-mark" aria-hidden="true">🔥</span>
+      <span class="navbar__logo-text">Joy Curry &amp; <span>Tandoor</span></span>
+    </a>
+
+    <nav class="navbar__nav" aria-label="Site sections">
+      <a
+        href="/menu"
+        class:list={['navbar__nav-link', { 'navbar__nav-link--active': path === '/menu' }]}
+        aria-current={path === '/menu' ? 'page' : undefined}
+      >Menu</a>
+      <a
+        href="/order"
+        class:list={['navbar__nav-link', 'navbar__nav-link--order', { 'navbar__nav-link--active': path === '/order' }]}
+        aria-current={path === '/order' ? 'page' : undefined}
+      >Order Online</a>
+    </nav>
+
+    <div class="navbar__actions">
+      <button
+        class="navbar__btn"
+        id="navbar-orders-btn"
+        aria-label="My orders"
+        style="display: none"
+      >
+        My Orders
+      </button>
+
+      <button
+        class="navbar__btn"
+        id="navbar-admin-btn"
+        aria-label="Admin panel"
+        style="display: none"
+      >
+        ⚙ Admin
+      </button>
+
+      <button
+        class="navbar__btn"
+        id="navbar-auth-btn"
+        aria-label="Sign in to your account"
+      >
+        Sign In
+      </button>
+
+      <button
+        class="navbar__btn navbar__btn--cta"
+        id="navbar-cart-btn"
+        aria-label="View cart"
+      >
+        🛒 Cart
+        <span
+          class="navbar__cart-count"
+          id="cart-count"
+          aria-label="items in cart"
+          style="display: none"
+        >0</span>
+      </button>
+    </div>
+  </div>
+</nav>
