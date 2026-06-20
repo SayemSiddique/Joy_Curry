@@ -4,6 +4,7 @@
   "description": "Learning JavaScript by building a production-grade food-ordering website for a real Halal Indian restaurant in NYC (est. 1994).",
   "main": "index.js",
   "type": "module",
+  "start": "node server.js",
   "directories": {
     "doc": "docs"
   },
