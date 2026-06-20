@@ -9,7 +9,7 @@ export const MIN_ORDER = 10.00;        // Minimum order for delivery
 
 export const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:3000/api'
-  : 'https://joy-curry-tandoor-api.onrender.com/api';
+  : 'https://joy-curry-tandoor.onrender.com/api';
 
 // Allergen disclaimer — displayed as site-wide banner
 export const ALLERGEN_NOTE_DEFAULT = 

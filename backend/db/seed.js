@@ -86,9 +86,7 @@ async function insertItem(item) {
   }
 }
 
-async function seed() {
-  await initializeSchema();
-
+async function runSeed() {
   let totalSeeded = 0;
 
   for (const { file, export: exportName } of CATEGORY_FILES) {
@@ -106,11 +104,30 @@ async function seed() {
     totalSeeded += count;
   }
 
-  console.log(`\nSeeding complete — ${totalSeeded} items written to DB.`);
-  await db.close();
+  console.log(`Seed complete — ${totalSeeded} items written to DB.`);
 }
 
-seed().catch((err) => {
-  console.error('Seed failed:', err.message);
-  process.exit(1);
-});
+// Called by server.js on every startup. Only seeds when the table is empty,
+// so a redeploy on Render (ephemeral FS) always gets fresh data, but a
+// hot-restart of a live server with existing data is a no-op.
+export async function seedIfEmpty() {
+  const row = await db.get('SELECT COUNT(*) as count FROM menu_items');
+  if (row.count > 0) {
+    console.log(`DB already has ${row.count} menu items — skipping seed.`);
+    return;
+  }
+  console.log('DB is empty — seeding menu data...');
+  await runSeed();
+}
+
+// Standalone CLI: node db/seed.js
+// Runs schema init + full seed + closes DB. Used for local resets.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  initializeSchema()
+    .then(() => runSeed())
+    .then(() => db.close())
+    .catch((err) => {
+      console.error('Seed failed:', err.message);
+      process.exit(1);
+    });
+}

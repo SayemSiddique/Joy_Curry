@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
 import { initializeSchema } from './db/setup.js';
+import { seedIfEmpty } from './db/seed.js';
 import logger from './utils/logger.js';
 import errorHandler from './middleware/errorHandler.js';
 import { globalLimiter, loginLimiter } from './middleware/rateLimiter.js';
@@ -62,6 +63,7 @@ app.use((_req, res) => {
 app.use(errorHandler);
 
 initializeSchema()
+  .then(() => seedIfEmpty())
   .then(() => {
     app.listen(PORT, () => {
       logger.info(`Server running on http://localhost:${PORT}`);
