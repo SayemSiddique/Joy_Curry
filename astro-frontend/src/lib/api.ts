@@ -90,15 +90,49 @@ export const authApi = {
   },
 };
 
+// Backend returns snake_case; normalize to camelCase for the frontend types.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeOrder(o: any): Order {
+  return {
+    id: o.id,
+    userId: o.user_id ?? o.userId,
+    deliveryType: o.delivery_type ?? o.deliveryType,
+    deliveryAddress: o.delivery_address ?? o.deliveryAddress,
+    subtotalCents: o.subtotal_cents ?? o.subtotalCents,
+    taxCents: o.tax_cents ?? o.taxCents,
+    deliveryFeeCents: o.delivery_fee_cents ?? o.deliveryFeeCents,
+    totalCents: o.total_cents ?? o.totalCents,
+    status: o.status,
+    estimatedWaitMin: o.estimated_wait_min ?? o.estimatedWaitMin,
+    createdAt: o.created_at ?? o.createdAt,
+    lineItems: (o.lineItems ?? []).map((li: any): OrderLineItem => ({
+      id: li.id,
+      orderId: li.order_id ?? li.orderId,
+      itemId: li.item_id ?? li.itemId,
+      itemName: li.item_name ?? li.itemName,
+      itemType: li.item_type ?? li.itemType,
+      basePriceCents: li.base_price_cents ?? li.basePriceCents,
+      qty: li.qty,
+      lineTotalCents: li.line_total_cents ?? li.lineTotalCents,
+      selectedOptions: li.selectedOptions ?? li.selected_options,
+      slotChoices: li.slotChoices ?? li.slot_choices,
+    })),
+  };
+}
+
 export const ordersApi = {
-  place(body: Record<string, unknown>, token: string): Promise<{ data: Order }> {
-    return apiFetch('/api/orders', { method: 'POST', body: JSON.stringify(body) }, token);
+  async place(body: Record<string, unknown>, token: string): Promise<{ order: Order; lineItems: OrderLineItem[] }> {
+    const res = await apiFetch<{ order: unknown; lineItems: unknown[] }>('/api/orders', { method: 'POST', body: JSON.stringify(body) }, token);
+    const normalized = normalizeOrder(res.order);
+    return { order: normalized, lineItems: normalized.lineItems };
   },
-  myOrders(token: string): Promise<{ data: Order[] }> {
-    return apiFetch('/api/orders/me', {}, token);
+  async myOrders(token: string): Promise<{ orders: Order[] }> {
+    const res = await apiFetch<{ orders: unknown[] }>('/api/orders/me', {}, token);
+    return { orders: (res.orders ?? []).map(normalizeOrder) };
   },
-  getById(id: string, token: string): Promise<{ data: Order }> {
-    return apiFetch(`/api/orders/${id}`, {}, token);
+  async getById(id: string, token: string): Promise<{ order: Order }> {
+    const res = await apiFetch<{ order: unknown }>(`/api/orders/${id}`, {}, token);
+    return { order: normalizeOrder(res.order) };
   },
 };
 

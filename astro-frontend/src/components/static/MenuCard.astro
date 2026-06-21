@@ -42,7 +42,11 @@ const CATEGORY_EMOJI: Record<string, string> = {
   'condiment': '🧄',
   'dessert': '🍮',
   'beverage': '🥤',
+  'dinner-special': '🍽️',
+  'combo': '🥘',
 };
+
+const isBundle = category === 'dinner-special' || category === 'combo';
 
 const emoji = CATEGORY_EMOJI[category] ?? '🍽️';
 ---
@@ -100,16 +104,29 @@ const emoji = CATEGORY_EMOJI[category] ?? '🍽️';
     </div>
 
     {!galleryMode && (
-      <button
-        class="menu-card__add-btn"
-        disabled={!inStock}
-        data-item-id={id}
-        data-item-name={name}
-        data-price-cents={basePriceCents}
-        aria-label={inStock ? `Add ${name} to cart` : `${name} — sold out`}
-      >
-        {inStock ? '+ Add to Order' : 'Sold Out'}
-      </button>
+      isBundle ? (
+        <button
+          class="menu-card__configure-btn"
+          disabled={!inStock}
+          data-bundle-id={id}
+          data-bundle-name={name}
+          data-price-cents={basePriceCents}
+          aria-label={inStock ? `Configure ${name}` : `${name} — sold out`}
+        >
+          {inStock ? '⚙ Configure' : 'Sold Out'}
+        </button>
+      ) : (
+        <button
+          class="menu-card__add-btn"
+          disabled={!inStock}
+          data-item-id={id}
+          data-item-name={name}
+          data-price-cents={basePriceCents}
+          aria-label={inStock ? `Add ${name} to cart` : `${name} — sold out`}
+        >
+          {inStock ? '+ Add to Order' : 'Sold Out'}
+        </button>
+      )
     )}
   </div>
 </article>

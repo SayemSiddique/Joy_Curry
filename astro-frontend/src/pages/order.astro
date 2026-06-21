@@ -4,6 +4,7 @@ import Navbar from '@components/static/Navbar.astro';
 import Footer from '@components/static/Footer.astro';
 import MenuSection from '@components/static/MenuSection.astro';
 import SearchFilterBar from '@components/islands/SearchFilterBar';
+import BundleModal from '@components/islands/BundleModal';
 import type { MenuItem } from '@lib/api';
 import { CATEGORIES } from '@lib/constants';
 
@@ -60,7 +61,7 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
         </p>
       </div>
     ) : (
-      <div id="menu" class="container" style="padding-bottom: var(--space-20)">
+      <div id="menu" class="container order-page-menu" style="padding-bottom: var(--space-20)">
         {activeCategories.map((cat) => {
           const items = byCategory.get(cat.id) ?? [];
           return (
@@ -81,8 +82,8 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
   <!-- CheckoutModal island mounts here (Chunk F) -->
   <!-- <CheckoutModal client:visible /> -->
 
-  <!-- BundleModal island mounts here (Chunk I) -->
-  <!-- <BundleModal client:visible /> -->
+  <!-- BundleModal island (Chunk I) -->
+  <BundleModal client:idle menuItems={menuItems} />
 
   <Footer />
 </BaseLayout>

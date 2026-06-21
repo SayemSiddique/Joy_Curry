@@ -1,6 +1,10 @@
 ---
 import '@styles/global.css';
 import CartDrawer from '@components/islands/CartDrawer';
+import CheckoutModal from '@components/islands/CheckoutModal';
+import AuthModal from '@components/islands/AuthModal';
+import OrderHistory from '@components/islands/OrderHistory';
+import AdminPanel from '@components/islands/AdminPanel';
 
 export interface Props {
   title?: string;
@@ -31,5 +35,9 @@ const {
     <slot />
     <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
     <CartDrawer client:idle />
+    <CheckoutModal client:idle />
+    <AuthModal client:idle />
+    <OrderHistory client:idle />
+    <AdminPanel client:idle />
   </body>
 </html>

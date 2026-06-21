@@ -95,7 +95,7 @@ export default function CartDrawer() {
       />
 
       {/* Drawer */}
-      <aside
+      <div
         className={`cart-drawer${open ? ' cart-drawer--open' : ''}`}
         role="dialog"
         aria-modal="true"
@@ -217,7 +217,7 @@ export default function CartDrawer() {
             </button>
           </div>
         )}
-      </aside>
+      </div>
     </>
   );
 }

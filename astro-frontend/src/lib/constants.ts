@@ -33,6 +33,8 @@ export const CATEGORIES: { id: string; label: string; emoji: string }[] = [
   { id: 'condiment',       label: 'Condiments',          emoji: '🧄' },
   { id: 'dessert',         label: 'Desserts',            emoji: '🍮' },
   { id: 'beverage',        label: 'Beverages',           emoji: '🥤' },
+  { id: 'dinner-special',  label: 'Dinner Specials',     emoji: '🍽️' },
+  { id: 'combo',           label: 'Joy Combos',          emoji: '🥘' },
 ];
 
 export const DIETARY_FILTERS = [

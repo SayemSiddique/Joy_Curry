@@ -48,3 +48,7 @@ export function clearAuth(): void {
 export function getToken(): string | null {
   return authState.get().token;
 }
+
+export const authOpen = atom<boolean>(false);
+export const orderHistoryOpen = atom<boolean>(false);
+export const adminPanelOpen = atom<boolean>(false);
