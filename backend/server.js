@@ -14,6 +14,7 @@ import usersRoutes from './routes/users.js';
 import ordersRoutes from './routes/orders.js';
 import slotsRoutes from './routes/slots.js';
 import rewardsRoutes from './routes/rewards.js';
+import distanceRoutes from './routes/distance.js';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -71,6 +72,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/slots', slotsRoutes);
 app.use('/api/rewards', rewardsRoutes);
+app.use('/api/distance', distanceRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found.' } });

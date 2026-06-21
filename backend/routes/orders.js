@@ -5,6 +5,7 @@ import { createError } from '../middleware/errorHandler.js';
 import { createOrder, getOrdersByUserId, getOrderById } from '../models/order.js';
 import { getUserById } from '../models/user.js';
 import { sendOrderConfirmation } from '../utils/email.js';
+import { geocodeAddress, isWithinOwnDeliveryRadius } from '../services/deliveryService.js';
 
 const router = Router();
 
@@ -13,6 +14,21 @@ router.use(verifyToken);
 router.post('/', validateOrder, async (req, res, next) => {
   try {
     const { deliveryType, deliveryAddress, items, idempotencyKey, scheduledFor } = req.body;
+
+    // Determine delivery partner via geocoding (gracefully defaults to in-house when key is absent)
+    let deliveryPartner = 'in-house';
+    if (deliveryType === 'delivery' && deliveryAddress) {
+      try {
+        const geo = await geocodeAddress(deliveryAddress);
+        if (geo) {
+          deliveryPartner = isWithinOwnDeliveryRadius(geo.lat, geo.lng) ? 'in-house' : 'uber';
+        }
+      } catch (geoErr) {
+        // Non-fatal: log and default to in-house
+        console.error('[orders] geocode error:', geoErr.message);
+      }
+    }
+
     const { order, lineItems, duplicate } = await createOrder({
       userId: req.user.sub,
       deliveryType,
@@ -20,6 +36,7 @@ router.post('/', validateOrder, async (req, res, next) => {
       items,
       idempotencyKey,
       scheduledFor,
+      deliveryPartner,
     });
 
     if (!duplicate) {

@@ -716,6 +716,30 @@ When owner commissions professional photography: update `image_url` column in DB
 
 ---
 
+### ✅ Phase 3-E — Delivery Radius Engine
+**Status: COMPLETE — session 2026-06-21 | No frontend changes required**
+
+- [x] `backend/services/deliveryService.js` — added `geocodeAddress(address)` (Google Maps Geocoding API; returns `null` gracefully when `GOOGLE_MAPS_API_KEY` is absent); exported `haversineMiles` (previously private)
+- [x] `backend/routes/distance.js` — NEW: `GET /api/distance?address=...`
+  - Without `GOOGLE_MAPS_API_KEY`: returns `{ withinRadius: true, distanceMiles: 0, deliveryPartner: 'in-house', geocoded: false }` stub so frontend OrderGate degrades gracefully
+  - With key: geocodes address → Haversine check → returns `{ withinRadius, distanceMiles, deliveryPartner, formattedAddress, geocoded: true }`
+- [x] `backend/models/order.js` — `createOrder()` accepts `deliveryPartner` param (default `'in-house'`); included in INSERT as `delivery_partner` column (schema from Phase 3-A)
+- [x] `backend/routes/orders.js` — before calling `createOrder`, geocodes delivery address via `geocodeAddress()` → determines `deliveryPartner` (`'in-house'` or `'uber'`); geocode failure is non-fatal (logs + defaults to `'in-house'`)
+- [x] `backend/server.js` — mounted `distanceRoutes` at `/api/distance`
+- [x] `backend/.env` — added `GOOGLE_MAPS_API_KEY` stub comment with instructions
+- [x] **E2E verified:**
+  - `GET /api/distance?address=148+East+46th+St+New+York+NY` → `{ withinRadius:true, distanceMiles:0, deliveryPartner:'in-house', geocoded:false }` (no key, stub) ✅
+  - `GET /api/distance` (missing address) → 400 validation error ✅
+  - `POST /api/orders` with `deliveryType:'delivery'` → `delivery_partner:'in-house'` persisted in DB ✅
+  - Test data cleaned up after verification ✅
+
+**Notes:**
+- `distanceApi.check()` in `src/lib/api.ts` was already wired from Phase 3-C with graceful null fallback — no frontend changes needed; endpoint is now live
+- To activate: add `GOOGLE_MAPS_API_KEY=AIza...` to `backend/.env` (or Render dashboard env vars). Orders beyond 4 miles will automatically get `delivery_partner='uber'` — `dispatchExternalDelivery()` stub in `deliveryService.js` requires `UBER_DIRECT_CLIENT_ID`/`UBER_DIRECT_CLIENT_SECRET` to become operational
+- Verified with backend already running on port 3000; `kill %1` in tests killed a new attempt, existing process served the test calls correctly
+
+---
+
 ## Session Handoff Notes
 
 - `node --version` in the astro-frontend directory will show v20 (system) — always use `bash start-astro.sh` or the `astro-dev` launch config to get Node 24

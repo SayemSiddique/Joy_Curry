@@ -5,7 +5,8 @@
       "name": "astro-dev",
       "runtimeExecutable": "bash",
       "runtimeArgs": ["start-astro.sh"],
-      "port": 4321
+      "port": 4321,
+      "autoPort": false
     }
   ]
 }

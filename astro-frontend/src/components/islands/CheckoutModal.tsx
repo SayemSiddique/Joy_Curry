@@ -339,7 +339,11 @@ export default function CheckoutModal() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate>
+            <form
+              onSubmit={handleSubmit}
+              noValidate
+              style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}
+            >
               <div className="modal__body modal__body--two-col">
                 {/* ── Left: form fields ── */}
                 <div

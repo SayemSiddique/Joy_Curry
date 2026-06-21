@@ -5,7 +5,7 @@ import { DEFAULT_SLOT_CAPACITY } from '../config/slots.js';
 const TAX_RATE_BPS       = 875; // 8.75% NYC
 const DELIVERY_FEE_CENTS = 300; // $3.00
 
-export async function createOrder({ userId, deliveryType, deliveryAddress, items, idempotencyKey, scheduledFor }) {
+export async function createOrder({ userId, deliveryType, deliveryAddress, items, idempotencyKey, scheduledFor, deliveryPartner = 'in-house' }) {
   if (idempotencyKey) {
     const existing = await db.get(
       'SELECT * FROM orders WHERE idempotency_key = $1',
@@ -32,12 +32,13 @@ export async function createOrder({ userId, deliveryType, deliveryAddress, items
       `INSERT INTO orders
          (id, user_id, delivery_type, delivery_address,
           subtotal_cents, tax_cents, delivery_fee_cents, total_cents,
-          idempotency_key, points_earned, scheduled_for)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          idempotency_key, points_earned, scheduled_for, delivery_partner)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         orderId, userId, deliveryType, deliveryAddress ?? null,
         subtotalCents, taxCents, deliveryFeeCents, totalCents,
         idempotencyKey ?? null, pointsEarned, scheduledFor ?? null,
+        deliveryType === 'delivery' ? (deliveryPartner ?? 'in-house') : 'in-house',
       ]
     );
 
