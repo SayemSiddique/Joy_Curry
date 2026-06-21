@@ -1,10 +1,10 @@
-const IS_PROD = typeof window !== 'undefined'
-  ? window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
-  : import.meta.env.PROD;
-
-export const API_BASE_URL = IS_PROD
-  ? 'https://joy-curry-tandoor-api.onrender.com'
-  : 'http://localhost:3000';
+// PUBLIC_API_BASE_URL can be set in Vercel dashboard to override the default.
+// Vite injects PUBLIC_* vars at build time so they work in both SSR and client code.
+export const API_BASE_URL =
+  import.meta.env.PUBLIC_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? 'https://joy-curry-tandoor-api.onrender.com'
+    : 'http://localhost:3000');
 
 export const TAX_RATE = 0.0875;
 export const DELIVERY_FEE_CENTS = 300;

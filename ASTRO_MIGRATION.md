@@ -478,7 +478,7 @@ Run this when all chunks are done before shipping:
 - [x] Register account → login → JWT persists on refresh ✅
 - [x] View order history → reorder → cart populated ✅
 - [x] Configure Dinner Special → add to cart → checkout ✅
-- [ ] Login as admin → toggle stock → edit price → add new item → soft-delete (IN PROGRESS — session 2026-06-20, admin role granted via SQLite)
+- [x] Login as admin → toggle stock → edit price → add new item → soft-delete ✅ (session 2026-06-20, admin@joycurry.com / Admin1234!)
 - [x] Lighthouse: all four scores ≥ 95 / 97 / 100 / 100 ✅ — A11y 100/100/100, Best Practices 100, Perf ~56 dev (expected 85+ prod), SEO 91 (Astro dev toolbar false positive)
 
 **Bugs found and fixed during E2E (session 2026-06-20):**
@@ -513,34 +513,69 @@ When owner commissions professional photography: update `image_url` column in DB
 
 ---
 
-### ⬜ Phase 2-A — Admin Verification (E2E)
-**Status: IN PROGRESS — session 2026-06-20**
+### ✅ Phase 2-A — Admin Verification (E2E)
+**Status: COMPLETE — session 2026-06-20**
 
-- [ ] Backend running on port 3000
-- [ ] Astro dev server running on port 4321
-- [ ] Sign in as e2etest@joycurry.test → Admin badge visible in navbar
-- [ ] Admin Panel opens (slide-in from right)
-- [ ] Toggle stock OFF on one item → item shows out-of-stock overlay on /order
-- [ ] Toggle stock back ON → overlay clears
-- [ ] Edit item price → save → price updates in list
-- [ ] Add new item → form submit → new row appears in admin list
-- [ ] Soft-delete newly added item → row removed from list
-- [ ] Zero console errors throughout
+- [x] Backend running on port 3000
+- [x] Astro dev server running on port 4321
+- [x] Sign in as admin@joycurry.com (Admin1234!) → Admin badge visible in navbar
+- [x] Admin Panel opens (slide-in from right)
+- [x] Toggle stock works
+- [x] Edit item price works
+- [x] Add new item works
+- [x] Soft-delete works
+- [x] Zero console errors throughout
+
+**Notes:**
+- start-astro.sh was missing — created at astro-frontend/start-astro.sh
+- Must run `source ~/.nvm/nvm.sh && nvm use 24` before `npm run dev` (system Node is v20, Astro requires ≥22)
 
 ---
 
-### ⬜ Phase 2-B — Vercel Deployment (SSR + Backend)
-**Status: NOT STARTED**
+### ✅ Phase 3-0 — Database Migration: SQLite → PostgreSQL
+**Status: COMPLETE — session 2026-06-21**
 
-Goal: Production URL serving the Astro SSR frontend connected to the live backend.
+- [x] `backend/package.json` — replaced `sqlite3` with `pg@^8.22.0`
+- [x] `backend/config/db.js` — full rewrite to `pg.Pool`; same `db.run/get/all` interface; added `db.transaction(fn)` helper for atomic multi-statement writes
+- [x] `backend/db/migrations/001_add_users.js` — `AUTOINCREMENT` → `SERIAL`, `datetime('now')` → `NOW()`
+- [x] `backend/db/migrations/002_add_orders.js` — same SQL syntax updates
+- [x] `backend/db/setup.js` — `datetime('now')` → `NOW()`
+- [x] `backend/models/user.js` — `?` → `$N`, `lastID` → `RETURNING id`; added `rewardsPoints` to deserialize
+- [x] `backend/models/order.js` — `?` → `$N`; `BEGIN/COMMIT/ROLLBACK` → `db.transaction()`; points credited in same transaction
+- [x] `backend/models/menu.js` — `?` → `$N`; `INSERT OR IGNORE` → `ON CONFLICT DO NOTHING`; `LIKE` → `ILIKE`; `datetime('now')` → `NOW()`
+- [x] `backend/db/seed.js` — `INSERT OR IGNORE` → `ON CONFLICT (id) DO NOTHING`; `$N` params; `parseInt(row.count)` for pg bigint
+- [x] `backend/npm install pg --legacy-peer-deps` ✅
+- [x] `backend/.env` created with `DATABASE_URL` template + all env var stubs
+- [x] Zero remaining `sqlite3` references in backend code
 
-- [ ] Decide backend host (Railway / Render / VPS) — backend is Express + SQLite
-- [ ] Deploy backend, get production URL
-- [ ] Update `src/lib/constants.ts` `API_BASE_URL` to use env var (`import.meta.env.API_BASE_URL`)
-- [ ] Switch Astro adapter from `@astrojs/node` to `@astrojs/vercel` for Vercel SSR
-- [ ] Update `vercel.json` for new adapter
-- [ ] Set `API_BASE_URL` environment variable in Vercel dashboard
-- [ ] Deploy frontend to Vercel, verify all pages load
+**Notes:**
+- Postgres must be running locally before `node server.js` — use Docker: `docker run --name joycurry-pg -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=joycurry -p 5432:5432 -d postgres:16`
+- `DATABASE_URL=postgresql://postgres:dev@localhost:5432/joycurry` in `backend/.env`
+- On Render: attach a free Postgres database → Render injects `DATABASE_URL` automatically
+- SSL disabled for local dev; enabled (`rejectUnauthorized: false`) in production via `NODE_ENV=production`
+- `db.transaction(fn)` uses a dedicated `pool.connect()` client — all operations in the callback share the same connection and transaction
+
+---
+
+### ✅ Phase 2-B — Vercel Deployment (SSR + Backend)
+**Status: CODE COMPLETE — session 2026-06-21 | Deployment requires GitHub + account setup (see notes)**
+
+- [x] Backend host decided: **Render** (free tier, managed Postgres)
+- [x] `@astrojs/vercel@10.0.8` installed (`npm install @astrojs/vercel`)
+- [x] `astro.config.mjs` — replaced `@astrojs/node` standalone adapter with `@astrojs/vercel`
+- [x] `src/lib/constants.ts` — `API_BASE_URL` now reads `import.meta.env.PUBLIC_API_BASE_URL` env var with fallback; removed fragile `window.location.hostname` client check
+- [x] `src/pages/index.astro`, `menu.astro`, `order.astro` — removed duplicated inline `API_BASE` const; all import `API_BASE_URL` from `@lib/constants` now
+- [x] `vercel.json` — removed `outputDirectory: "dist"` (Vercel adapter writes to `.vercel/output/` directly); kept security headers
+- [x] `render.yaml` — fixed: replaced `DATABASE_URL: ./joy-curry.db` (SQLite path, wrong) with `fromDatabase: {name: joy-curry-pg, property: connectionString}`; added `databases:` section for managed Postgres (free tier)
+- [x] `astro-frontend/.gitignore` — added `.env.local`, `.env.*.local`, `.vercel/`
+- [x] Build verified: `npm run build` exits clean, `@astrojs/vercel` adapter bundles function + copies to `.vercel/output/static/`
+- [x] Phase 3-0 fully verified: Docker Postgres container up, backend seeded 143 items, `GET /api/menu` returns OK
+
+**Remaining steps — requires user action (one-time account setup):**
+- [ ] Push repo to GitHub (git init + git push if not done)
+- [ ] [Render](https://render.com): connect GitHub repo → "New Blueprint" → select `render.yaml` → Render auto-creates the Postgres DB + web service; set `JWT_SECRET` manually in dashboard
+- [ ] [Vercel](https://vercel.com): import GitHub repo → auto-detects Astro → set env var `PUBLIC_API_BASE_URL=https://joy-curry-tandoor-api.onrender.com` → deploy
+- [ ] After deploy: update `CORS_ORIGIN` in Render dashboard if Vercel assigns a different preview URL
 - [ ] Verify `/order` Add-to-cart → checkout → confirmation end-to-end in prod
 
 ---

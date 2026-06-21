@@ -10,10 +10,18 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: ./joy-curry.db
+        fromDatabase:
+          name: joy-curry-pg
+          property: connectionString
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: CORS_ORIGIN
         value: https://joycurry.sayemsiddique.com,https://joy-curry-tandoor.vercel.app
       - key: JWT_SECRET
         sync: false
+
+databases:
+  - name: joy-curry-pg
+    plan: free
+    databaseName: joycurry
+    user: joycurry

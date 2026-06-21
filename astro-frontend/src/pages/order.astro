@@ -6,17 +6,13 @@ import MenuSection from '@components/static/MenuSection.astro';
 import SearchFilterBar from '@components/islands/SearchFilterBar';
 import BundleModal from '@components/islands/BundleModal';
 import type { MenuItem } from '@lib/api';
-import { CATEGORIES } from '@lib/constants';
-
-const API_BASE = import.meta.env.PROD
-  ? 'https://joy-curry-tandoor-api.onrender.com'
-  : 'http://localhost:3000';
+import { CATEGORIES, API_BASE_URL } from '@lib/constants';
 
 let menuItems: MenuItem[] = [];
 let fetchError: string | null = null;
 
 try {
-  const res = await fetch(`${API_BASE}/api/menu`);
+  const res = await fetch(`${API_BASE_URL}/api/menu`);
   if (!res.ok) throw new Error(`API ${res.status}`);
   const json = await res.json();
   menuItems = json.data ?? [];

@@ -23,9 +23,12 @@ Thumbs.db
 # Build output
 dist/
 build/
+.vercel/
 
-# Database
+# Database (SQLite — replaced by Postgres; WAL/SHM are transient SQLite files)
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 

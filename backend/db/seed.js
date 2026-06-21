@@ -35,12 +35,13 @@ async function insertItem(item) {
   const spiceInt = SPICE_MAP[item.spiceLevel] ?? 0;
 
   await db.run(
-    `INSERT OR IGNORE INTO menu_items
+    `INSERT INTO menu_items
       (id, name, category, subcategory, description, base_price_cents,
        is_vegan, is_vegetarian, is_gluten_free, spice_level, allergen_note,
        served_with, protein_choices, piece_count, tags, search_keywords,
        image_url, in_stock, is_active)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+     ON CONFLICT (id) DO NOTHING`,
     [
       item.id,
       item.name,
@@ -66,21 +67,21 @@ async function insertItem(item) {
 
   for (const allergen of item.allergens ?? []) {
     await db.run(
-      'INSERT OR IGNORE INTO item_allergens (item_id, allergen) VALUES (?, ?)',
+      'INSERT INTO item_allergens (item_id, allergen) VALUES ($1, $2) ON CONFLICT DO NOTHING',
       [item.id, allergen]
     );
   }
 
   for (const mod of item.modifiers ?? []) {
     await db.run(
-      'INSERT OR IGNORE INTO item_modifiers (item_id, modifier_id, label, price_delta_cents) VALUES (?, ?, ?, ?)',
+      'INSERT INTO item_modifiers (item_id, modifier_id, label, price_delta_cents) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
       [item.id, mod.id, mod.label, Math.round((mod.priceDelta ?? 0) * 100)]
     );
   }
 
   for (const opt of item.sizeOptions ?? []) {
     await db.run(
-      'INSERT OR IGNORE INTO item_size_options (item_id, label, price_cents) VALUES (?, ?, ?)',
+      'INSERT INTO item_size_options (item_id, label, price_cents) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
       [item.id, opt.label, Math.round(opt.price * 100)]
     );
   }
@@ -112,8 +113,9 @@ async function runSeed() {
 // hot-restart of a live server with existing data is a no-op.
 export async function seedIfEmpty() {
   const row = await db.get('SELECT COUNT(*) as count FROM menu_items');
-  if (row.count > 0) {
-    console.log(`DB already has ${row.count} menu items — skipping seed.`);
+  const count = parseInt(row.count, 10);
+  if (count > 0) {
+    console.log(`DB already has ${count} menu items — skipping seed.`);
     return;
   }
   console.log('DB is empty — seeding menu data...');

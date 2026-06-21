@@ -15,14 +15,14 @@ export async function up() {
                                  CHECK (status IN ('pending', 'confirmed', 'ready', 'completed', 'cancelled')),
       idempotency_key    TEXT    UNIQUE,
       estimated_wait_min INTEGER NOT NULL DEFAULT 30,
-      created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
-      updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
+      created_at         TEXT    NOT NULL DEFAULT (NOW()),
+      updated_at         TEXT    NOT NULL DEFAULT (NOW())
     )
   `);
 
   await db.run(`
     CREATE TABLE IF NOT EXISTS order_line_items (
-      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      id               SERIAL  PRIMARY KEY,
       order_id         TEXT    NOT NULL REFERENCES orders(id),
       item_id          TEXT    NOT NULL,
       item_name        TEXT    NOT NULL,
@@ -32,7 +32,7 @@ export async function up() {
       line_total_cents INTEGER NOT NULL,
       selected_options TEXT,
       slot_choices     TEXT,
-      created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
+      created_at       TEXT    NOT NULL DEFAULT (NOW())
     )
   `);
 

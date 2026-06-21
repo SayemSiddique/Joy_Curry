@@ -27,8 +27,8 @@ export async function initializeSchema() {
       is_active        INTEGER NOT NULL DEFAULT 1,
       is_halal         INTEGER NOT NULL DEFAULT 1,
       deleted_at       TEXT,
-      created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
-      updated_at       TEXT    NOT NULL DEFAULT (datetime('now'))
+      created_at       TEXT    NOT NULL DEFAULT (NOW()),
+      updated_at       TEXT    NOT NULL DEFAULT (NOW())
     )
   `);
 
@@ -42,9 +42,9 @@ export async function initializeSchema() {
 
   await db.run(`
     CREATE TABLE IF NOT EXISTS item_modifiers (
-      item_id          TEXT    NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-      modifier_id      TEXT    NOT NULL,
-      label            TEXT    NOT NULL,
+      item_id           TEXT    NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+      modifier_id       TEXT    NOT NULL,
+      label             TEXT    NOT NULL,
       price_delta_cents INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (item_id, modifier_id)
     )

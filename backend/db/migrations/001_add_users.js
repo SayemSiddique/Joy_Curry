@@ -3,7 +3,7 @@ import { db } from '../../config/db.js';
 export async function up() {
   await db.run(`
     CREATE TABLE IF NOT EXISTS users (
-      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      id            SERIAL  PRIMARY KEY,
       name          TEXT    NOT NULL,
       email         TEXT    NOT NULL UNIQUE,
       phone         TEXT,
@@ -13,8 +13,8 @@ export async function up() {
       addresses     TEXT,
       is_active     INTEGER NOT NULL DEFAULT 1,
       deleted_at    TEXT,
-      created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
-      updated_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+      created_at    TEXT    NOT NULL DEFAULT (NOW()),
+      updated_at    TEXT    NOT NULL DEFAULT (NOW())
     )
   `);
 
