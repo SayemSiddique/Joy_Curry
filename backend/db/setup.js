@@ -2,6 +2,7 @@ import { db } from '../config/db.js';
 import logger from '../utils/logger.js';
 import { up as addUsers } from './migrations/001_add_users.js';
 import { up as addOrders } from './migrations/002_add_orders.js';
+import { up as addRewardsAndScheduling } from './migrations/003_add_rewards_and_scheduling.js';
 
 export async function initializeSchema() {
   await db.run(`
@@ -71,6 +72,7 @@ export async function initializeSchema() {
 
   await addUsers();
   await addOrders();
+  await addRewardsAndScheduling();
 
   logger.info('Database schema ready.');
 }

@@ -67,9 +67,18 @@ const DELIVERY_TYPES   = new Set(['delivery', 'pickup']);
 const ITEM_TYPES       = new Set(['regular', 'bundle']);
 const MIN_ORDER_CENTS  = 1000; // $10.00 minimum for delivery
 
+const SLOT_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+
 export function validateOrder(req, res, next) {
-  const { deliveryType, deliveryAddress, items, idempotencyKey } = req.body;
+  const { deliveryType, deliveryAddress, items, idempotencyKey, scheduledFor } = req.body;
   const errors = [];
+
+  // scheduledFor is optional: null/undefined = ASAP, else a "YYYY-MM-DDTHH:MM" slot string.
+  if (scheduledFor !== undefined && scheduledFor !== null) {
+    if (typeof scheduledFor !== 'string' || !SLOT_TIME_PATTERN.test(scheduledFor)) {
+      errors.push('scheduledFor must be null or a "YYYY-MM-DDTHH:MM" slot string');
+    }
+  }
 
   if (!DELIVERY_TYPES.has(deliveryType)) {
     errors.push('deliveryType must be "delivery" or "pickup"');

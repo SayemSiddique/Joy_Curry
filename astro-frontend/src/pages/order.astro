@@ -5,6 +5,7 @@ import Footer from '@components/static/Footer.astro';
 import MenuSection from '@components/static/MenuSection.astro';
 import SearchFilterBar from '@components/islands/SearchFilterBar';
 import BundleModal from '@components/islands/BundleModal';
+import OrderGate from '@components/islands/OrderGate';
 import type { MenuItem } from '@lib/api';
 import { CATEGORIES, API_BASE_URL } from '@lib/constants';
 
@@ -80,6 +81,9 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
 
   <!-- BundleModal island (Chunk I) -->
   <BundleModal client:idle menuItems={menuItems} />
+
+  <!-- OrderGate island (Phase 3-C) — pickup/delivery fork -->
+  <OrderGate client:idle />
 
   <Footer />
 </BaseLayout>

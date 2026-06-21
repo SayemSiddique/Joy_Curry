@@ -136,6 +136,103 @@ export const ordersApi = {
   },
 };
 
+export interface Slot {
+  slotTime: string;   // "YYYY-MM-DDTHH:MM"
+  capacity: number;
+  booked: number;
+  remaining: number;
+  soldOut: boolean;
+  filling: boolean;
+}
+
+export const slotsApi = {
+  getSlots(date: string): Promise<{ date: string; slots: Slot[] }> {
+    return apiFetch(`/api/slots?date=${encodeURIComponent(date)}`);
+  },
+  reserve(slotTime: string, token: string): Promise<{ slot: Slot }> {
+    return apiFetch('/api/slots/reserve', { method: 'POST', body: JSON.stringify({ slotTime }) }, token);
+  },
+};
+
+export interface DistanceResult {
+  withinRadius: boolean;
+  distanceMiles: number;
+  deliveryPartner: 'in-house' | 'uber' | 'doordash';
+}
+
+export const distanceApi = {
+  // Returns null if the endpoint isn't available yet (wired up in Phase 3-E),
+  // so the order flow degrades gracefully and still accepts the address.
+  async check(address: string): Promise<DistanceResult | null> {
+    try {
+      return await apiFetch<DistanceResult>(`/api/distance?address=${encodeURIComponent(address)}`);
+    } catch {
+      return null;
+    }
+  },
+};
+
+// ── Artisan Vault rewards (Phase 3-D) ──
+export interface RewardMilestone {
+  points: number;
+  label: string;
+  itemCategory: string;
+  unlocked: boolean;
+}
+
+export interface RewardsSummary {
+  balance: number;
+  milestones: RewardMilestone[];
+  unlocked: RewardMilestone[];
+  nextMilestone: RewardMilestone | null;
+  pointsToNext: number;
+  progressPct: number;
+  lifetimeCents: number;
+}
+
+export interface RewardLine {
+  itemId: string;
+  itemName: string;
+  itemType: 'regular';
+  basePriceCents: number;
+  originalPriceCents: number;
+  pointsCost: number;
+  isReward: true;
+}
+
+export const rewardsApi = {
+  getMine(token: string): Promise<{ rewards: RewardsSummary }> {
+    return apiFetch('/api/users/me/rewards', {}, token);
+  },
+  redeem(
+    body: { milestonePoints: number; itemId?: string },
+    token: string,
+  ): Promise<{ milestone: RewardMilestone; reward: RewardLine }> {
+    return apiFetch('/api/rewards/redeem', { method: 'POST', body: JSON.stringify(body) }, token);
+  },
+};
+
+export interface AdminOrder {
+  id: string;
+  user_id: number;
+  delivery_type: 'delivery' | 'pickup';
+  delivery_address?: string;
+  subtotal_cents: number;
+  tax_cents: number;
+  delivery_fee_cents: number;
+  total_cents: number;
+  status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  scheduled_for?: string;
+  created_at: string;
+  lineItems: OrderLineItem[];
+}
+
+export interface DashboardStats {
+  todayOrderCount: number;
+  todayRevenueCents: number;
+  pendingOrderCount: number;
+}
+
 export const adminApi = {
   getAllMenu(token: string): Promise<{ data: MenuItem[] }> {
     return apiFetch('/api/admin/menu', {}, token);
@@ -151,5 +248,14 @@ export const adminApi = {
   },
   toggleStock(id: string, inStock: boolean, token: string): Promise<{ data: MenuItem }> {
     return apiFetch(`/api/admin/menu/${id}/stock`, { method: 'PATCH', body: JSON.stringify({ inStock }) }, token);
+  },
+  getAllOrders(token: string): Promise<{ orders: AdminOrder[] }> {
+    return apiFetch('/api/admin/orders', {}, token);
+  },
+  updateOrderStatus(id: string, status: string, token: string): Promise<{ order: AdminOrder }> {
+    return apiFetch(`/api/admin/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }, token);
+  },
+  getDashboard(token: string): Promise<{ stats: DashboardStats }> {
+    return apiFetch('/api/admin/dashboard', {}, token);
   },
 };

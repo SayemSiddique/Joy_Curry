@@ -1,10 +1,11 @@
 import { db } from '../config/db.js';
 import { generateOrderId } from '../utils/helpers.js';
+import { DEFAULT_SLOT_CAPACITY } from '../config/slots.js';
 
 const TAX_RATE_BPS       = 875; // 8.75% NYC
 const DELIVERY_FEE_CENTS = 300; // $3.00
 
-export async function createOrder({ userId, deliveryType, deliveryAddress, items, idempotencyKey }) {
+export async function createOrder({ userId, deliveryType, deliveryAddress, items, idempotencyKey, scheduledFor }) {
   if (idempotencyKey) {
     const existing = await db.get(
       'SELECT * FROM orders WHERE idempotency_key = $1',
@@ -31,12 +32,12 @@ export async function createOrder({ userId, deliveryType, deliveryAddress, items
       `INSERT INTO orders
          (id, user_id, delivery_type, delivery_address,
           subtotal_cents, tax_cents, delivery_fee_cents, total_cents,
-          idempotency_key, points_earned)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          idempotency_key, points_earned, scheduled_for)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         orderId, userId, deliveryType, deliveryAddress ?? null,
         subtotalCents, taxCents, deliveryFeeCents, totalCents,
-        idempotencyKey ?? null, pointsEarned,
+        idempotencyKey ?? null, pointsEarned, scheduledFor ?? null,
       ]
     );
 
@@ -97,6 +98,103 @@ export async function getOrderById(id) {
     [id]
   );
   return { ...order, lineItems: lineItems.map(parseLineItem) };
+}
+
+/**
+ * Returns every order slot for a given calendar day (YYYY-MM-DD), oldest first.
+ * `remaining` and `soldOut` are derived so callers don't repeat the math.
+ * slot_time is stored as an ISO datetime string, so a prefix match on the
+ * date selects all 15-minute slots within that day.
+ */
+export async function getSlotAvailability(dateStr) {
+  const rows = await db.all(
+    'SELECT * FROM order_slots WHERE slot_time LIKE $1 ORDER BY slot_time ASC',
+    [`${dateStr}%`]
+  );
+  return rows.map((row) => ({
+    id:        row.id,
+    slotTime:  row.slot_time,
+    capacity:  row.capacity,
+    booked:    row.booked,
+    remaining: Math.max(0, row.capacity - row.booked),
+    soldOut:   row.booked >= row.capacity,
+  }));
+}
+
+/**
+ * Atomically reserve one seat in a slot.
+ *
+ * The slot row is lazily created on first reservation. The conditional
+ * `ON CONFLICT ... WHERE booked < capacity` makes capacity enforcement
+ * atomic at the database level — concurrent reservations on the last seat
+ * can never both succeed. Returns the updated slot, or null if it was full.
+ */
+export async function reserveSlot(slotTime, capacity = DEFAULT_SLOT_CAPACITY) {
+  const result = await db.run(
+    `INSERT INTO order_slots (slot_time, capacity, booked)
+       VALUES ($1, $2, 1)
+     ON CONFLICT (slot_time) DO UPDATE
+       SET booked = order_slots.booked + 1
+       WHERE order_slots.booked < order_slots.capacity
+     RETURNING id, slot_time, capacity, booked`,
+    [slotTime, capacity]
+  );
+
+  const row = result.rows[0];
+  if (!row) return null; // slot exists and is full
+
+  return {
+    id:        row.id,
+    slotTime:  row.slot_time,
+    capacity:  row.capacity,
+    booked:    row.booked,
+    remaining: Math.max(0, row.capacity - row.booked),
+    soldOut:   row.booked >= row.capacity,
+  };
+}
+
+export async function getAllOrders(limit = 200) {
+  const orders = await db.all(
+    'SELECT * FROM orders ORDER BY created_at DESC LIMIT $1',
+    [limit]
+  );
+  const result = [];
+  for (const order of orders) {
+    const lineItems = await db.all(
+      'SELECT * FROM order_line_items WHERE order_id = $1',
+      [order.id]
+    );
+    result.push({ ...order, lineItems: lineItems.map(parseLineItem) });
+  }
+  return result;
+}
+
+export async function updateOrderStatus(id, status) {
+  const VALID = ['pending', 'confirmed', 'ready', 'completed', 'cancelled'];
+  if (!VALID.includes(status)) throw new Error(`Invalid status: ${status}`);
+  const row = await db.get(
+    'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
+    [status, id]
+  );
+  return row ?? null;
+}
+
+export async function getDashboardStats() {
+  // Today in UTC (restaurant does not need TZ offset for daily summary)
+  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const todayRow = await db.get(
+    `SELECT COUNT(*)::int AS order_count, COALESCE(SUM(total_cents), 0)::int AS revenue_cents
+       FROM orders WHERE created_at::date = $1::date AND status != 'cancelled'`,
+    [today]
+  );
+  const pendingRow = await db.get(
+    `SELECT COUNT(*)::int AS pending_count FROM orders WHERE status = 'pending'`
+  );
+  return {
+    todayOrderCount: todayRow?.order_count ?? 0,
+    todayRevenueCents: todayRow?.revenue_cents ?? 0,
+    pendingOrderCount: pendingRow?.pending_count ?? 0,
+  };
 }
 
 function parseLineItem(row) {

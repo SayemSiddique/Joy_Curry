@@ -8,6 +8,7 @@ const STATUS_MAP = {
   TOKEN_INVALID:      401,
   FORBIDDEN:          403,
   NOT_FOUND:          404,
+  CONFLICT:           409,
   RATE_LIMITED:       429,
 };
 

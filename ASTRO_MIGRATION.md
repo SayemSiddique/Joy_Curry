@@ -580,15 +580,139 @@ When owner commissions professional photography: update `image_url` column in DB
 
 ---
 
-### ⬜ Phase 2-C — Admin Panel Improvements
-**Status: NOT STARTED — define scope at start of session**
+### ✅ Phase 2-C — Admin Panel Improvements
+**Status: COMPLETE — session 2026-06-21**
 
-Planned enhancements (TBD with owner):
-- [ ] Image URL field with live preview in add/edit form
-- [ ] Category reordering
-- [ ] Bulk stock toggle (mark all in a category in/out of stock)
-- [ ] Order management tab (view all orders, update status)
-- [ ] Dashboard: daily order count, revenue total
+- [x] **Image URL field + live preview** — `imageUrl` added to `FormState`; edit form shows the image using `<img>` with `onError` fallback to "Image not found" placeholder; URL clears `imgError` state on change
+- [x] **3-tab navigation** — `AdminTab` type (`'menu'|'orders'|'dashboard'`); tab bar hidden in form view; tabs fetch data lazily on first switch; header title updates per tab
+- [x] **Orders tab** — `GET /api/admin/orders` (new backend route, last 200 orders newest-first); table shows truncated order ID (gold mono), date, 🛵/🥡 delivery type, total, status `<select>` dropdown; `PATCH /api/admin/orders/:id/status` updates status inline with optimistic state update; `statusUpdating` guard disables select during in-flight request
+- [x] **Dashboard tab** — `GET /api/admin/dashboard` (new backend route); 3 stat cards: Orders Today, Revenue Today (formatPrice), Pending Orders; pending card styled amber for visibility
+- [x] **Backend — `backend/models/order.js`** — added `getAllOrders(limit)`, `updateOrderStatus(id, status)`, `getDashboardStats()` (today's date via ISO slice, Postgres `::date` cast, `::int` cast for pg bigint)
+- [x] **Backend — `backend/routes/admin.js`** — added `GET /api/admin/orders`, `PATCH /api/admin/orders/:id/status`, `GET /api/admin/dashboard`; imported new model functions
+- [x] **Bug fix — admin create item** — `requireBody` previously required `id` + `basePrice` but frontend sent neither; fixed: auto-generate `id` via `generateMenuItemId(name)` (name→slug + base36 timestamp); accept `basePriceCents` and convert to `basePrice` in route handler; same fix applied to PUT `/menu/:id`
+- [x] **`backend/utils/helpers.js`** — added `generateMenuItemId(name)`: slugifies name, appends base36 timestamp for uniqueness
+- [x] **`api.ts`** — added `AdminOrder`, `DashboardStats` types; added `adminApi.getAllOrders()`, `adminApi.updateOrderStatus()`, `adminApi.getDashboard()`
+- [x] **`global.css`** — added: `.admin-tabs`, `.admin-tab`, `.admin-tab--active`, `.admin-form__img-preview`, `.admin-form__img-placeholder`, `.admin-order-id`, `.admin-order-meta`, `.admin-status-select`, `.admin-status--{pending|confirmed|ready|completed|cancelled}`, `.admin-dashboard`, `.admin-stat-card`, `.admin-stat-value`, `.admin-stat-label`, `.admin-stat-card--full`, `.admin-stat-card--pending`
+- [x] Build verified: `npm run build` exits clean, zero TS errors (Node 24)
+- [x] Browser verified: Menu tab (table + edit form with imageUrl + placeholder) ✅, Orders tab (order row + status dropdown) ✅, Dashboard (1 order, $18.43 revenue, 0 pending) ✅, zero console errors ✅
+
+**Notes:**
+- `getAllOrders` fetches with N+1 queries (one per order for line items) — acceptable at restaurant scale (≤200 orders); can batch with a JOIN if needed later
+- Dashboard uses UTC date via `new Date().toISOString().slice(0,10)` and Postgres `::date` cast; consistent for a restaurant that opens/closes same calendar day globally
+- `imgError` state resets when URL input changes, so pasting a new URL always re-attempts the image load
+- Category reordering and bulk stock toggle deferred — lower priority; can be Phase 4 polish
+
+---
+
+### ✅ Phase 3-A — Backend DB: Rewards + Scheduled Orders Schema
+**Status: COMPLETE — session 2026-06-21 | DB migrations only, zero frontend changes**
+
+- [x] `backend/db/migrations/003_add_rewards_and_scheduling.js` — NEW, fully idempotent (`ADD COLUMN IF NOT EXISTS` + guarded `pg_constraint` block, safe to re-run every boot):
+  - `users`: `rewards_points INTEGER NOT NULL DEFAULT 0`, `rewards_lifetime_cents INTEGER NOT NULL DEFAULT 0`
+  - `orders`: `scheduled_for TEXT DEFAULT NULL`, `delivery_partner TEXT NOT NULL DEFAULT 'in-house'` (+ CHECK in 'in-house'/'uber'/'doordash'), `external_delivery_id TEXT DEFAULT NULL`, `points_earned INTEGER NOT NULL DEFAULT 0`, `points_redeemed INTEGER NOT NULL DEFAULT 0`
+  - `order_slots` table: `id SERIAL PK`, `slot_time TEXT UNIQUE`, `capacity INTEGER DEFAULT 10`, `booked INTEGER DEFAULT 0`
+  - Indexes: `idx_order_slots_slot_time`, `idx_orders_scheduled_for`
+- [x] `backend/db/setup.js` — imports + calls `addRewardsAndScheduling()` after `addOrders()`
+- [x] `backend/models/user.js` — `deserialize()` now exposes `rewardsLifetimeCents` (alongside existing `rewardsPoints`)
+- [x] `backend/models/order.js` — added `getSlotAvailability(dateStr)`: prefix-matches `slot_time LIKE 'YYYY-MM-DD%'`, returns slots ordered by time with derived `remaining` + `soldOut`. (`createOrder()` points-crediting logic was pre-written in Phase 3-0 — now functional since columns exist.)
+- [x] **Critical fix:** Phase 3-0 had pre-written `order.js` to reference `points_earned`/`rewards_points`/`rewards_lifetime_cents`, but those columns never existed — order creation was crashing at runtime. This migration closes that gap.
+- [x] Migration verified in Postgres: all columns + CHECK constraint + `order_slots` table + indexes present (`\d` output confirmed)
+- [x] E2E verified: registered user → placed pickup order (subtotal $19.50, total $21.21) → `points_earned = 2100` (= floor(2121/100)×100 ✅) → user balance credited atomically (`rewards_points = 2100`, `rewards_lifetime_cents = 2121`) confirmed via `/api/users/me` AND direct DB query
+- [x] `getSlotAvailability('2026-06-22')` verified with seeded slots: available slot → `remaining: 8, soldOut: false`; full slot → `remaining: 0, soldOut: true`
+- [x] Idempotency verified: backend restarted twice, migration re-ran clean with no errors; menu API still healthy (127 items)
+- [x] Synthetic test data cleaned up after verification
+
+**Notes:**
+- Boolean columns kept as `INTEGER` 0/1 (matches Phase 3-0 convention, not native `BOOLEAN`)
+- `slot_time` stored as ISO datetime TEXT; day filtering via `LIKE 'YYYY-MM-DD%'` prefix match
+- Next: Phase 3-B adds the API routes (`GET /api/users/me/rewards`, `GET /api/slots`, `POST /api/slots/reserve`, `POST /api/rewards/redeem`) that consume this schema
+
+---
+
+### ✅ Phase 3-B — Backend API: Rewards + Scheduling Endpoints
+**Status: COMPLETE — session 2026-06-21 | New API routes only, zero frontend changes**
+
+- [x] `backend/config/rewards.js` — NEW: `MILESTONES` (4 tiers: 1000/5000/12000/15000 pts), `getMilestoneByPoints()`, `buildRewardsSummary(balance)` (returns balance, per-tier unlocked flags, nextMilestone, pointsToNext, progressPct)
+- [x] `backend/config/slots.js` — NEW: restaurant-local-time helpers (`America/New_York`, DST-aware via Intl). `OPEN_HOUR=11`, `CLOSE_HOUR=22`, `SLOT_MINUTES=15`, `DEFAULT_SLOT_CAPACITY=10`. `todayStr/tomorrowStr/isBookableDate/generateSlotTimes/isPastSlot` + format validators
+- [x] `backend/routes/slots.js` — NEW:
+  - `GET /api/slots?date=YYYY-MM-DD` (public) — generates full 15-min grid (11:00–21:45 = 44 slots), merges DB `order_slots` booked counts, filters out past slots on today, returns `{remaining, soldOut, filling}` per slot. Rejects dates outside today/tomorrow with 400
+  - `POST /api/slots/reserve` (JWT) — atomic capacity-enforced reservation via `reserveSlot()`; returns 409 when full
+- [x] `backend/routes/rewards.js` — NEW: `POST /api/rewards/redeem` (JWT) — validates milestone exists + user has enough points; resolves reward item (caller-chosen, validated against milestone category, OR auto-picks cheapest in-stock item in category); returns zero-price reward line item (`isReward: true`, `pointsCost`, `originalPriceCents`)
+- [x] `backend/routes/users.js` — added `GET /api/users/me/rewards` (JWT) → `buildRewardsSummary()` + `lifetimeCents`
+- [x] `backend/models/order.js` — added `reserveSlot(slotTime, capacity)` (atomic `INSERT ... ON CONFLICT DO UPDATE ... WHERE booked < capacity RETURNING`); `createOrder()` now accepts + persists `scheduledFor` (writes `scheduled_for` column)
+- [x] `backend/middleware/validate.js` — `validateOrder` now accepts optional `scheduledFor` (null = ASAP, else `YYYY-MM-DDTHH:MM` pattern)
+- [x] `backend/routes/orders.js` — passes `scheduledFor` through to `createOrder()`
+- [x] `backend/middleware/errorHandler.js` — added `CONFLICT: 409` to STATUS_MAP (also fixes pre-existing bug: `menu.js` threw `CONFLICT` but it mapped to 500)
+- [x] `backend/server.js` — mounted `/api/slots` + `/api/rewards`
+- [x] ESLint clean on all 10 changed/new files
+- [x] **E2E verified (all endpoints):**
+  - `GET /me/rewards` at balance 0 → nextMilestone 1000, pointsToNext 1000, progressPct 0 ✅
+  - `GET /slots?date=tomorrow` (no auth) → 44 slots, 11:00→21:45 ✅
+  - `POST /slots/reserve` → booked 1; filled to capacity 10; **11th attempt → 409 CONFLICT** (atomic) ✅
+  - `GET /slots` reflects `soldOut:true` for filled slot ✅
+  - Date out of range → 400; reserve without auth → 401 ✅
+  - Order with `scheduledFor` → `scheduled_for` persisted, points credited ✅
+  - After order (1200 pts): milestone unlocked, pointsToNext 3800, progressPct 5 ✅
+  - Redeem 1000-pt → auto-picks cheapest beverage (Soda, $0 reward, original $1.75) ✅
+  - Redeem with wrong-category itemId → 400; valid beverage itemId → returns that item ✅
+- [x] Idempotency: backend restarted clean, menu healthy (127 items); synthetic test data cleaned up
+
+**Notes:**
+- Reward `itemType` returned as `'regular'` (not `'reward'`) so the line passes the existing `order_line_items` CHECK + `validateOrder`; `isReward`/`pointsCost` flags carried for the frontend. Actual point-burning (`points_redeemed`) at order time is wired in Phase 3-D
+- Slot times are naive local strings `YYYY-MM-DDTHH:MM` (prefix-matchable by date); restaurant TZ resolved via `Intl` for DST correctness rather than the plan's fixed UTC−5
+- `reserveSlot` and order placement are decoupled (per plan: reserve is "called before order submit") — frontend reserves, then submits order with `scheduledFor`
+
+---
+
+### ✅ Phase 3-C — Frontend: Location Fork + Scheduled Order UI
+**Status: COMPLETE — session 2026-06-21 | First Phase 3 frontend chunk**
+
+- [x] `src/stores/cart.ts` — added `orderType` (`'pickup'|'delivery'|null`), `deliveryAddress`, `orderGateOpen` atoms + `setOrderType(type, address)` helper (persists to localStorage `jc_order_type`/`jc_delivery_address`, applies `setDeliveryType`). `deliveryFeeCents` initializer now respects persisted pickup choice (0 fee on reload)
+- [x] `src/lib/api.ts` — added `slotsApi` (`getSlots(date)`, `reserve(slotTime, token)`) + `Slot` type; `distanceApi.check(address)` (returns `null` gracefully until Phase 3-E `/api/distance` exists)
+- [x] `src/components/islands/OrderGate.tsx` — NEW (`client:idle`): two-step modal. Step 1 = pickup/delivery fork pills ("Secure Pickup" / "Bespoke Delivery"). Step 2 (delivery) = address input → defensive distance check → stores choice + closes. Auto-opens on first `/order` visit when no choice stored; only dismissable once a choice exists (true gate). Uses `useNano()` + `useFocusTrap`
+- [x] `src/components/islands/CheckoutModal.tsx` — order-type radio replaced with read-only display + "Change" button (reopens gate); address pre-filled from gate; **new "When?" scheduling section** — ASAP / Schedule-for-Later pills → Today/Tomorrow pills + 15-min slot grid from `GET /api/slots`; slot colors via `--selected`/`--disabled`/`--filling`(copper); selected slot sent as `scheduledFor`; **reserves slot via `slotsApi.reserve()` before placing order**; added client-side `$10 delivery minimum` check **before** reserve to prevent orphan reservations
+- [x] `src/pages/order.astro` — mounted `<OrderGate client:idle />`
+- [x] `src/styles/global.css` — added `.bundle-slot__option--filling`, `.order-gate*`, `.checkout-ordertype*`, `.schedule*` classes (extends existing `.modal`/`.bundle-slot__option` patterns per plan)
+- [x] `astro-frontend/.claude/launch.json` — `astro-dev` now runs `bash start-astro.sh` (Node 24) instead of bare `npm run dev` (was hitting system Node 20)
+- [x] Build verified: `npm run build` clean, zero TS errors (Node 24, Vercel adapter)
+- [x] **Browser E2E verified (preview server):**
+  - OrderGate auto-opens on first `/order` visit; both pills render ✅
+  - Delivery path: address step → stores `jc_order_type=delivery` + address; gate closes ✅
+  - Pickup path: bypasses address, fee shows "Free", pickup hint shown, `jc_order_type=pickup` ✅
+  - Checkout read-only order-type display ("🛵 Delivery"/"🥡 Pickup") + Change button + pre-filled address ✅
+  - Schedule-for-Later → Today/Tomorrow pills + 44-slot grid (11:00 AM–9:45 PM, 12h formatted) ✅
+  - Slot selection highlights; **real order placed → DB `scheduled_for='2026-06-22T19:00'` persisted + slot `booked=1` (reserved before order)** ✅
+  - Client-side $10 delivery minimum caught before reserve (no orphan reservation) ✅
+  - Zero console errors; test data cleaned up
+
+**Notes:**
+- OrderGate mounted on `/order` only (where add-to-cart/checkout actually happen); CheckoutModal "Change" button sets shared `orderGateOpen` atom
+- Frontend date helper computes today/tomorrow in `America/New_York` to match the backend's bookable-day validation
+- `DELIVERY_MIN_CENTS=1000` in CheckoutModal mirrors backend `validate.js` (note: `constants.ts` `MIN_ORDER_CENTS=1500` is unused/stale — backend authoritative value is 1000)
+- Distance/radius result is shown as an advisory note; full geocoding + routing lands in Phase 3-E
+
+---
+
+### ✅ Phase 3-D — Frontend: Artisan Vault Rewards Panel
+**Status: COMPLETE — session 2026-06-21**
+
+- [x] `src/lib/api.ts` — added `RewardMilestone`, `RewardsSummary`, `RewardLine` types + `rewardsApi` (`getMine(token)` → `GET /api/users/me/rewards`; `redeem({milestonePoints, itemId?}, token)` → `POST /api/rewards/redeem`)
+- [x] `src/stores/auth.ts` — added `rewardsState` atom (`RewardsSummary | null`), `vaultOpen` atom, and `loadRewards()` helper (fetches summary using stored token; clears when signed out). Imports `rewardsApi` from `@lib/api` (no circular dep — api never imports auth)
+- [x] `src/components/islands/RewardsPanel.tsx` — NEW (`client:idle`): right-side drawer (same overlay/transform pattern as OrderHistory/AdminPanel; `useNano()` helper). Shows balance card, gold progress bar to next milestone, all 4 milestones with locked (🔒) / unlocked / active states + per-milestone Redeem button, and lifetime-stats footer (lifetime spend via `formatPrice(lifetimeCents)` + points balance). Redeem → `rewardsApi.redeem()` → `addToCart()` zero-price reward item → opens cart + toast
+- [x] `src/components/islands/CartDrawer.tsx` — added Artisan Vault strip in the footer (logged-in users only): balance, progress to next milestone, "+N pts with this order" preview (`floor(total/100)*100`), and a "Redeem: {highest unlocked label}" button. Refreshes `loadRewards()` when drawer opens
+- [x] `src/components/static/Navbar.astro` — added `#navbar-vault-btn` ("✦ Vault"), hidden by default
+- [x] `src/components/islands/AuthModal.tsx` — wired vault button click → `vaultOpen`; shows/hides vault button with auth state; calls `loadRewards()` on login, register, session-restore, and sign-out
+- [x] `src/layouts/BaseLayout.astro` — mounts `<RewardsPanel client:idle />`
+- [x] `src/styles/global.css` — added shared `.vault-progress__bar/__fill/__label`, `.cart-vault*` (cart strip), `.vault-panel*` (drawer + overlay), `.vault-balance*`, `.vault-milestone*` (+`--unlocked`/`--active`), `.vault-stats/.vault-stat*`; added `.vault-panel` to print-hide rule. Reuses `--color-obsidian`, `--color-burnished-gold`, `--color-cta` tokens
+- [x] Build verified: `npm run build` exits clean, zero TS errors (Node 24)
+- [x] **Browser E2E verified (preview server, real backend):** registered user + placed $19.50 order via API → 2100 pts credited → Vault panel renders balance "2,100", progress "2,900 pts to Small Batch Side Dish" (fill 28%), milestone 1 unlocked w/ Redeem + 3 locked, stats `$21.21` lifetime / `2,100` balance ✅; Redeem → "🎁 Soda (Reward)" added at $0, cart opens, cart-vault strip shows "+700 pts with this order" ✅; zero console errors ✅; synthetic test data cleaned up
+
+**Notes:**
+- Uses same `useNano()` helper pattern as all islands (avoids `@nanostores/react` React 19 SSR issue)
+- Earn-rate preview uses the grand total (`floor(total_cents/100)*100`), matching backend `createOrder()` crediting logic
+- Cart strip surfaces only the single highest unlocked milestone (Redeem); the full panel lists all four
+- Reward line item added as `itemType: 'regular'` at `basePriceCents: 0` (matches backend redeem response + `order_line_items` CHECK). **Actual point-burning (`points_redeemed`) at order time is still deferred** — the redeem route only returns the reward line; checkout does not yet send `points_redeemed`. Wire that in a follow-up if strict balance enforcement is needed
+- Next: Phase 3-E — Delivery Radius Engine (`GET /api/distance`, wire `deliveryService.js` stubs; needs real API keys)
 
 ---
 

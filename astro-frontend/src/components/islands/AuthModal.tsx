@@ -5,6 +5,8 @@ import {
   authOpen,
   orderHistoryOpen,
   adminPanelOpen,
+  vaultOpen,
+  loadRewards,
   setAuth,
   clearAuth,
   type AuthState,
@@ -52,6 +54,7 @@ export default function AuthModal() {
       .then((res) => {
         const u = res.user;
         setAuth(token, { id: u.id, name: u.name, email: u.email, role: u.role as 'customer' | 'admin' });
+        loadRewards();
       })
       .catch(() => clearAuth());
   }, []);
@@ -61,19 +64,23 @@ export default function AuthModal() {
     const signInBtn = document.getElementById('navbar-auth-btn');
     const ordersBtn = document.getElementById('navbar-orders-btn');
     const adminBtn = document.getElementById('navbar-admin-btn');
+    const vaultBtn = document.getElementById('navbar-vault-btn');
 
     const openAuth = () => authOpen.set(true);
     const openOrders = () => orderHistoryOpen.set(true);
     const openAdmin = () => adminPanelOpen.set(true);
+    const openVault = () => vaultOpen.set(true);
 
     signInBtn?.addEventListener('click', openAuth);
     ordersBtn?.addEventListener('click', openOrders);
     adminBtn?.addEventListener('click', openAdmin);
+    vaultBtn?.addEventListener('click', openVault);
 
     return () => {
       signInBtn?.removeEventListener('click', openAuth);
       ordersBtn?.removeEventListener('click', openOrders);
       adminBtn?.removeEventListener('click', openAdmin);
+      vaultBtn?.removeEventListener('click', openVault);
     };
   }, []);
 
@@ -82,6 +89,7 @@ export default function AuthModal() {
     const signInBtn = document.getElementById('navbar-auth-btn');
     const ordersBtn = document.getElementById('navbar-orders-btn');
     const adminBtn = document.getElementById('navbar-admin-btn');
+    const vaultBtn = document.getElementById('navbar-vault-btn');
 
     if (auth.user) {
       if (signInBtn) {
@@ -89,6 +97,7 @@ export default function AuthModal() {
         signInBtn.setAttribute('aria-label', 'Account — click to sign out');
       }
       if (ordersBtn) ordersBtn.style.display = '';
+      if (vaultBtn) vaultBtn.style.display = '';
       if (adminBtn) adminBtn.style.display = auth.user.role === 'admin' ? '' : 'none';
     } else {
       if (signInBtn) {
@@ -96,6 +105,7 @@ export default function AuthModal() {
         signInBtn.setAttribute('aria-label', 'Sign in to your account');
       }
       if (ordersBtn) ordersBtn.style.display = 'none';
+      if (vaultBtn) vaultBtn.style.display = 'none';
       if (adminBtn) adminBtn.style.display = 'none';
     }
   }, [auth]);
@@ -134,6 +144,7 @@ export default function AuthModal() {
       setAuth(res.token, { id: res.user.id, name: res.user.name, email: res.user.email, role: res.user.role as 'customer' | 'admin' });
       authOpen.set(false);
       setLoginForm(EMPTY_LOGIN);
+      loadRewards();
       showToast(`Welcome back, ${res.user.name.split(' ')[0]}!`, 'success');
     } catch (err) {
       setErrors({ global: err instanceof Error ? err.message : 'Login failed. Please try again.' });
@@ -159,6 +170,7 @@ export default function AuthModal() {
       setAuth(res.token, { id: res.user.id, name: res.user.name, email: res.user.email, role: res.user.role as 'customer' | 'admin' });
       authOpen.set(false);
       setRegisterForm(EMPTY_REGISTER);
+      loadRewards();
       showToast(`Account created! Welcome, ${res.user.name.split(' ')[0]}.`, 'success');
     } catch (err) {
       setErrors({ global: err instanceof Error ? err.message : 'Registration failed. Please try again.' });
@@ -169,6 +181,7 @@ export default function AuthModal() {
 
   const handleSignOut = () => {
     clearAuth();
+    loadRewards();
     authOpen.set(false);
     showToast('Signed out.', 'info');
   };

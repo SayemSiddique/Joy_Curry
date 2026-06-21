@@ -1,4 +1,5 @@
 import { atom, computed } from 'nanostores';
+import { rewardsApi, type RewardsSummary } from '@lib/api';
 
 export interface AuthUser {
   id: number;
@@ -52,3 +53,22 @@ export function getToken(): string | null {
 export const authOpen = atom<boolean>(false);
 export const orderHistoryOpen = atom<boolean>(false);
 export const adminPanelOpen = atom<boolean>(false);
+
+// ── Artisan Vault rewards (Phase 3-D) ──
+export const rewardsState = atom<RewardsSummary | null>(null);
+export const vaultOpen = atom<boolean>(false);
+
+/** Sync the logged-in user's rewards summary; clears it when signed out. */
+export async function loadRewards(): Promise<void> {
+  const token = authState.get().token;
+  if (!token) {
+    rewardsState.set(null);
+    return;
+  }
+  try {
+    const { rewards } = await rewardsApi.getMine(token);
+    rewardsState.set(rewards);
+  } catch {
+    rewardsState.set(null);
+  }
+}

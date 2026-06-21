@@ -12,13 +12,14 @@ router.use(verifyToken);
 
 router.post('/', validateOrder, async (req, res, next) => {
   try {
-    const { deliveryType, deliveryAddress, items, idempotencyKey } = req.body;
+    const { deliveryType, deliveryAddress, items, idempotencyKey, scheduledFor } = req.body;
     const { order, lineItems, duplicate } = await createOrder({
       userId: req.user.sub,
       deliveryType,
       deliveryAddress,
       items,
       idempotencyKey,
+      scheduledFor,
     });
 
     if (!duplicate) {

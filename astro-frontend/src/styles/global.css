@@ -2677,6 +2677,114 @@ input, textarea, select {
   flex-shrink: 0;
 }
 
+/* Slot "filling fast" state — copper accent (Phase 3-C scheduling) */
+.bundle-slot__option--filling {
+  border-color: var(--color-raw-copper);
+  color: var(--color-raw-copper);
+}
+.bundle-slot__option--filling.bundle-slot__option--selected {
+  background: var(--color-raw-copper);
+  color: #fff;
+}
+
+/* ── OrderGate (Phase 3-C): pickup vs delivery fork ── */
+.order-gate { max-width: 520px; }
+
+.order-gate__choices {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 480px) {
+  .order-gate__choices { grid-template-columns: 1fr 1fr; }
+}
+
+.order-gate__choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), background var(--ease-fast), transform var(--ease-fast);
+}
+
+.order-gate__choice:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  transform: translateY(-2px);
+}
+
+.order-gate__choice-icon { font-size: 2rem; }
+
+.order-gate__choice-title {
+  font-weight: var(--weight-bold);
+  font-size: var(--text-lg);
+  color: var(--color-text-primary);
+}
+
+.order-gate__choice-sub {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.order-gate__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+/* Read-only order-type display in checkout */
+.checkout-ordertype {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-light);
+}
+
+.checkout-ordertype__value {
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+}
+
+.checkout-ordertype__change {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Scheduling sub-panel */
+.schedule {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.schedule__days { grid-template-columns: 1fr 1fr; }
+
+.schedule__grid {
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.schedule__tag {
+  font-size: var(--text-xs);
+  opacity: 0.8;
+}
+
 /* Configure button on menu cards */
 .menu-card__configure-btn {
   display: block;
@@ -2953,10 +3061,144 @@ input, textarea, select {
   cursor: not-allowed;
 }
 
+/* ── Admin Panel Tabs ────────────────────────────────────── */
+.admin-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 var(--space-4);
+  gap: var(--space-1);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.admin-tab {
+  padding: var(--space-3) var(--space-4);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.admin-tab:hover { color: var(--color-text-primary); }
+
+.admin-tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Admin Image Preview ─────────────────────────────────── */
+.admin-form__img-preview {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  margin-top: var(--space-2);
+  background: var(--color-bg-alt);
+}
+
+.admin-form__img-placeholder {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  background: var(--color-bg-alt);
+}
+
+/* ── Admin Orders Table ──────────────────────────────────── */
+.admin-order-id {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+  letter-spacing: 0.04em;
+}
+
+.admin-order-meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.admin-status-select {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-status-select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.admin-status--pending    { color: #D97706; }
+.admin-status--confirmed  { color: #2563EB; }
+.admin-status--ready      { color: #7C3AED; }
+.admin-status--completed  { color: #059669; }
+.admin-status--cancelled  { color: #DC2626; }
+
+/* ── Admin Dashboard Cards ───────────────────────────────── */
+.admin-dashboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.admin-stat-card {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+}
+
+.admin-stat-card--full {
+  grid-column: 1 / -1;
+}
+
+.admin-stat-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1;
+  margin-bottom: var(--space-2);
+}
+
+.admin-stat-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-stat-card--pending .admin-stat-value {
+  color: #D97706;
+}
+
 /* ── Print ───────────────────────────────────────────────── */
 @media print {
   .navbar, .toolbar, .cart-drawer, .modal-overlay,
-  .order-history-drawer, .admin-panel, #toast-container {
+  .order-history-drawer, .admin-panel, .vault-panel, #toast-container {
     display: none !important;
   }
 }
@@ -3000,4 +3242,291 @@ input, textarea, select {
 .order-history-drawer__close {
   width: 44px;
   height: 44px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   Artisan Vault — Rewards (Phase 3-D)
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Shared progress bar ─────────────────────────────────── */
+.vault-progress__bar {
+  height: 8px;
+  width: 100%;
+  background: var(--color-border-light);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.vault-progress__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-burnished-gold), var(--color-cta));
+  border-radius: var(--radius-full);
+  transition: width var(--ease-normal);
+}
+
+.vault-progress__label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-2);
+}
+
+/* ── Cart drawer vault strip ─────────────────────────────── */
+.cart-vault {
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-obsidian);
+  color: #fff;
+}
+
+.cart-vault__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.cart-vault__title {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-burnished-gold);
+  letter-spacing: 0.02em;
+}
+
+.cart-vault__balance {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-cta);
+}
+
+.cart-vault__next {
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: var(--space-2);
+}
+
+.cart-vault__next strong { color: var(--color-cta); }
+
+.cart-vault__preview {
+  font-size: var(--text-xs);
+  color: var(--color-burnished-gold);
+  margin-top: var(--space-2);
+  font-weight: var(--weight-semibold);
+}
+
+.cart-vault__redeem {
+  width: 100%;
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-cta);
+  color: var(--color-cta-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--ease-fast);
+}
+
+.cart-vault__redeem:hover { background: var(--color-cta-hover); }
+
+/* ── Vault panel (right-side drawer) ─────────────────────── */
+.vault-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-modal);
+  width: min(420px, 100vw);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-xl);
+  transform: translateX(100%);
+  transition: transform var(--ease-normal);
+}
+
+.vault-panel--open { transform: translateX(0); }
+
+.vault-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-obsidian);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.vault-panel__title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-burnished-gold);
+}
+
+.vault-panel__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  color: rgba(255, 255, 255, 0.7);
+  transition: background var(--ease-fast), color var(--ease-fast);
+}
+
+.vault-panel__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.vault-panel__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+.vault-panel__empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin-top: var(--space-8);
+}
+
+.vault-balance {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-5) 0;
+  border-radius: var(--radius-xl);
+  background: var(--color-obsidian);
+  color: #fff;
+  margin-bottom: var(--space-5);
+}
+
+.vault-balance__value {
+  font-family: var(--font-mono);
+  font-size: 2.5rem;
+  font-weight: var(--weight-bold);
+  color: var(--color-cta);
+  line-height: 1;
+}
+
+.vault-balance__label {
+  font-size: var(--text-sm);
+  color: var(--color-burnished-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: var(--space-2);
+}
+
+.vault-progress { margin-bottom: var(--space-6); }
+
+.vault-milestones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.vault-milestone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  opacity: 0.6;
+}
+
+.vault-milestone--unlocked { opacity: 1; }
+
+.vault-milestone--active {
+  border-color: var(--color-burnished-gold);
+  box-shadow: 0 0 0 1px var(--color-burnished-gold);
+}
+
+.vault-milestone__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vault-milestone__label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.vault-milestone__pts {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.vault-milestone__redeem {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-4);
+  background: var(--color-cta);
+  color: var(--color-cta-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--ease-fast);
+}
+
+.vault-milestone__redeem:hover { background: var(--color-cta-hover); }
+
+.vault-milestone__status { font-size: var(--text-md); flex-shrink: 0; }
+
+.vault-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.vault-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-alt);
+}
+
+.vault-stat__value {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.vault-stat__label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: var(--space-1);
+  text-align: center;
+}
+
+.vault-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: var(--color-overlay);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ease-normal);
+}
+
+.vault-overlay--visible {
+  opacity: 1;
+  pointer-events: all;
 }

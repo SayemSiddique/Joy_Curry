@@ -7,15 +7,38 @@ import {
   deliveryFeeCents,
   totalCents,
   checkoutOpen,
+  orderType,
+  deliveryAddress,
+  orderGateOpen,
   clearCart,
-  setDeliveryType,
   type CartItem,
 } from '@stores/cart';
 import { authState } from '@stores/auth';
-import { ordersApi, type Order } from '@lib/api';
+import { ordersApi, slotsApi, type Order, type Slot } from '@lib/api';
 import { formatPrice } from '@lib/formatters';
 import { showToast } from '@lib/toast';
 import { useFocusTrap } from '@lib/hooks';
+
+// Restaurant-local (America/New_York) date string, optionally offset by days.
+function nyDateStr(offsetDays = 0): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
+// "2026-06-22T11:00" → "11:00 AM"
+function formatSlot(slotTime: string): string {
+  const t = slotTime.split('T')[1] ?? '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${hr}:${String(m).padStart(2, '0')} ${ampm}`;
+}
 
 function useNano<T>(store: ReadableAtom<T>): T {
   const [val, setVal] = useState<T>(() => store.get());
@@ -25,6 +48,8 @@ function useNano<T>(store: ReadableAtom<T>): T {
 
 const PHONE_RE = /^\+?[\d\s\-().]{7,20}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Matches backend validate.js MIN_ORDER_CENTS for delivery.
+const DELIVERY_MIN_CENTS = 1000;
 
 type DeliveryType = 'delivery' | 'pickup';
 type Screen = 'form' | 'submitting' | 'confirmed';
@@ -62,33 +87,63 @@ export default function CheckoutModal() {
   const fee = useNano(deliveryFeeCents);
   const total = useNano(totalCents);
   const auth = useNano(authState);
+  // Order type is chosen upfront in OrderGate; default to delivery if somehow unset.
+  const chosenType = useNano(orderType);
+  const savedAddress = useNano(deliveryAddress);
+  const deliveryType: DeliveryType = chosenType ?? 'delivery';
 
-  const [deliveryType, setLocalDeliveryType] = useState<DeliveryType>('delivery');
   const [form, setForm] = useState<Form>(EMPTY_FORM);
   const [errors, setErrors] = useState<Errors>({});
   const [screen, setScreen] = useState<Screen>('form');
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
+
+  // ── Scheduling (Phase 3-C) ──
+  const [whenMode, setWhenMode] = useState<'asap' | 'later'>('asap');
+  const [slotDate, setSlotDate] = useState<string>(nyDateStr(0));
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+
   // Generated once per checkout session; refreshed after a successful order
   const idempotencyKey = useRef<string>(crypto.randomUUID());
   const modalRef = useRef<HTMLDivElement>(null);
   useFocusTrap(modalRef, open);
 
-  const handleDeliveryTypeChange = (type: DeliveryType) => {
-    setLocalDeliveryType(type);
-    setDeliveryType(type);
-  };
-
-  // Pre-fill name/email from auth state if logged in
+  // Pre-fill name/email from auth, address from the gate choice
   useEffect(() => {
-    if (open && auth.user) {
+    if (open) {
       setForm((f) => ({
         ...f,
-        name: f.name || auth.user!.name,
-        email: f.email || auth.user!.email,
+        name: f.name || (auth.user?.name ?? ''),
+        email: f.email || (auth.user?.email ?? ''),
+        address: f.address || savedAddress,
       }));
     }
-  }, [open, auth.user]);
+  }, [open, auth.user, savedAddress]);
+
+  // Fetch slots when the customer opts to schedule for later (or changes day)
+  useEffect(() => {
+    if (!open || whenMode !== 'later') return;
+    let cancelled = false;
+    setSlotsLoading(true);
+    setSlotsError(null);
+    slotsApi
+      .getSlots(slotDate)
+      .then((res) => {
+        if (!cancelled) setSlots(res.slots);
+      })
+      .catch((err) => {
+        if (!cancelled) setSlotsError(err instanceof Error ? err.message : 'Could not load times.');
+      })
+      .finally(() => {
+        if (!cancelled) setSlotsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, whenMode, slotDate]);
 
   // After modal closes and user was on confirmed screen, reset for next use
   useEffect(() => {
@@ -99,6 +154,8 @@ export default function CheckoutModal() {
         setErrors({});
         setGlobalError(null);
         setConfirmedOrder(null);
+        setWhenMode('asap');
+        setSelectedSlot(null);
       }, 350);
       return () => clearTimeout(t);
     }
@@ -123,8 +180,36 @@ export default function CheckoutModal() {
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
+    // Mirror the backend's delivery minimum so we never reserve a slot for an
+    // order the server will reject (avoids orphan slot reservations).
+    if (deliveryType === 'delivery' && subtotal < DELIVERY_MIN_CENTS) {
+      setGlobalError(`Minimum order for delivery is ${formatPrice(DELIVERY_MIN_CENTS)}.`);
+      return;
+    }
+
+    // Scheduling guard: "later" requires a chosen slot.
+    const scheduledFor = whenMode === 'later' ? selectedSlot : null;
+    if (whenMode === 'later' && !scheduledFor) {
+      setGlobalError('Please choose a time slot, or switch to "As Soon As Possible".');
+      return;
+    }
+
     setScreen('submitting');
     setGlobalError(null);
+
+    // Reserve the kitchen slot before placing the order (Phase 3-B endpoint).
+    if (scheduledFor) {
+      try {
+        await slotsApi.reserve(scheduledFor, auth.token ?? '');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'That time slot is no longer available.';
+        setGlobalError(msg);
+        showToast(msg, 'error');
+        setScreen('form');
+        setSelectedSlot(null);
+        return;
+      }
+    }
 
     const addressFull = form.address.trim()
       ? `${form.address.trim()}${form.apt.trim() ? ', ' + form.apt.trim() : ''}`
@@ -139,6 +224,7 @@ export default function CheckoutModal() {
       ...(form.specialInstructions.trim() && {
         specialInstructions: form.specialInstructions.trim(),
       }),
+      scheduledFor,
       idempotencyKey: idempotencyKey.current,
       items: items.map((item: CartItem) => ({
         itemId: item.itemId,
@@ -175,6 +261,8 @@ export default function CheckoutModal() {
       setErrors({});
       setGlobalError(null);
       setConfirmedOrder(null);
+      setWhenMode('asap');
+      setSelectedSlot(null);
     }, 350);
   };
 
@@ -261,35 +349,104 @@ export default function CheckoutModal() {
                     gap: 'var(--space-5)',
                   }}
                 >
-                  {/* Order type */}
+                  {/* Order type — chosen in OrderGate, shown read-only here */}
                   <div className="form-group">
                     <span className="form-label">Order Type</span>
-                    <div className="form-radio-group">
-                      <label className="form-radio-label">
-                        <input
-                          type="radio"
-                          name="deliveryType"
-                          value="delivery"
-                          checked={deliveryType === 'delivery'}
-                          onChange={() => handleDeliveryTypeChange('delivery')}
-                        />
-                        Delivery
-                      </label>
-                      <label className="form-radio-label">
-                        <input
-                          type="radio"
-                          name="deliveryType"
-                          value="pickup"
-                          checked={deliveryType === 'pickup'}
-                          onChange={() => handleDeliveryTypeChange('pickup')}
-                        />
-                        Pickup
-                      </label>
+                    <div className="checkout-ordertype">
+                      <span className="checkout-ordertype__value">
+                        {deliveryType === 'pickup' ? '🥡 Pickup' : '🛵 Delivery'}
+                      </span>
+                      <button
+                        type="button"
+                        className="checkout-ordertype__change"
+                        onClick={() => orderGateOpen.set(true)}
+                      >
+                        Change
+                      </button>
                     </div>
                     {deliveryType === 'pickup' && (
                       <p className="form-hint">
                         Pick up at 148 E 46th St, New York, NY 10017
                       </p>
+                    )}
+                  </div>
+
+                  {/* When? — ASAP vs scheduled (Phase 3-C) */}
+                  <div className="form-group">
+                    <span className="form-label">When?</span>
+                    <div className="bundle-slot__options">
+                      <button
+                        type="button"
+                        className={`bundle-slot__option${whenMode === 'asap' ? ' bundle-slot__option--selected' : ''}`}
+                        onClick={() => setWhenMode('asap')}
+                      >
+                        As Soon As Possible
+                      </button>
+                      <button
+                        type="button"
+                        className={`bundle-slot__option${whenMode === 'later' ? ' bundle-slot__option--selected' : ''}`}
+                        onClick={() => setWhenMode('later')}
+                      >
+                        Schedule for Later
+                      </button>
+                    </div>
+
+                    {whenMode === 'later' && (
+                      <div className="schedule">
+                        <div className="bundle-slot__options schedule__days">
+                          <button
+                            type="button"
+                            className={`bundle-slot__option${slotDate === nyDateStr(0) ? ' bundle-slot__option--selected' : ''}`}
+                            onClick={() => {
+                              setSlotDate(nyDateStr(0));
+                              setSelectedSlot(null);
+                            }}
+                          >
+                            Today
+                          </button>
+                          <button
+                            type="button"
+                            className={`bundle-slot__option${slotDate === nyDateStr(1) ? ' bundle-slot__option--selected' : ''}`}
+                            onClick={() => {
+                              setSlotDate(nyDateStr(1));
+                              setSelectedSlot(null);
+                            }}
+                          >
+                            Tomorrow
+                          </button>
+                        </div>
+
+                        {slotsLoading ? (
+                          <p className="form-hint">Loading available times…</p>
+                        ) : slotsError ? (
+                          <p className="form-error" role="alert">{slotsError}</p>
+                        ) : slots.length === 0 ? (
+                          <p className="form-hint">No times available for this day.</p>
+                        ) : (
+                          <div className="bundle-slot__options schedule__grid">
+                            {slots.map((slot) => (
+                              <button
+                                key={slot.slotTime}
+                                type="button"
+                                disabled={slot.soldOut}
+                                className={
+                                  'bundle-slot__option' +
+                                  (selectedSlot === slot.slotTime ? ' bundle-slot__option--selected' : '') +
+                                  (slot.soldOut ? ' bundle-slot__option--disabled' : '') +
+                                  (slot.filling ? ' bundle-slot__option--filling' : '')
+                                }
+                                onClick={() => setSelectedSlot(slot.slotTime)}
+                                aria-pressed={selectedSlot === slot.slotTime}
+                              >
+                                {formatSlot(slot.slotTime)}
+                                {slot.filling && !slot.soldOut && (
+                                  <span className="schedule__tag"> · {slot.remaining} left</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 

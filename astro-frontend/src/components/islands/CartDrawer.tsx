@@ -14,7 +14,10 @@ import {
   updateQty,
   type CartItem,
 } from '@stores/cart';
+import { authState, rewardsState, loadRewards } from '@stores/auth';
+import { rewardsApi, type RewardMilestone } from '@lib/api';
 import { formatPrice } from '@lib/formatters';
+import { showToast } from '@lib/toast';
 
 // Workaround: useSyncExternalStore (used by @nanostores/react useStore) has a
 // compatibility issue with React 19 + Astro SSR. Subscribe manually instead.
@@ -32,6 +35,39 @@ export default function CartDrawer() {
   const fee = useNano(deliveryFeeCents);
   const total = useNano(totalCents);
   const open = useNano(cartOpen);
+  const auth = useNano(authState);
+  const rewards = useNano(rewardsState);
+
+  // Refresh the vault balance whenever the drawer opens for a signed-in user
+  useEffect(() => {
+    if (open && auth.token) loadRewards();
+  }, [open, auth.token]);
+
+  // Points this order will earn ($1 spent = 100 pts on the grand total)
+  const pointsPreview = Math.floor(total / 100) * 100;
+  // Highest milestone the customer can redeem right now (if any)
+  const topUnlocked: RewardMilestone | null =
+    rewards && rewards.unlocked.length > 0 ? rewards.unlocked[rewards.unlocked.length - 1] : null;
+
+  const handleRedeem = async (milestone: RewardMilestone) => {
+    const token = authState.get().token;
+    if (!token) return;
+    try {
+      const { reward } = await rewardsApi.redeem({ milestonePoints: milestone.points }, token);
+      addToCart({
+        itemId: reward.itemId,
+        name: `🎁 ${reward.itemName} (Reward)`,
+        basePriceCents: 0,
+        qty: 1,
+        lineTotalCents: 0,
+        itemType: 'regular',
+      });
+      showToast(`Reward added: ${reward.itemName}`, 'success');
+      loadRewards();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not redeem reward.', 'error');
+    }
+  };
 
   // Wire up the static Navbar cart button
   useEffect(() => {
@@ -180,6 +216,40 @@ export default function CartDrawer() {
 
         {items.length > 0 ? (
           <div className="cart-drawer__footer">
+            {auth.user && rewards && (
+              <div className="cart-vault">
+                <div className="cart-vault__header">
+                  <span className="cart-vault__title">✦ Artisan Vault</span>
+                  <span className="cart-vault__balance">{rewards.balance.toLocaleString()} pts</span>
+                </div>
+                {rewards.nextMilestone ? (
+                  <>
+                    <div className="vault-progress__bar" aria-hidden="true">
+                      <div
+                        className="vault-progress__fill"
+                        style={{ width: `${rewards.progressPct}%` }}
+                      />
+                    </div>
+                    <p className="cart-vault__next">
+                      {rewards.pointsToNext.toLocaleString()} pts to{' '}
+                      <strong>{rewards.nextMilestone.label}</strong>
+                    </p>
+                  </>
+                ) : (
+                  <p className="cart-vault__next">All rewards unlocked — redeem below!</p>
+                )}
+                <p className="cart-vault__preview">+{pointsPreview.toLocaleString()} pts with this order</p>
+                {topUnlocked && (
+                  <button
+                    className="cart-vault__redeem"
+                    onClick={() => handleRedeem(topUnlocked)}
+                    type="button"
+                  >
+                    Redeem: {topUnlocked.label}
+                  </button>
+                )}
+              </div>
+            )}
             <div className="cart-drawer__totals">
               <div className="cart-drawer__total-row">
                 <span>Subtotal</span>

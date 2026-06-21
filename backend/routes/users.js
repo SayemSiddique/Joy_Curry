@@ -5,6 +5,7 @@ import { createUser, getUserByEmail, getUserById, updateUser } from '../models/u
 import { verifyToken } from '../middleware/auth.js';
 import { validateRegister, validateLogin } from '../middleware/validate.js';
 import { createError } from '../middleware/errorHandler.js';
+import { buildRewardsSummary } from '../config/rewards.js';
 
 const router = Router();
 const SALT_ROUNDS = 10;
@@ -68,6 +69,23 @@ router.get('/me', verifyToken, async (req, res, next) => {
     const user = await getUserById(req.user.sub);
     if (!user) return next(createError('NOT_FOUND', 'User not found.'));
     res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/me/rewards', verifyToken, async (req, res, next) => {
+  try {
+    const user = await getUserById(req.user.sub);
+    if (!user) return next(createError('NOT_FOUND', 'User not found.'));
+
+    const summary = buildRewardsSummary(user.rewardsPoints);
+    res.json({
+      rewards: {
+        ...summary,
+        lifetimeCents: user.rewardsLifetimeCents,
+      },
+    });
   } catch (err) {
     next(err);
   }
