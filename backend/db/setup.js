@@ -3,6 +3,7 @@ import logger from '../utils/logger.js';
 import { up as addUsers } from './migrations/001_add_users.js';
 import { up as addOrders } from './migrations/002_add_orders.js';
 import { up as addRewardsAndScheduling } from './migrations/003_add_rewards_and_scheduling.js';
+import { up as convertTimestampsAndIndexes } from './migrations/004_timestamps_and_indexes.js';
 
 export async function initializeSchema() {
   await db.run(`
@@ -28,8 +29,8 @@ export async function initializeSchema() {
       is_active        INTEGER NOT NULL DEFAULT 1,
       is_halal         INTEGER NOT NULL DEFAULT 1,
       deleted_at       TEXT,
-      created_at       TEXT    NOT NULL DEFAULT (NOW()),
-      updated_at       TEXT    NOT NULL DEFAULT (NOW())
+      created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
 
@@ -73,6 +74,7 @@ export async function initializeSchema() {
   await addUsers();
   await addOrders();
   await addRewardsAndScheduling();
+  await convertTimestampsAndIndexes();
 
   logger.info('Database schema ready.');
 }

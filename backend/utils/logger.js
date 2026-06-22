@@ -20,6 +20,14 @@ const logger = {
     }
   },
 
+  warn(message, data) {
+    if (data !== undefined) {
+      console.warn(`[${timestamp()}] WARN ${message}`, data);
+    } else {
+      console.warn(`[${timestamp()}] WARN ${message}`);
+    }
+  },
+
   error(err, context) {
     console.error(`[${timestamp()}] ERROR ${err.message}`, context ?? '');
     if (err.stack) console.error(err.stack);

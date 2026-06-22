@@ -79,16 +79,7 @@ export async function getOrdersByUserId(userId) {
     'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC',
     [userId]
   );
-
-  const result = [];
-  for (const order of orders) {
-    const lineItems = await db.all(
-      'SELECT * FROM order_line_items WHERE order_id = $1',
-      [order.id]
-    );
-    result.push({ ...order, lineItems: lineItems.map(parseLineItem) });
-  }
-  return result;
+  return attachLineItems(orders);
 }
 
 export async function getOrderById(id) {
@@ -159,15 +150,7 @@ export async function getAllOrders(limit = 200) {
     'SELECT * FROM orders ORDER BY created_at DESC LIMIT $1',
     [limit]
   );
-  const result = [];
-  for (const order of orders) {
-    const lineItems = await db.all(
-      'SELECT * FROM order_line_items WHERE order_id = $1',
-      [order.id]
-    );
-    result.push({ ...order, lineItems: lineItems.map(parseLineItem) });
-  }
-  return result;
+  return attachLineItems(orders);
 }
 
 export async function updateOrderStatus(id, status) {
@@ -181,11 +164,17 @@ export async function updateOrderStatus(id, status) {
 }
 
 export async function getDashboardStats() {
-  // Today in UTC (restaurant does not need TZ offset for daily summary)
+  // Today in UTC (restaurant does not need TZ offset for a daily summary).
+  // Half-open range [today, tomorrow) is sargable — it uses the created_at
+  // B-tree index, unlike the old `created_at::date = $1` cast which forced a
+  // full table scan.
   const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
   const todayRow = await db.get(
     `SELECT COUNT(*)::int AS order_count, COALESCE(SUM(total_cents), 0)::int AS revenue_cents
-       FROM orders WHERE created_at::date = $1::date AND status != 'cancelled'`,
+       FROM orders
+      WHERE created_at >= $1::timestamptz
+        AND created_at <  ($1::timestamptz + INTERVAL '1 day')
+        AND status != 'cancelled'`,
     [today]
   );
   const pendingRow = await db.get(
@@ -196,6 +185,27 @@ export async function getDashboardStats() {
     todayRevenueCents: todayRow?.revenue_cents ?? 0,
     pendingOrderCount: pendingRow?.pending_count ?? 0,
   };
+}
+
+// N+1 fix: load line items for many orders in a single `= ANY($1)` query,
+// then group in memory — instead of one query per order.
+async function attachLineItems(orders) {
+  if (orders.length === 0) return [];
+  const ids = orders.map((o) => o.id);
+  const rows = await db.all(
+    'SELECT * FROM order_line_items WHERE order_id = ANY($1)',
+    [ids]
+  );
+
+  const byOrder = new Map();
+  for (const row of rows) {
+    const parsed = parseLineItem(row);
+    const list = byOrder.get(row.order_id);
+    if (list) list.push(parsed);
+    else byOrder.set(row.order_id, [parsed]);
+  }
+
+  return orders.map((order) => ({ ...order, lineItems: byOrder.get(order.id) ?? [] }));
 }
 
 function parseLineItem(row) {

@@ -7,6 +7,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 import { db } from '../config/db.js';
 import { initializeSchema } from './setup.js';
+import { seedBundles } from './seed-bundles.js';
 
 const MENU_DIR = path.resolve(__dirname, '../../frontend/js/data/menu');
 
@@ -115,11 +116,22 @@ export async function seedIfEmpty() {
   const row = await db.get('SELECT COUNT(*) as count FROM menu_items');
   const count = parseInt(row.count, 10);
   if (count > 0) {
-    console.log(`DB already has ${count} menu items — skipping seed.`);
-    return;
+    console.log(`DB already has ${count} menu items — skipping category seed.`);
+  } else {
+    console.log('DB is empty — seeding menu data...');
+    await runSeed();
   }
-  console.log('DB is empty — seeding menu data...');
-  await runSeed();
+
+  // Bundles (dinner-specials + combos) are NOT part of the category files, so
+  // they must be seeded separately. This runs on EVERY boot (idempotent via
+  // ON CONFLICT DO NOTHING) — without it, the category seed satisfies the
+  // count>0 guard above and bundles silently never load on a fresh DB.
+  const insertedBundles = await seedBundles();
+  if (insertedBundles > 0) {
+    console.log(`Seeded ${insertedBundles} bundle items (dinner-specials + combos).`);
+  } else {
+    console.log('Bundle items already present — skipping bundle seed.');
+  }
 }
 
 // Standalone CLI: node db/seed.js

@@ -15,8 +15,8 @@ export async function up() {
                                  CHECK (status IN ('pending', 'confirmed', 'ready', 'completed', 'cancelled')),
       idempotency_key    TEXT    UNIQUE,
       estimated_wait_min INTEGER NOT NULL DEFAULT 30,
-      created_at         TEXT    NOT NULL DEFAULT (NOW()),
-      updated_at         TEXT    NOT NULL DEFAULT (NOW())
+      created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
 
@@ -32,7 +32,7 @@ export async function up() {
       line_total_cents INTEGER NOT NULL,
       selected_options TEXT,
       slot_choices     TEXT,
-      created_at       TEXT    NOT NULL DEFAULT (NOW())
+      created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
 

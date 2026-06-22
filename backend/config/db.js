@@ -10,6 +10,12 @@ const { Pool } = pg;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Pool hardening — Render's free Postgres caps total connections low, so we
+  // bound the pool and fail fast instead of hanging a request when it's saturated
+  // during a lunch/dinner rush.
+  max: 10,                          // never exceed the managed-DB connection cap
+  idleTimeoutMillis: 30_000,        // release idle clients after 30s
+  connectionTimeoutMillis: 5_000,   // reject (don't hang) if no client free in 5s
 });
 
 pool.on('error', (err) => {

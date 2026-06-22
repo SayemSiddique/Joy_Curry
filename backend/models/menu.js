@@ -2,21 +2,9 @@ import { db } from '../config/db.js';
 
 const SPICE_INT_TO_LABEL = { 0: null, 1: 'Mild', 2: 'Medium', 3: 'Hot' };
 
-async function attachRelations(item) {
-  if (!item) return null;
-
-  const [allergens, modifiers, sizeOptions] = await Promise.all([
-    db.all('SELECT allergen FROM item_allergens WHERE item_id = $1', [item.id]),
-    db.all(
-      'SELECT modifier_id, label, price_delta_cents FROM item_modifiers WHERE item_id = $1',
-      [item.id]
-    ),
-    db.all(
-      'SELECT label, price_cents FROM item_size_options WHERE item_id = $1',
-      [item.id]
-    ),
-  ]);
-
+// Shape a raw menu_items row + its already-loaded relations into the API object.
+// Pure (no DB access) so it's reused by both the single-item and batched paths.
+function assembleItem(item, allergens = [], modifiers = [], sizeOptions = []) {
   return {
     id:             item.id,
     name:           item.name,
@@ -49,6 +37,52 @@ async function attachRelations(item) {
       priceCents: r.price_cents,
     })),
   };
+}
+
+// Group relation rows into a Map<item_id, row[]> for O(1) lookup per item.
+function groupByItemId(rows) {
+  const map = new Map();
+  for (const row of rows) {
+    const list = map.get(row.item_id);
+    if (list) list.push(row);
+    else map.set(row.item_id, [row]);
+  }
+  return map;
+}
+
+// N+1 fix: load every item's relations in 3 batched queries (via `= ANY($1)`)
+// instead of 3 queries per item, then assemble in memory. 4 queries total for
+// any list size, vs. the previous 1 + 3×N.
+async function attachRelationsBatch(rows) {
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id);
+
+  const [allergens, modifiers, sizeOptions] = await Promise.all([
+    db.all('SELECT item_id, allergen FROM item_allergens WHERE item_id = ANY($1)', [ids]),
+    db.all(
+      'SELECT item_id, modifier_id, label, price_delta_cents FROM item_modifiers WHERE item_id = ANY($1)',
+      [ids]
+    ),
+    db.all(
+      'SELECT item_id, label, price_cents FROM item_size_options WHERE item_id = ANY($1)',
+      [ids]
+    ),
+  ]);
+
+  const aMap = groupByItemId(allergens);
+  const mMap = groupByItemId(modifiers);
+  const sMap = groupByItemId(sizeOptions);
+
+  return rows.map((row) =>
+    assembleItem(row, aMap.get(row.id) ?? [], mMap.get(row.id) ?? [], sMap.get(row.id) ?? [])
+  );
+}
+
+// Single-item attach — reuses the batched path so behaviour stays identical.
+async function attachRelations(item) {
+  if (!item) return null;
+  const [result] = await attachRelationsBatch([item]);
+  return result ?? null;
 }
 
 export async function getAllMenuItems(filters = {}) {
@@ -84,14 +118,14 @@ export async function getAllMenuItems(filters = {}) {
 
   const sql = `SELECT * FROM menu_items WHERE ${conditions.join(' AND ')} ORDER BY category, name`;
   const rows = await db.all(sql, params);
-  return Promise.all(rows.map(attachRelations));
+  return attachRelationsBatch(rows);
 }
 
 export async function getAllMenuItemsAdmin() {
   const rows = await db.all(
     'SELECT * FROM menu_items WHERE deleted_at IS NULL ORDER BY category, name'
   );
-  return Promise.all(rows.map(attachRelations));
+  return attachRelationsBatch(rows);
 }
 
 export async function getMenuItemById(id) {

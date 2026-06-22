@@ -13,8 +13,8 @@ export async function up() {
       addresses     TEXT,
       is_active     INTEGER NOT NULL DEFAULT 1,
       deleted_at    TEXT,
-      created_at    TEXT    NOT NULL DEFAULT (NOW()),
-      updated_at    TEXT    NOT NULL DEFAULT (NOW())
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
 

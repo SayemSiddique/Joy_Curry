@@ -740,6 +740,93 @@ When owner commissions professional photography: update `image_url` column in DB
 
 ---
 
+---
+
+### ✅ Bug Fix — Bundle Items Missing from /order Page (Dinner Specials & Joy Combos)
+**Status: FIXED — session 2026-06-21**
+
+**Root cause:** `scripts/seed-bundles.mjs` was written for SQLite (`INSERT OR REPLACE INTO`, `?` placeholders, `db.close()`). After the Phase 3-0 migration to PostgreSQL it was never re-run. Result: zero `dinner-special` and `combo` items in Postgres — the sections never rendered and no filter could surface them. The filtering logic itself was correct.
+
+**Secondary bugs fixed simultaneously:**
+- `search_keywords` was `null` on all bundle items — searching "combo", "platter", "lunch" returned no results
+- `db.close()` call would crash on the pg Pool (method didn't exist on the SQLite-era db object)
+- `is_halal` column was missing from the old seed INSERT list (defaulted correctly but inconsistent)
+
+**Fix:**
+- `backend/db/seed-bundles.js` — NEW: rewrites the seed for Postgres using the `db` module directly; `ON CONFLICT (id) DO NOTHING` (idempotent, safe to re-run); rich `search_keywords` added to all 18 bundles; `is_halal: 1` explicit; `db.close()` via `db.close()` wrapper
+- `scripts/seed-bundles.mjs` — updated with same Postgres logic for project-root invocation convenience (resolves `backend/.env` for DATABASE_URL without dotenv dep)
+- Seed run: `cd backend && node db/seed-bundles.js` → 18 inserted (3 dinner-special + 15 combo)
+
+**Verified:**
+- `GET /api/menu` → 145 items (was 127); `dinner-special: 3`, `combo: 15` ✅
+- `/order` SSR HTML contains `id="dinner-special"` and `id="combo"` sections ✅
+- Configure buttons present on all 18 bundle cards ✅
+- Search "combo" / "platter" / "dinner" will now find items via `search_keywords` ✅
+
+**To re-seed on a fresh Postgres DB:** `cd backend && node db/seed-bundles.js` (after `node server.js` has run schema init)
+
+---
+
+### ✅ Hardening — C1 (Auto-seed Bundles on Boot) + P3 (Connection Pool Limits)
+**Status: COMPLETE — session 2026-06-21 | Senior-review follow-up to the bundle bug**
+
+**C1 — bundles now auto-seed on every boot (idempotent):**
+- Root issue: `seedIfEmpty()` guards on `COUNT(*) > 0`. The category seed writes 127 items → guard trips → the manual bundle seed never ran on a fresh DB. The combo/dinner-special dropout would have recurred on the next clean Postgres provision (e.g. first Render deploy).
+- `backend/db/seed-bundles.js` — refactored: exports `seedBundles()` (idempotent, `ON CONFLICT DO NOTHING`, returns inserted count); retains `node db/seed-bundles.js` CLI via `import.meta.url` guard
+- `backend/db/seed.js` — `seedIfEmpty()` now ALWAYS calls `seedBundles()` after the category seed, independent of the count guard
+- **Verified destructively:** deleted all 18 bundle rows → cold-restarted backend → boot log showed `skipping category seed` + `Seeded 18 bundle items` → `GET /api/menu` = 145 items (dinner-special 3, combo 15) ✅
+
+**P3 — `pg` Pool hardening (`backend/config/db.js`):**
+- Added `max: 10` (Render free Postgres caps total connections low), `idleTimeoutMillis: 30_000`, `connectionTimeoutMillis: 5_000` (fail fast instead of hanging a request when the pool is saturated during a rush)
+- Verified: backend boots clean and serves `/api/menu` 200 with the bounded pool
+
+---
+
+### ✅ P1 — Eliminate N+1 Query Pattern (Menu + Orders)
+**Status: COMPLETE — session 2026-06-21**
+
+**`backend/models/menu.js`:**
+- `attachRelations` rewrote into three reusable pieces: `assembleItem()` (pure row→API shaper, no DB), `groupByItemId()` (Map grouping), and `attachRelationsBatch(rows)` which loads allergens/modifiers/sizeOptions in **3 batched `= ANY($1)` queries** then assembles in memory
+- `getAllMenuItems()` + `getAllMenuItemsAdmin()` now call `attachRelationsBatch(rows)` instead of `Promise.all(rows.map(attachRelations))`
+- `attachRelations(item)` retained for the single-item path (`getMenuItemById`/create/update) — now delegates to `attachRelationsBatch([item])` so behaviour is identical and there's one code path
+
+**`backend/models/order.js`:**
+- Added `attachLineItems(orders)` — loads all line items for N orders in a single `= ANY($1)` query, groups by `order_id`, preserves `parseLineItem()` JSON parsing
+- `getOrdersByUserId()` + `getAllOrders()` now use it (were one query per order)
+
+**Measured impact (live, 145 items):**
+- `/api/menu`: **436 queries → 4 queries (99% reduction)**, 15ms → 3ms local. On Render (API and managed Postgres on separate hosts) this is the difference between ~400ms+ and single-digit ms on the hottest endpoint.
+
+**Verified:**
+- Response shape byte-identical: allergens `['gluten','dairy']`, modifiers, sizeOptions, tags, booleans all correct ✅
+- `/api/orders/me` + `/api/admin/orders` return correct line items (batched) ✅
+- Edge cases: empty result set (`search=zzzznomatch` → `[]`, no crash on `= ANY` with empty ids), single-item `GET /api/menu/:id`, `category=combo` filter all pass ✅
+
+---
+
+### ✅ C2/P2 — TEXT→timestamptz Conversion + Scalable Indexes
+**Status: COMPLETE — session 2026-06-21**
+
+**`backend/db/migrations/004_timestamps_and_indexes.js` — NEW (idempotent):**
+- Converts all 7 timestamp columns from TEXT to `timestamptz`: `users`, `menu_items`, `orders` (`created_at`+`updated_at`) and `order_line_items.created_at`. Guarded with an `information_schema` check on `data_type = 'text'` so it only rewrites a column once — re-runs are a clean no-op (no needless table rewrite under ACCESS EXCLUSIVE lock)
+- `CREATE INDEX idx_menu_active_cat ON menu_items(is_active, category) WHERE deleted_at IS NULL` — composite partial index for the hot menu filter path
+- `CREATE EXTENSION pg_trgm` + GIN trgm indexes on `menu_items.search_keywords` and `name` — makes `ILIKE '%term%'` search index-accelerated (a leading wildcard can never use a B-tree). Wrapped in try/catch + `logger.warn` so a managed host lacking CREATE EXTENSION privilege degrades gracefully instead of bricking boot
+- `scheduled_for` / `slot_time` deliberately kept as TEXT (they're naive prefix-matchable slot keys, not timestamps — documented in `config/slots.js`)
+
+**Supporting changes:**
+- `backend/db/setup.js` + migrations `001`/`002` — DDL updated to `TIMESTAMPTZ NOT NULL DEFAULT now()` so fresh installs get the right type directly (004's guard then sees timestamptz and skips); registered `convertTimestampsAndIndexes()` in the boot chain
+- `backend/utils/logger.js` — added `warn()` method (only `info`/`error` existed)
+- `backend/models/order.js` — `getDashboardStats()` rewritten from `created_at::date = $1::date` (non-sargable) to a half-open range `created_at >= $1 AND created_at < $1 + INTERVAL '1 day'` (sargable)
+
+**Verified:**
+- All 7 columns now `timestamp with time zone` ✅
+- **`EXPLAIN` proof of sargability:** new range query → `Index Cond: (created_at >= ... AND created_at < ...)` (predicate pushed into index, cost 8.15); old `::date` cast → `Filter:` even when forced onto the index (full index scan, cost 12.17) ✅
+- API dates now serialize as ISO (`2026-06-21T09:23:21.040Z`); frontend `formatDate`/`formatDateTime` use `new Date(iso)` which parses ISO cleanly (improvement over the old `" +00"` format) ✅
+- Order history, admin dashboard (sargable query), and trgm search (`?search=combo` → 20) all correct ✅
+- pg_trgm + 3 new indexes present; **migration idempotent** — 2nd cold restart was a clean no-op ✅
+
+---
+
 ## Session Handoff Notes
 
 - `node --version` in the astro-frontend directory will show v20 (system) — always use `bash start-astro.sh` or the `astro-dev` launch config to get Node 24

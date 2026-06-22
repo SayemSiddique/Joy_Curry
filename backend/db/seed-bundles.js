@@ -1,31 +1,20 @@
 /**
  * Seed dinner-special and combo bundle items into PostgreSQL.
- * Run from joy-curry-tandoor/:
- *   node scripts/seed-bundles.mjs
+ * Run from backend/:
+ *   node db/seed-bundles.js
  *
- * Safe to re-run — uses ON CONFLICT DO NOTHING (idempotent).
+ * Safe to re-run — ON CONFLICT DO NOTHING (idempotent).
  */
 
-import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
+import 'dotenv/config';
 import { fileURLToPath } from 'url';
-import pg from 'pg';
-
-// Load DATABASE_URL from backend/.env
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const envPath = resolve(__dirname, '../backend/.env');
-for (const line of readFileSync(envPath, 'utf8').split('\n')) {
-  const m = line.match(/^([A-Z_]+)=(.+)/);
-  if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
-}
-
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+import { db } from '../config/db.js';
 
 const Q = '?q=75&w=800&auto=format&fit=crop';
 const U = (id) => `https://images.unsplash.com/photo-${id}${Q}`;
 
-const COMBO_IMG   = U('1585937421612-70a008356fbe'); // Indian thali platter
-const DINNER_IMG  = U('1631515243349-e0cb75fb8d3a'); // Elegant Indian dinner spread
+const COMBO_IMG  = U('1585937421612-70a008356fbe');
+const DINNER_IMG = U('1631515243349-e0cb75fb8d3a');
 
 const bundles = [
   // ── DINNER SPECIALS ────────────────────────────────────────────────────────
@@ -36,10 +25,7 @@ const bundles = [
     subcategory: null,
     description: 'Rice, naan, your choice of vegetable entrée, appetizer, and dessert.',
     base_price_cents: 1895,
-    is_vegan: 0,
-    is_vegetarian: 1,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 1, is_gluten_free: 0, spice_level: 0,
     allergen_note: null,
     tags: JSON.stringify(['bundle', 'dinner-special', 'vegetarian']),
     search_keywords: JSON.stringify(['dinner special', 'bundle', 'vegetarian', 'combo', 'set meal', 'rice naan', 'complete meal']),
@@ -52,10 +38,7 @@ const bundles = [
     subcategory: null,
     description: 'Rice, naan, your choice of chicken entrée, appetizer, and dessert.',
     base_price_cents: 2195,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: 'Contains cashew and dairy',
     tags: JSON.stringify(['bundle', 'dinner-special', 'chicken']),
     search_keywords: JSON.stringify(['dinner special', 'bundle', 'chicken', 'combo', 'set meal', 'rice naan', 'complete meal']),
@@ -68,10 +51,7 @@ const bundles = [
     subcategory: null,
     description: 'Rice, naan, your choice of lamb, goat, beef, or fish entrée, appetizer, and dessert.',
     base_price_cents: 2295,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: null,
     tags: JSON.stringify(['bundle', 'dinner-special', 'meat', 'fish', 'lamb', 'goat', 'beef']),
     search_keywords: JSON.stringify(['dinner special', 'bundle', 'lamb', 'goat', 'beef', 'fish', 'combo', 'set meal', 'rice naan', 'complete meal']),
@@ -86,10 +66,7 @@ const bundles = [
     subcategory: 'everyday-lunch',
     description: 'Your choice of two vegetable dishes. Served with rice and naan.',
     base_price_cents: 1195,
-    is_vegan: 0,
-    is_vegetarian: 1,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 1, is_gluten_free: 0, spice_level: 0,
     allergen_note: null,
     tags: JSON.stringify(['bundle', 'combo', 'lunch', 'vegetarian']),
     search_keywords: JSON.stringify(['combo', 'platter', 'lunch', 'bundle', 'joy combo', 'vegetarian', 'two veg', 'rice naan', 'set meal']),
@@ -102,10 +79,7 @@ const bundles = [
     subcategory: 'everyday-lunch',
     description: 'Choice of Chicken Curry, Korma, or Vindaloo plus one vegetable dish. Served with rice and naan.',
     base_price_cents: 1295,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: 'Contains cashew and dairy',
     tags: JSON.stringify(['bundle', 'combo', 'lunch', 'chicken']),
     search_keywords: JSON.stringify(['combo', 'platter', 'lunch', 'bundle', 'joy combo', 'chicken', 'curry', 'korma', 'vindaloo', 'rice naan', 'set meal']),
@@ -118,10 +92,7 @@ const bundles = [
     subcategory: 'everyday-lunch',
     description: 'Any two of: Chicken Curry, Chicken Korma, or Chicken Vindaloo. Served with rice and naan.',
     base_price_cents: 1500,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: 'Contains cashew and dairy',
     tags: JSON.stringify(['bundle', 'combo', 'lunch', 'chicken']),
     search_keywords: JSON.stringify(['combo', 'platter', 'lunch', 'bundle', 'joy combo', 'chicken', 'curry', 'korma', 'vindaloo', 'rice naan', 'set meal']),
@@ -134,10 +105,7 @@ const bundles = [
     subcategory: 'everyday-lunch',
     description: 'Tandoori Chicken plus your choice of one vegetable dish. Served with rice and naan.',
     base_price_cents: 1350,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: 'Contains dairy',
     tags: JSON.stringify(['bundle', 'combo', 'lunch', 'tandoori']),
     search_keywords: JSON.stringify(['combo', 'platter', 'lunch', 'bundle', 'joy combo', 'tandoori', 'chicken', 'rice naan', 'set meal']),
@@ -150,10 +118,7 @@ const bundles = [
     subcategory: 'everyday-lunch',
     description: 'Chicken Tikka Masala plus your choice of one vegetable dish. Served with rice and naan.',
     base_price_cents: 1350,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 1,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 1,
     allergen_note: 'Contains cashew and dairy',
     tags: JSON.stringify(['bundle', 'combo', 'lunch', 'popular', 'tikka masala']),
     search_keywords: JSON.stringify(['combo', 'platter', 'lunch', 'bundle', 'joy combo', 'tikka masala', 'chicken', 'popular', 'rice naan', 'set meal']),
@@ -166,10 +131,7 @@ const bundles = [
     subcategory: 'everyday-lunch',
     description: 'Choice of Lamb Curry, Lamb Vindaloo, or Lamb Saag plus one vegetable dish. Served with rice and naan.',
     base_price_cents: 1450,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: null,
     tags: JSON.stringify(['bundle', 'combo', 'lunch', 'lamb']),
     search_keywords: JSON.stringify(['combo', 'platter', 'lunch', 'bundle', 'joy combo', 'lamb', 'curry', 'vindaloo', 'saag', 'rice naan', 'set meal']),
@@ -182,10 +144,7 @@ const bundles = [
     subcategory: 'everyday-lunch',
     description: '2 pieces Chicken Kabab plus your choice of one vegetable dish. Served with rice and naan.',
     base_price_cents: 1350,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: null,
     tags: JSON.stringify(['bundle', 'combo', 'lunch', 'tandoori', 'kabab']),
     search_keywords: JSON.stringify(['combo', 'platter', 'lunch', 'bundle', 'joy combo', 'kabab', 'seekh', 'chicken', 'tandoori', 'rice naan', 'set meal']),
@@ -198,10 +157,7 @@ const bundles = [
     subcategory: 'everyday-lunch',
     description: '2 pieces Chicken Tikka, 1 piece Chicken Kabab, plus your choice of one vegetable dish. Served with rice and naan.',
     base_price_cents: 1350,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: 'Contains dairy',
     tags: JSON.stringify(['bundle', 'combo', 'lunch', 'tandoori', 'tikka', 'kabab']),
     search_keywords: JSON.stringify(['combo', 'platter', 'lunch', 'bundle', 'joy combo', 'tikka', 'kabab', 'chicken', 'tandoori', 'rice naan', 'set meal']),
@@ -214,10 +170,7 @@ const bundles = [
     subcategory: 'everyday-lunch',
     description: 'Goat Curry plus your choice of one vegetable dish. Served with rice and naan.',
     base_price_cents: 1450,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: null,
     tags: JSON.stringify(['bundle', 'combo', 'lunch', 'goat']),
     search_keywords: JSON.stringify(['combo', 'platter', 'lunch', 'bundle', 'joy combo', 'goat', 'curry', 'rice naan', 'set meal']),
@@ -230,10 +183,7 @@ const bundles = [
     subcategory: 'everyday-lunch',
     description: 'Flounder Fish plus your choice of one vegetable dish. Served with rice and naan.',
     base_price_cents: 1450,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 1,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 1, spice_level: 0,
     allergen_note: 'Contains fish',
     tags: JSON.stringify(['bundle', 'combo', 'lunch', 'fish', 'gluten-free']),
     search_keywords: JSON.stringify(['combo', 'platter', 'lunch', 'bundle', 'joy combo', 'fish', 'flounder', 'gluten free', 'rice naan', 'set meal']),
@@ -248,10 +198,7 @@ const bundles = [
     subcategory: 'healthy',
     description: 'Your choice of three vegetable dishes. Served with rice and whole wheat roti.',
     base_price_cents: 1350,
-    is_vegan: 0,
-    is_vegetarian: 1,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 1, is_gluten_free: 0, spice_level: 0,
     allergen_note: null,
     tags: JSON.stringify(['bundle', 'combo', 'healthy', 'vegetarian']),
     search_keywords: JSON.stringify(['combo', 'platter', 'healthy', 'bundle', 'joy combo', 'vegetarian', 'three veg', 'roti', 'set meal']),
@@ -264,10 +211,7 @@ const bundles = [
     subcategory: 'healthy',
     description: 'Your choice of one meat dish and two vegetable dishes. Served with rice and whole wheat roti.',
     base_price_cents: 1550,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: null,
     tags: JSON.stringify(['bundle', 'combo', 'healthy', 'meat']),
     search_keywords: JSON.stringify(['combo', 'platter', 'healthy', 'bundle', 'joy combo', 'meat', 'roti', 'set meal']),
@@ -280,10 +224,7 @@ const bundles = [
     subcategory: 'healthy',
     description: 'Your choice of two meat dishes and one vegetable dish. Served with rice and whole wheat roti.',
     base_price_cents: 1595,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: null,
     tags: JSON.stringify(['bundle', 'combo', 'healthy', 'meat']),
     search_keywords: JSON.stringify(['combo', 'platter', 'healthy', 'bundle', 'joy combo', 'meat', 'roti', 'set meal']),
@@ -296,10 +237,7 @@ const bundles = [
     subcategory: 'healthy',
     description: '1 pc Tandoori Chicken, 3 pcs Chicken Tikka, 1 pc Seekh Kabab. Served with rice and whole wheat roti.',
     base_price_cents: 1650,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: 'Contains dairy',
     tags: JSON.stringify(['bundle', 'combo', 'healthy', 'tandoori', 'mixed-grill', 'kabab', 'tikka']),
     search_keywords: JSON.stringify(['combo', 'platter', 'healthy', 'bundle', 'joy combo', 'mixed grill', 'tandoori', 'tikka', 'kabab', 'roti', 'set meal']),
@@ -312,10 +250,7 @@ const bundles = [
     subcategory: 'healthy',
     description: '3 pcs Chicken Tikka, 2 pcs Seekh Kabab, plus your choice of one vegetable dish. Served with rice and whole wheat roti.',
     base_price_cents: 1600,
-    is_vegan: 0,
-    is_vegetarian: 0,
-    is_gluten_free: 0,
-    spice_level: 0,
+    is_vegan: 0, is_vegetarian: 0, is_gluten_free: 0, spice_level: 0,
     allergen_note: 'Contains dairy',
     tags: JSON.stringify(['bundle', 'combo', 'healthy', 'tandoori', 'tikka', 'kabab']),
     search_keywords: JSON.stringify(['combo', 'platter', 'healthy', 'bundle', 'joy combo', 'tikka', 'kabab', 'roti', 'set meal']),
@@ -338,20 +273,31 @@ const SQL = `
   ON CONFLICT (id) DO NOTHING
 `;
 
-let inserted = 0;
-let skipped  = 0;
-
-for (const b of bundles) {
-  const result = await pool.query(SQL, [
-    b.id, b.name, b.category, b.subcategory, b.description, b.base_price_cents,
-    b.is_vegan, b.is_vegetarian, b.is_gluten_free, b.spice_level,
-    b.allergen_note, b.tags, b.search_keywords, b.image_url,
-  ]);
-  if (result.rowCount > 0) inserted++;
-  else skipped++;
+/**
+ * Idempotent bundle seed. Safe to call on every boot — ON CONFLICT DO NOTHING
+ * means existing rows are left untouched. Returns the count newly inserted.
+ *
+ * This is wired into the boot seed path (db/seed.js) so dinner-specials and
+ * combos can never silently drop off a fresh database — the regression that
+ * happened after the SQLite→Postgres migration when this was a manual script.
+ */
+export async function seedBundles() {
+  let inserted = 0;
+  for (const b of bundles) {
+    const result = await db.run(SQL, [
+      b.id, b.name, b.category, b.subcategory, b.description, b.base_price_cents,
+      b.is_vegan, b.is_vegetarian, b.is_gluten_free, b.spice_level,
+      b.allergen_note, b.tags, b.search_keywords, b.image_url,
+    ]);
+    if (result.rowCount > 0) inserted++;
+  }
+  return inserted;
 }
 
-await pool.end();
-
-console.log(`✅ Seeded ${inserted} bundle items (${skipped} already existed — skipped)`);
-console.log(`   3 dinner-special + 15 combo = 18 total`);
+// Standalone CLI: node db/seed-bundles.js
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const inserted = await seedBundles();
+  console.log(`✅  Seeded ${inserted} bundle items (${bundles.length - inserted} already existed — skipped)`);
+  console.log(`    3 dinner-special + 15 combo = ${bundles.length} total`);
+  await db.close();
+}
