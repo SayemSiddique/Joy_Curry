@@ -88,6 +88,6 @@ initializeSchema()
     });
   })
   .catch((err) => {
-    console.error('Failed to initialize database schema:', err.message);
+    console.error('Failed to initialize database schema:', err);
     process.exit(1);
   });
