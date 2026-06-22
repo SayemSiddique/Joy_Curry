@@ -12,7 +12,7 @@
 //   node scripts/menu-queries.mjs
 // ============================================================================
 
-import { menu } from '../frontend/js/data/menu/index.js';
+import { menu } from '../backend/db/data/menu/index.js';
 
 // Helpers for readable output.
 const sep = '─'.repeat(60);

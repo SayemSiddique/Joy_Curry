@@ -2,10 +2,11 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "joy-curry-frontend",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-l", "3456", "frontend"],
-      "port": 3456
+      "name": "astro-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["start-astro.sh"],
+      "cwd": "astro-frontend",
+      "port": 4321
     },
     {
       "name": "joy-curry-docs",
