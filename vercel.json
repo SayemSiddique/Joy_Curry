@@ -1,5 +1,4 @@
 {
-  "rootDirectory": "astro-frontend",
   "headers": [
     {
       "source": "/(.*)",
