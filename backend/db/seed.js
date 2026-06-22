@@ -9,7 +9,7 @@ import { db } from '../config/db.js';
 import { initializeSchema } from './setup.js';
 import { seedBundles } from './seed-bundles.js';
 
-const MENU_DIR = path.resolve(__dirname, '../../frontend/js/data/menu');
+const MENU_DIR = path.resolve(__dirname, './data/menu');
 
 const CATEGORY_FILES = [
   { file: 'appetizers.js',        export: 'appetizers' },
