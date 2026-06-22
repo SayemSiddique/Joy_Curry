@@ -827,6 +827,36 @@ When owner commissions professional photography: update `image_url` column in DB
 
 ---
 
+### ✅ CRITICAL — Deleting `frontend/` broke the Render boot seed (+ sibling audit)
+**Status: FIXED — session 2026-06-22 | Senior Reviewer persona, full playbook pass**
+
+**Reported symptom:** After deleting the archived vanilla `frontend/` folder, Render boot crashed:
+`ERR_MODULE_NOT_FOUND: Cannot find module '/opt/render/project/src/frontend/js/data/menu/appetizers.js' imported from backend/db/seed.js`. Combos/dinner-specials also gone.
+
+**Root cause:** `backend/db/seed.js` built a runtime path `../../frontend/js/data/menu` and dynamically `import()`-ed the 15 category files from it. The backend had a **hard runtime dependency on a folder outside its own tree** — invisible to a plain `grep "frontend"` (which only surfaced a comment). Deleting `frontend/` severed it; on a fresh Render DB the seed ran on every boot and crashed.
+
+**Fix (root cause, not symptom):** menu data is now **canonical and self-contained inside the backend**.
+- Recovered all menu-data files from git (`c02643d~1`) into `backend/db/data/menu/` (15 category files) + `backend/db/data/config/constants.js`; `seed.js` `MENU_DIR` → `./data/menu`
+- Also recovered `index.js`, `dinner-specials.js`, `joy-combos.js` for the dev validators; fixed their relative imports to `../config/constants.js`
+- `constants.js` had `window.location` at module load (browser-only) → guarded with `typeof window` so the Node scripts run; the live app uses `astro-frontend/src/lib/constants.ts`, not this file
+
+**Sibling audit (the bug's relatives the deletion left behind):**
+- `scripts/menu-queries.mjs` + `scripts/validate-menu.mjs` imported the deleted `../frontend/js/data/menu/index.js` → repointed to `backend/db/data/menu/`
+- `.claude/launch.json` — dead `serve frontend` config → replaced with `astro-dev` (`start-astro.sh`, Node 24, :4321)
+
+**Proof:**
+- Boot-path proof: all 15 category files import + export cleanly under Node → **127 regular items**, zero coupling to the browser chain. Bundles still come from the inline, self-contained `backend/db/seed-bundles.js` (18). Total 145 ✅
+- `validate-menu.mjs` → 145 items, full schema/integrity pass ✅; `menu-queries.mjs` → aggregates 145 ✅
+- Final repo sweep: **zero runtime references to `frontend/` remain** (only recovered-file header comments + docs) ✅
+
+**Will it recur?** No. The backend no longer reads anything outside `backend/`. The `frontend/` folder can stay deleted permanently.
+
+**Deferred (low severity, flagged not fixed):**
+- `render.yaml` `CORS_ORIGIN` is a hardcoded list — if the Vercel URL changes, update it in the Render dashboard (a Blueprint re-sync would otherwise overwrite the dashboard value)
+- `backend/config/db.js` dotenv path resolves to project-root `.env`; harmless on Render (env vars come from the dashboard) but fragile for local CLI runs
+
+---
+
 ## Session Handoff Notes
 
 - `node --version` in the astro-frontend directory will show v20 (system) — always use `bash start-astro.sh` or the `astro-dev` launch config to get Node 24
