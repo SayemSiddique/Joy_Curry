@@ -85,6 +85,7 @@ export const beverages = [
     isVegan:        false,
     allergens:      ['dairy'],
     imageUrl:       '/images/dishes/lassi-mango.jpg',
+    tags:           ['popular'],
     searchKeywords: ['aam lassi', 'mango yogurt drink', 'mango smoothie', 'mango milkshake', 'mango chaas', 'sweet lassi', 'cold drink', 'creamy', 'fruity', 'beverage'],
   },
   {

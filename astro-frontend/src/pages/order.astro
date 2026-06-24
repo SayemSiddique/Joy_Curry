@@ -3,6 +3,8 @@ import BaseLayout from '@layouts/BaseLayout.astro';
 import Navbar from '@components/static/Navbar.astro';
 import Footer from '@components/static/Footer.astro';
 import MenuSection from '@components/static/MenuSection.astro';
+import PopularStrip from '@components/static/PopularStrip.astro';
+import CategoryRail from '@components/islands/CategoryRail';
 import SearchFilterBar from '@components/islands/SearchFilterBar';
 import BundleModal from '@components/islands/BundleModal';
 import OrderGate from '@components/islands/OrderGate';
@@ -10,13 +12,19 @@ import type { MenuItem } from '@lib/api';
 import { CATEGORIES, API_BASE_URL } from '@lib/constants';
 
 let menuItems: MenuItem[] = [];
+let popularItems: MenuItem[] = [];
 let fetchError: string | null = null;
 
 try {
-  const res = await fetch(`${API_BASE_URL}/api/menu`);
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  const json = await res.json();
-  menuItems = json.data ?? [];
+  // Full menu + "Most Loved" strip fetched in parallel, SSR (no client refetch).
+  const [menuRes, popularRes] = await Promise.all([
+    fetch(`${API_BASE_URL}/api/menu`),
+    fetch(`${API_BASE_URL}/api/menu/popular`),
+  ]);
+  if (!menuRes.ok) throw new Error(`API ${menuRes.status}`);
+  menuItems = (await menuRes.json()).data ?? [];
+  // Popular strip is non-critical — degrade gracefully if it fails.
+  if (popularRes.ok) popularItems = (await popularRes.json()).data ?? [];
 } catch (err) {
   fetchError = (err as Error).message;
 }
@@ -47,7 +55,10 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
 
   <SearchFilterBar client:idle menuItems={menuItems} />
 
+  {!fetchError && <CategoryRail client:idle categories={activeCategories} />}
+
   <main id="main-content">
+    {!fetchError && <PopularStrip items={popularItems} />}
     {fetchError ? (
       <div class="container" style="padding: var(--space-20) 0; text-align: center;">
         <p style="color: var(--color-error); font-size: var(--text-lg);">

@@ -40,6 +40,7 @@ export const chickenEntrees = [
     description: "Chicken cooked in a creamy, slightly sweet & spiced tomato and butter sauce.",
     spiceLevel:  "Mild",
     imageUrl:    "/images/dishes/chicken-makhni.jpg",
+    tags:        ["popular"],
     searchKeywords: ["butter chicken", "murgh makhani", "makhani chicken", "machni", "mahni", "makni", "butterchiken", "creamy tomato", "sweet gravy", "buttery", "velvety", "mild", "not spicy", "kid friendly", "butter sauce", "cream", "poultry", "meat", "non-veg"]
   },
   {

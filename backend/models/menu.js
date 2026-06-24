@@ -116,8 +116,37 @@ export async function getAllMenuItems(filters = {}) {
     n++;
   }
 
-  const sql = `SELECT * FROM menu_items WHERE ${conditions.join(' AND ')} ORDER BY category, name`;
+  let sql = `SELECT * FROM menu_items WHERE ${conditions.join(' AND ')} ORDER BY category, name`;
+
+  // Pagination: LIMIT/OFFSET over the ordered scan (sargable — the planner
+  // applies them after the index-ordered read, no per-row cast). `limit` is
+  // pre-capped at 100 in sanitizeMenuQuery; null means "return all".
+  if (filters.limit !== null && filters.limit !== undefined) {
+    sql += ` LIMIT $${n++}`;
+    params.push(filters.limit);
+  }
+  if (filters.offset) {
+    sql += ` OFFSET $${n++}`;
+    params.push(filters.offset);
+  }
+
   const rows = await db.all(sql, params);
+  return attachRelationsBatch(rows);
+}
+
+// "Most Loved" strip — items whose JSON `tags` array contains "popular".
+// tags is stored as a JSON string (e.g. ["popular","spicy"]), so we match the
+// quoted token to avoid false hits on substrings. Capped + only active/in-stock.
+export async function getPopularMenuItems(limit = 16) {
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 16, 1), 24);
+  const rows = await db.all(
+    `SELECT * FROM menu_items
+     WHERE is_active = 1 AND deleted_at IS NULL AND in_stock = 1
+       AND tags LIKE '%"popular"%'
+     ORDER BY category, name
+     LIMIT $1`,
+    [safeLimit]
+  );
   return attachRelationsBatch(rows);
 }
 

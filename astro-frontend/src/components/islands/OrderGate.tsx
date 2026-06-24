@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ReadableAtom } from 'nanostores';
-import { orderType, orderGateOpen, deliveryAddress, setOrderType } from '@stores/cart';
+import { orderType, orderGateOpen, deliveryAddress, subtotalCents, setOrderType, setDeliveryRouting } from '@stores/cart';
 import { distanceApi } from '@lib/api';
+import { formatPrice } from '@lib/formatters';
+import { FREE_DELIVERY_THRESHOLD_CENTS } from '@lib/constants';
 import { useFocusTrap } from '@lib/hooks';
 
 // React 19 + Astro SSR: subscribe manually instead of @nanostores/react useStore.
@@ -63,16 +65,36 @@ export default function OrderGate() {
     setError(null);
     setDistanceNote(null);
 
-    // Delivery radius check — gracefully degrades until Phase 3-E wires the API.
-    const result = await distanceApi.check(trimmed);
+    // Delivery radius check. Degrades gracefully (null) if the API is unreachable —
+    // the server re-routes authoritatively at order time regardless.
+    const sub = subtotalCents.get();
+    const result = await distanceApi.check(trimmed, sub);
     setChecking(false);
 
     if (result) {
-      setDistanceNote(
-        result.withinRadius
-          ? `✓ You're ${result.distanceMiles.toFixed(1)} mi away — within our delivery zone.`
-          : `You're ${result.distanceMiles.toFixed(1)} mi away — delivered via our courier partner.`,
-      );
+      // Cache the routing so the cart/checkout fee reflects in-house vs courier.
+      setDeliveryRouting({
+        withinRadius: result.withinRadius,
+        distanceMiles: result.distanceMiles,
+        partner: result.deliveryPartner,
+        quoteCents: result.withinRadius ? 0 : result.deliveryFeeCents,
+      });
+
+      if (result.withinRadius) {
+        const willBeFree = sub >= FREE_DELIVERY_THRESHOLD_CENTS;
+        setDistanceNote(
+          `✓ ${result.distanceMiles.toFixed(1)} mi away — within our delivery zone` +
+            (willBeFree ? ' · free delivery!' : '.'),
+        );
+      } else {
+        setDistanceNote(
+          `${result.distanceMiles.toFixed(1)} mi away — delivered by our courier partner ` +
+            `(${formatPrice(result.deliveryFeeCents)} delivery).`,
+        );
+      }
+    } else {
+      // No routing info → treat as in-house so the order still proceeds.
+      setDeliveryRouting(null);
     }
 
     setOrderType('delivery', trimmed);

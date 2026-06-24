@@ -91,6 +91,7 @@ export const riceAndBiryani = [
     basePrice:      15.50,
     isVegetarian:   false,
     imageUrl:       '/images/dishes/chicken-biryani.jpg',
+    tags:           ['popular'],
     searchKeywords: ['chicken rice', 'murgh biryani', 'chicken biryani', 'spiced rice', 'popular', 'non-veg'],
   },
   {

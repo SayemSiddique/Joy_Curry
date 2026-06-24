@@ -277,3 +277,16 @@ export const BUNDLE_DEFINITIONS: BundleDefinition[] = [
 export const BUNDLE_MAP = new Map<string, BundleDefinition>(
   BUNDLE_DEFINITIONS.map((b) => [b.id, b]),
 );
+
+// Smart defaults: pre-fill every slot with its first `choose` options so the
+// bundle is valid the moment it opens — enabling the 2-click add path
+// (Configure → Add to Order). Returns slotId -> optionId[].
+export function buildDefaultSelections(
+  definition: BundleDefinition,
+): Record<string, string[]> {
+  const selections: Record<string, string[]> = {};
+  for (const slot of definition.slots) {
+    selections[slot.id] = slot.optionIds.slice(0, slot.choose);
+  }
+  return selections;
+}

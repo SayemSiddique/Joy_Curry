@@ -57,6 +57,7 @@ export const breads = [
     description:    'Naan topped with minced garlic and coriander.',
     basePrice:      4.50,
     imageUrl:       '/images/dishes/garlic-naan.jpg',
+    tags:           ['popular'],
     searchKeywords: ['garlic bread', 'lehsun naan', 'garlic nan', 'coriander naan', 'flavored naan', 'indian bread', 'bread'],
   },
   {

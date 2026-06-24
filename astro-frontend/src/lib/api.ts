@@ -158,14 +158,22 @@ export interface DistanceResult {
   withinRadius: boolean;
   distanceMiles: number;
   deliveryPartner: 'in-house' | 'uber' | 'doordash';
+  deliveryFeeCents: number;
+  quoteId?: string;
+  etaMinutes?: number | null;
+  simulated?: boolean;
 }
 
 export const distanceApi = {
-  // Returns null if the endpoint isn't available yet (wired up in Phase 3-E),
-  // so the order flow degrades gracefully and still accepts the address.
-  async check(address: string): Promise<DistanceResult | null> {
+  // Returns null if the endpoint is unreachable, so the order flow degrades
+  // gracefully and still accepts the address (server re-routes authoritatively).
+  // subtotalCents lets the server price the in-house free-delivery waiver and the
+  // out-of-zone courier quote (DoorDash needs the order value).
+  async check(address: string, subtotalCents = 0): Promise<DistanceResult | null> {
     try {
-      return await apiFetch<DistanceResult>(`/api/distance?address=${encodeURIComponent(address)}`);
+      return await apiFetch<DistanceResult>(
+        `/api/distance?address=${encodeURIComponent(address)}&subtotalCents=${subtotalCents}`,
+      );
     } catch {
       return null;
     }

@@ -7,8 +7,14 @@ export const API_BASE_URL =
     : 'http://localhost:3000');
 
 export const TAX_RATE = 0.0875;
+// In-house delivery fee + free-delivery threshold — display mirror of the
+// authoritative copies in backend/config/delivery.js. In-house delivery is free
+// once the subtotal reaches the threshold (the waiver does NOT apply out of zone).
 export const DELIVERY_FEE_CENTS = 300;
-export const MIN_ORDER_CENTS = 1500;
+export const FREE_DELIVERY_THRESHOLD_CENTS = 3000; // $30.00
+// Minimum order subtotal for delivery — MUST mirror backend/middleware/validate.js
+// (the single source of truth, currently $10.00). Don't keep a second copy elsewhere.
+export const MIN_ORDER_CENTS = 1000;
 
 export const SPICE_LEVELS: Record<string, { label: string; icon: string }> = {
   Mild:   { label: 'Mild',   icon: '🌶' },

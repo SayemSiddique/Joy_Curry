@@ -1,11 +1,14 @@
 import { db } from '../config/db.js';
 import { generateOrderId } from '../utils/helpers.js';
 import { DEFAULT_SLOT_CAPACITY } from '../config/slots.js';
+import { resolveDeliveryFeeCents } from '../config/delivery.js';
 
-const TAX_RATE_BPS       = 875; // 8.75% NYC
-const DELIVERY_FEE_CENTS = 300; // $3.00
+const TAX_RATE_BPS = 875; // 8.75% NYC
 
-export async function createOrder({ userId, deliveryType, deliveryAddress, items, idempotencyKey, scheduledFor, deliveryPartner = 'in-house' }) {
+export async function createOrder({
+  userId, deliveryType, deliveryAddress, items, idempotencyKey, scheduledFor,
+  deliveryPartner = 'in-house', withinRadius = true, partnerQuoteCents = null,
+}) {
   if (idempotencyKey) {
     const existing = await db.get(
       'SELECT * FROM orders WHERE idempotency_key = $1',
@@ -22,7 +25,11 @@ export async function createOrder({ userId, deliveryType, deliveryAddress, items
 
   const subtotalCents    = items.reduce((sum, item) => sum + item.basePriceCents * item.qty, 0);
   const taxCents         = Math.round(subtotalCents * TAX_RATE_BPS / 10000);
-  const deliveryFeeCents = deliveryType === 'delivery' ? DELIVERY_FEE_CENTS : 0;
+  // Fee policy is centralized: in-house ($3, free at the $30 threshold) vs the
+  // out-of-zone courier pass-through quote. See config/delivery.js.
+  const deliveryFeeCents = resolveDeliveryFeeCents({
+    deliveryType, withinRadius, subtotalCents, partnerQuoteCents,
+  });
   const totalCents       = subtotalCents + taxCents + deliveryFeeCents;
   const pointsEarned     = Math.floor(totalCents / 100) * 100;
   const orderId          = generateOrderId();
@@ -72,6 +79,21 @@ export async function createOrder({ userId, deliveryType, deliveryAddress, items
   const order     = await db.get('SELECT * FROM orders WHERE id = $1', [orderId]);
   const lineItems = await db.all('SELECT * FROM order_line_items WHERE order_id = $1', [orderId]);
   return { order, lineItems: lineItems.map(parseLineItem), duplicate: false };
+}
+
+/**
+ * Record the courier-partner dispatch result on an order (out-of-zone deliveries).
+ * Stored after the order is created so the insert stays a clean single transaction.
+ */
+export async function setOrderDelivery(orderId, { externalDeliveryId, deliveryPartner }) {
+  const row = await db.get(
+    `UPDATE orders
+        SET external_delivery_id = $1, delivery_partner = $2
+      WHERE id = $3
+      RETURNING *`,
+    [externalDeliveryId ?? null, deliveryPartner, orderId],
+  );
+  return row ?? null;
 }
 
 export async function getOrdersByUserId(userId) {

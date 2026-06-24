@@ -60,6 +60,7 @@ export const appetizers = [
     isVegan:        true,
     pieceCount:     2,
     imageUrl:       '/images/dishes/veg-samosa.jpg',
+    tags:           ['popular'],
     searchKeywords: ['samosa', 'aloo samosa', 'potato samosa', 'vegetable samosa', 'deep fried pastry', 'triangle pastry', 'indian snack', 'starter', 'vegan'],
   },
   {

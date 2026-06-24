@@ -1,0 +1,30 @@
+---
+import type { MenuItem } from '@lib/api';
+import MenuCard from './MenuCard.astro';
+
+interface Props {
+  items: MenuItem[];
+}
+
+const { items } = Astro.props;
+---
+
+{items.length > 0 && (
+  <section class="popular-strip" aria-labelledby="popular-strip-title">
+    <div class="container">
+      <div class="popular-strip__header">
+        <h2 class="popular-strip__title" id="popular-strip-title">
+          <span aria-hidden="true">⭐</span> Most Loved
+        </h2>
+        <span class="popular-strip__sub">Customer favorites</span>
+      </div>
+      <div class="popular-strip__track">
+        {items.map((item) => (
+          <div class="popular-strip__item">
+            <MenuCard item={item} quickAdd />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+)}

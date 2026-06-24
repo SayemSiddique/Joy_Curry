@@ -15,7 +15,8 @@ const { category, label, emoji, items, galleryMode = false } = Astro.props;
 
 <section
   class="menu-section"
-  id={category}
+  id={`cat-${category}`}
+  data-category={category}
   aria-labelledby={`section-title-${category}`}
 >
   <div class="menu-section__header">

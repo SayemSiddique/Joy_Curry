@@ -15,6 +15,7 @@ import {
 } from '@stores/cart';
 import { authState } from '@stores/auth';
 import { ordersApi, slotsApi, type Order, type Slot } from '@lib/api';
+import { MIN_ORDER_CENTS } from '@lib/constants';
 import { formatPrice } from '@lib/formatters';
 import { showToast } from '@lib/toast';
 import { useFocusTrap } from '@lib/hooks';
@@ -48,8 +49,8 @@ function useNano<T>(store: ReadableAtom<T>): T {
 
 const PHONE_RE = /^\+?[\d\s\-().]{7,20}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// Matches backend validate.js MIN_ORDER_CENTS for delivery.
-const DELIVERY_MIN_CENTS = 1000;
+// Delivery minimum comes from the shared constant (mirrors backend validate.js).
+const DELIVERY_MIN_CENTS = MIN_ORDER_CENTS;
 
 type DeliveryType = 'delivery' | 'pickup';
 type Screen = 'form' | 'submitting' | 'confirmed';

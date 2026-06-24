@@ -1,7 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { ReadableAtom } from 'nanostores';
 import type { MenuItem } from '@lib/api';
-import { BUNDLE_MAP, type BundleDefinition, type BundleSlot } from '@lib/bundleData';
+import {
+  BUNDLE_MAP,
+  buildDefaultSelections,
+  type BundleDefinition,
+  type BundleSlot,
+} from '@lib/bundleData';
 import { cartOpen, addToCart } from '@stores/cart';
 import { formatPrice } from '@lib/formatters';
 
@@ -11,6 +16,36 @@ function useNano<T>(store: ReadableAtom<T>): T {
   const [val, setVal] = useState<T>(() => store.get());
   useEffect(() => store.subscribe(setVal), [store]);
   return val;
+}
+
+// Emoji fallback when an option has no imageUrl (mirrors MenuCard.astro).
+const CATEGORY_EMOJI: Record<string, string> = {
+  appetizer: '🥗',
+  salad: '🥗',
+  soup: '🍲',
+  'vegetable-entree': '🥦',
+  'vegan-entree': '🌱',
+  'chicken-entree': '🍗',
+  'meat-entree': '🥩',
+  'fish-shrimp': '🦐',
+  tandoori: '🔥',
+  'rice-biryani': '🍚',
+  'express-lunch': '⚡',
+  bread: '🫓',
+  side: '🍛',
+  condiment: '🧄',
+  dessert: '🍮',
+  beverage: '🥤',
+  'dinner-special': '🍽️',
+  combo: '🥘',
+};
+
+// Title-case a subcategory slug for use as a sub-group heading.
+function prettyLabel(slug: string): string {
+  return slug
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }
 
 interface ActiveBundle {
@@ -29,10 +64,22 @@ export default function BundleModal({ menuItems }: Props) {
   // slotSelections: slotId -> array of selected optionIds
   const [slotSelections, setSlotSelections] = useState<Record<string, string[]>>({});
   const [qty, setQty] = useState(1);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  // Set true once the user tries to add — gates aria-invalid + inline errors so
+  // a freshly-opened (valid-by-default) bundle isn't pre-littered with errors.
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
-  // Build id→name lookup from the full menu items list passed from SSR
-  const nameMap = new Map<string, string>(menuItems.map((m) => [m.id, m.name]));
+  const modalRef = useRef<HTMLDivElement>(null);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
+
+  // Full id→MenuItem lookup from the SSR list (image, name, subcategory…).
+  const itemMap = useMemo(
+    () => new Map<string, MenuItem>(menuItems.map((m) => [m.id, m])),
+    [menuItems],
+  );
+  const nameOf = useCallback(
+    (id: string) => itemMap.get(id)?.name ?? id,
+    [itemMap],
+  );
 
   const open = activeBundle !== null;
 
@@ -50,10 +97,11 @@ export default function BundleModal({ menuItems }: Props) {
       const definition = BUNDLE_MAP.get(itemId);
       if (!itemId || !definition) return;
 
+      lastFocusedRef.current = btn;
       setActiveBundle({ itemId, itemName, basePriceCents, definition });
-      setSlotSelections({});
+      setSlotSelections(buildDefaultSelections(definition)); // smart defaults
       setQty(1);
-      setValidationError(null);
+      setAttemptedSubmit(false);
     };
 
     document.addEventListener('click', handler);
@@ -62,65 +110,111 @@ export default function BundleModal({ menuItems }: Props) {
 
   const handleClose = useCallback(() => {
     setActiveBundle(null);
-    setValidationError(null);
+    setAttemptedSubmit(false);
+    // Restore focus to the launcher that opened the modal.
+    lastFocusedRef.current?.focus();
+    lastFocusedRef.current = null;
   }, []);
 
-  // Close on Escape
+  // Escape to close + focus trap (Tab cycles within the modal).
   useEffect(() => {
     if (!open) return;
+
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
+      if (e.key === 'Escape') {
+        handleClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+
+      const root = modalRef.current;
+      if (!root) return;
+      const focusables = root.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const activeEl = document.activeElement as HTMLElement | null;
+
+      if (e.shiftKey && activeEl === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && activeEl === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [open, handleClose]);
 
-  const handleSlotChange = (slotId: string, optionId: string, choose: number, checked: boolean) => {
-    setValidationError(null);
+  // Move focus into the modal on open.
+  useEffect(() => {
+    if (!open) return;
+    const root = modalRef.current;
+    if (!root) return;
+    const target = root.querySelector<HTMLElement>('.modal__close');
+    target?.focus();
+  }, [open]);
+
+  const handleSlotChange = (
+    slotId: string,
+    optionId: string,
+    choose: number,
+    checked: boolean,
+  ) => {
     setSlotSelections((prev) => {
       const current = prev[slotId] ?? [];
       if (choose === 1) {
         return { ...prev, [slotId]: [optionId] };
       }
       if (checked) {
-        // Don't exceed choose limit
         if (current.includes(optionId)) return prev;
         if (current.length >= choose) return prev;
         return { ...prev, [slotId]: [...current, optionId] };
-      } else {
-        return { ...prev, [slotId]: current.filter((id) => id !== optionId) };
       }
+      return { ...prev, [slotId]: current.filter((id) => id !== optionId) };
     });
   };
 
+  // ── Live validity ──
+  const slotIsComplete = useCallback(
+    (slot: BundleSlot) => (slotSelections[slot.id]?.length ?? 0) === slot.choose,
+    [slotSelections],
+  );
+  const definition = activeBundle?.definition;
+  const incompleteSlots = definition
+    ? definition.slots.filter((s) => !slotIsComplete(s))
+    : [];
+  const isValid = incompleteSlots.length === 0;
+
   const handleSubmit = () => {
     if (!activeBundle) return;
-    const { definition, itemId, itemName, basePriceCents } = activeBundle;
+    setAttemptedSubmit(true);
 
-    // Validate all slots are fully filled
-    for (const slot of definition.slots) {
-      const selected = slotSelections[slot.id] ?? [];
-      if (selected.length !== slot.choose) {
-        const needed = slot.choose - selected.length;
-        setValidationError(
-          `Please select ${needed} more from "${slot.label}"`,
-        );
-        return;
-      }
-    }
-
-    // Build slotChoices Record<slotId, itemName[]>
-    const slotChoices: Record<string, string[]> = {};
-    for (const slot of definition.slots) {
-      const ids = slotSelections[slot.id] ?? [];
-      slotChoices[slot.label] = ids.map((id) => nameMap.get(id) ?? id);
-    }
-
-    // Also include fixed item names in slotChoices for display in cart
-    if (definition.fixedItemIds.length > 0) {
-      slotChoices['Included'] = definition.fixedItemIds.map(
-        (id) => nameMap.get(id) ?? id,
+    if (!isValid) {
+      // Focus the first incomplete slot for keyboard + screen-reader users.
+      const first = incompleteSlots[0];
+      const el = modalRef.current?.querySelector<HTMLElement>(
+        `[data-slot-id="${first.id}"]`,
       );
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el?.querySelector<HTMLElement>('input')?.focus();
+      return;
+    }
+
+    const { definition: def, itemId, itemName, basePriceCents } = activeBundle;
+
+    // Build slotChoices Record<slotLabel, itemName[]> for cart display.
+    const slotChoices: Record<string, string[]> = {};
+    for (const slot of def.slots) {
+      const ids = slotSelections[slot.id] ?? [];
+      slotChoices[slot.label] = ids.map(nameOf);
+    }
+    if (def.fixedItemIds.length > 0) {
+      slotChoices['Included'] = def.fixedItemIds.map(nameOf);
     }
 
     const lineTotalCents = basePriceCents * qty;
@@ -141,8 +235,12 @@ export default function BundleModal({ menuItems }: Props) {
 
   if (!activeBundle) return null;
 
-  const { itemName, basePriceCents, definition } = activeBundle;
+  const { itemName, basePriceCents } = activeBundle;
   const priceCents = basePriceCents * qty;
+  const remainingChoices = incompleteSlots.reduce(
+    (sum, s) => sum + (s.choose - (slotSelections[s.id]?.length ?? 0)),
+    0,
+  );
 
   return (
     <div
@@ -150,8 +248,8 @@ export default function BundleModal({ menuItems }: Props) {
       onClick={handleClose}
       role="presentation"
     >
-      {/* Modal — stop propagation so clicks inside don't close the overlay */}
       <div
+        ref={modalRef}
         className={`modal modal--wide bundle-modal${open ? ' bundle-modal--open' : ''}`}
         role="dialog"
         aria-modal="true"
@@ -166,6 +264,7 @@ export default function BundleModal({ menuItems }: Props) {
             className="modal__close"
             onClick={handleClose}
             aria-label="Close bundle options"
+            type="button"
           >
             ✕
           </button>
@@ -173,52 +272,46 @@ export default function BundleModal({ menuItems }: Props) {
 
         <div className="modal__body bundle-modal__body">
           {/* Always-included items */}
-          {definition.includes.length > 0 && (
+          {definition!.includes.length > 0 && (
             <div className="bundle-modal__includes">
               <span className="bundle-modal__includes-label">Always included:</span>
-              {definition.includes.map((item) => (
+              {definition!.includes.map((item) => (
                 <span key={item} className="bundle-modal__includes-tag">{item}</span>
               ))}
             </div>
           )}
 
           {/* Fixed items */}
-          {definition.fixedItemIds.length > 0 && (
+          {definition!.fixedItemIds.length > 0 && (
             <div className="bundle-modal__fixed">
               <p className="bundle-modal__fixed-label">Fixed items included</p>
-              {definition.fixedItemIds.map((id) => (
+              {definition!.fixedItemIds.map((id) => (
                 <div key={id} className="bundle-modal__fixed-item">
-                  ✓ {nameMap.get(id) ?? id}
+                  ✓ {nameOf(id)}
                 </div>
               ))}
             </div>
           )}
 
           {/* Slots */}
-          {definition.slots.map((slot) => (
+          {definition!.slots.map((slot) => (
             <SlotSection
               key={slot.id}
               slot={slot}
               selections={slotSelections[slot.id] ?? []}
-              nameMap={nameMap}
+              itemMap={itemMap}
+              invalid={attemptedSubmit && !slotIsComplete(slot)}
               onChange={(optionId, checked) =>
                 handleSlotChange(slot.id, optionId, slot.choose, checked)
               }
             />
           ))}
 
-          {/* No slots and no choices — purely fixed */}
-          {definition.slots.length === 0 && definition.fixedItemIds.length > 0 && (
+          {/* No slots — purely fixed */}
+          {definition!.slots.length === 0 && definition!.fixedItemIds.length > 0 && (
             <p className="bundle-modal__fixed-note">
               No choices needed — all items are included above.
             </p>
-          )}
-
-          {/* Validation error */}
-          {validationError && (
-            <div className="bundle-modal__error" role="alert">
-              {validationError}
-            </div>
           )}
         </div>
 
@@ -249,16 +342,51 @@ export default function BundleModal({ menuItems }: Props) {
             </div>
           </div>
 
-          <button
-            className="bundle-modal__add-btn"
-            onClick={handleSubmit}
-            type="button"
-          >
-            Add to Order — {formatPrice(priceCents)}
-          </button>
+          <div className="bundle-modal__action">
+            {/* Live validity readout */}
+            <p
+              className={`bundle-modal__validity${isValid ? ' bundle-modal__validity--ok' : ''}`}
+              role="status"
+              aria-live="polite"
+            >
+              {isValid
+                ? '✓ Your combo is ready'
+                : `Select ${remainingChoices} more ${remainingChoices === 1 ? 'item' : 'items'} to continue`}
+            </p>
+            <button
+              className="bundle-modal__add-btn"
+              onClick={handleSubmit}
+              type="button"
+              aria-disabled={!isValid}
+            >
+              Add to Order — {formatPrice(priceCents)}
+            </button>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// Option thumbnail — falls back to the category emoji if the image is missing
+// or fails to load (real photos aren't all in place yet).
+function OptionMedia({ imageUrl, emoji }: { imageUrl?: string; emoji: string }) {
+  const [failed, setFailed] = useState(false);
+  const showImg = imageUrl && !failed;
+  return (
+    <span className="bundle-option__media" aria-hidden="true">
+      {showImg ? (
+        <img
+          className="bundle-option__img"
+          src={imageUrl}
+          alt=""
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span className="bundle-option__emoji">{emoji}</span>
+      )}
+    </span>
   );
 }
 
@@ -267,52 +395,88 @@ export default function BundleModal({ menuItems }: Props) {
 interface SlotSectionProps {
   slot: BundleSlot;
   selections: string[];
-  nameMap: Map<string, string>;
+  itemMap: Map<string, MenuItem>;
+  invalid: boolean;
   onChange: (optionId: string, checked: boolean) => void;
 }
 
-function SlotSection({ slot, selections, nameMap, onChange }: SlotSectionProps) {
+function SlotSection({ slot, selections, itemMap, invalid, onChange }: SlotSectionProps) {
   const isRadio = slot.choose === 1;
-  const legend =
-    slot.choose === 1
-      ? `Choose 1 — ${slot.label}`
-      : `Choose ${slot.choose} — ${slot.label}`;
+  const filled = selections.length;
+  const complete = filled === slot.choose;
 
-  const remaining = slot.choose - selections.length;
+  // Group option ids by subcategory, preserving definition order.
+  const groups = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const id of slot.optionIds) {
+      const sub = itemMap.get(id)?.subcategory ?? '';
+      if (!map.has(sub)) map.set(sub, []);
+      map.get(sub)!.push(id);
+    }
+    return [...map.entries()];
+  }, [slot.optionIds, itemMap]);
+  const showGroupHeadings = groups.length > 1;
+
+  const errorId = `slot-error-${slot.id}`;
 
   return (
-    <fieldset className="bundle-slot">
+    <fieldset
+      className={`bundle-slot${invalid ? ' bundle-slot--invalid' : ''}`}
+      data-slot-id={slot.id}
+      aria-invalid={invalid || undefined}
+      aria-describedby={invalid ? errorId : undefined}
+    >
       <legend className="bundle-slot__legend">
-        {legend}
-        {remaining > 0 && (
-          <span className="bundle-slot__remaining"> ({remaining} remaining)</span>
-        )}
+        <span className="bundle-slot__legend-label">{slot.label}</span>
+        <span
+          className={`bundle-slot__progress${complete ? ' bundle-slot__progress--done' : ''}`}
+        >
+          {complete ? `✓ ${filled} of ${slot.choose}` : `${filled} of ${slot.choose} chosen`}
+        </span>
       </legend>
-      <div className="bundle-slot__options">
-        {slot.optionIds.map((id) => {
-          const name = nameMap.get(id) ?? id;
-          const checked = selections.includes(id);
-          const atLimit = !isRadio && !checked && selections.length >= slot.choose;
 
-          return (
-            <label
-              key={id}
-              className={`bundle-slot__option${checked ? ' bundle-slot__option--selected' : ''}${atLimit ? ' bundle-slot__option--disabled' : ''}`}
-            >
-              <input
-                type={isRadio ? 'radio' : 'checkbox'}
-                name={`slot-${slot.id}`}
-                value={id}
-                checked={checked}
-                disabled={atLimit}
-                onChange={(e) => onChange(id, e.target.checked)}
-                className="bundle-slot__input"
-              />
-              {name}
-            </label>
-          );
-        })}
-      </div>
+      {invalid && (
+        <p className="bundle-slot__error" id={errorId} role="alert">
+          Choose {slot.choose - filled} more from {slot.label}.
+        </p>
+      )}
+
+      {groups.map(([sub, ids]) => (
+        <div key={sub || '_'} className="bundle-slot__group">
+          {showGroupHeadings && sub && (
+            <p className="bundle-slot__group-heading">{prettyLabel(sub)}</p>
+          )}
+          <div className="bundle-slot__options">
+            {ids.map((id) => {
+              const item = itemMap.get(id);
+              const name = item?.name ?? id;
+              const checked = selections.includes(id);
+              const atLimit = !isRadio && !checked && filled >= slot.choose;
+              const emoji = CATEGORY_EMOJI[item?.category ?? ''] ?? '🍽️';
+
+              return (
+                <label
+                  key={id}
+                  className={`bundle-option${checked ? ' bundle-option--selected' : ''}${atLimit ? ' bundle-option--disabled' : ''}`}
+                >
+                  <input
+                    type={isRadio ? 'radio' : 'checkbox'}
+                    name={`slot-${slot.id}`}
+                    value={id}
+                    checked={checked}
+                    disabled={atLimit}
+                    onChange={(e) => onChange(id, e.target.checked)}
+                    className="bundle-option__input"
+                  />
+                  <OptionMedia imageUrl={item?.imageUrl} emoji={emoji} />
+                  <span className="bundle-option__name">{name}</span>
+                  <span className="bundle-option__check" aria-hidden="true">✓</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </fieldset>
   );
 }

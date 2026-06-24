@@ -128,10 +128,30 @@ export function validateOrder(req, res, next) {
 }
 
 export function sanitizeMenuQuery(req, res, next) {
-  const { category, vegan, vegetarian, glutenFree, inStock, search } = req.query;
+  const { category, vegan, vegetarian, glutenFree, inStock, search, limit, offset } = req.query;
 
   if (search && search.length > 100) {
     return next(createError('VALIDATION_ERROR', 'Search query exceeds 100 characters.'));
+  }
+
+  // Pagination (forward-capability). Applied as a sargable LIMIT/OFFSET over the
+  // already-ordered scan. `limit` is hard-capped at 100; omitting it returns the
+  // full list (preserves the existing full-menu SSR fetch). `offset` defaults to 0.
+  let parsedLimit = null;
+  if (limit !== undefined) {
+    const n = parseInt(limit, 10);
+    if (Number.isNaN(n) || n < 1) {
+      return next(createError('VALIDATION_ERROR', 'limit must be a positive integer.'));
+    }
+    parsedLimit = Math.min(n, 100);
+  }
+  let parsedOffset = 0;
+  if (offset !== undefined) {
+    const n = parseInt(offset, 10);
+    if (Number.isNaN(n) || n < 0) {
+      return next(createError('VALIDATION_ERROR', 'offset must be a non-negative integer.'));
+    }
+    parsedOffset = n;
   }
 
   req.menuFilters = {
@@ -141,6 +161,8 @@ export function sanitizeMenuQuery(req, res, next) {
     isGlutenFree: glutenFree === 'true' ? 1 : null,
     inStock: inStock === 'true' ? 1 : inStock === 'false' ? 0 : null,
     search: typeof search === 'string' ? search.trim() : null,
+    limit: parsedLimit,
+    offset: parsedOffset,
   };
 
   next();

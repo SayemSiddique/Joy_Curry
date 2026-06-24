@@ -115,6 +115,7 @@ export const meatEntrees = [
     proteinChoice:  null,             // goat only
     spiceLevel:     'Medium',
     imageUrl:       '/images/dishes/goat-curry-entree.jpg',
+    tags:           ['popular'],
     searchKeywords: ['mutton curry', 'goat meat curry', 'traditional goat', 'classic', 'hearty', 'non-veg', 'popular'],
   },
   {

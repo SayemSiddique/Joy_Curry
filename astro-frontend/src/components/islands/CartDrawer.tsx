@@ -9,6 +9,8 @@ import {
   totalCents,
   cartOpen,
   checkoutOpen,
+  orderType,
+  deliveryRouting,
   addToCart,
   removeFromCart,
   updateQty,
@@ -16,6 +18,7 @@ import {
 } from '@stores/cart';
 import { authState, rewardsState, loadRewards } from '@stores/auth';
 import { rewardsApi, type RewardMilestone } from '@lib/api';
+import { MIN_ORDER_CENTS, FREE_DELIVERY_THRESHOLD_CENTS } from '@lib/constants';
 import { formatPrice } from '@lib/formatters';
 import { showToast } from '@lib/toast';
 
@@ -35,8 +38,23 @@ export default function CartDrawer() {
   const fee = useNano(deliveryFeeCents);
   const total = useNano(totalCents);
   const open = useNano(cartOpen);
+  const oType = useNano(orderType);
+  const routing = useNano(deliveryRouting);
   const auth = useNano(authState);
   const rewards = useNano(rewardsState);
+
+  // ── Delivery nudges ─────────────────────────────────────────
+  // For delivery orders, surface (in priority): the $10 minimum (validate.js),
+  // then the in-house free-delivery threshold ($30), then — out of zone — a
+  // courier-partner note (free delivery doesn't apply there).
+  const isDelivery = oType !== 'pickup';
+  const inHouse = !routing || routing.withinRadius; // unknown routing → in-house
+  const minMet = subtotal >= MIN_ORDER_CENTS;
+  const freeMet = subtotal >= FREE_DELIVERY_THRESHOLD_CENTS;
+  const minPct = Math.min(100, Math.round((subtotal / MIN_ORDER_CENTS) * 100));
+  const freePct = Math.min(100, Math.round((subtotal / FREE_DELIVERY_THRESHOLD_CENTS) * 100));
+  const remainingToMin = Math.max(0, MIN_ORDER_CENTS - subtotal);
+  const remainingToFree = Math.max(0, FREE_DELIVERY_THRESHOLD_CENTS - subtotal);
 
   // Refresh the vault balance whenever the drawer opens for a signed-in user
   useEffect(() => {
@@ -123,6 +141,26 @@ export default function CartDrawer() {
 
   return (
     <>
+      {/* Persistent mobile cart bar — always one tap from the drawer.
+          Mobile-only (CSS), hidden while the drawer itself is open. */}
+      {count > 0 && !open && (
+        <button
+          type="button"
+          className="cart-bar"
+          onClick={() => cartOpen.set(true)}
+          aria-label={`View cart — ${count} ${count === 1 ? 'item' : 'items'}, subtotal ${formatPrice(subtotal)}`}
+        >
+          <span className="cart-bar__left">
+            <span className="cart-bar__icon" aria-hidden="true">🛒</span>
+            <span className="cart-bar__count">{count > 99 ? '99+' : count}</span>
+            <span className="cart-bar__text">View Order</span>
+          </span>
+          <span className="cart-bar__right" aria-hidden="true">
+            {formatPrice(subtotal)} <span className="cart-bar__chev">→</span>
+          </span>
+        </button>
+      )}
+
       {/* Backdrop */}
       <div
         className={`cart-overlay${open ? ' cart-overlay--visible' : ''}`}
@@ -216,6 +254,58 @@ export default function CartDrawer() {
 
         {items.length > 0 ? (
           <div className="cart-drawer__footer">
+            {isDelivery && !minMet && (
+              <div className="cart-nudge">
+                <p className="cart-nudge__label" role="status" aria-live="polite">
+                  Add <strong>{formatPrice(remainingToMin)}</strong> more to meet the{' '}
+                  {formatPrice(MIN_ORDER_CENTS)} delivery minimum
+                </p>
+                <div
+                  className="cart-nudge__bar"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={MIN_ORDER_CENTS}
+                  aria-valuenow={Math.min(subtotal, MIN_ORDER_CENTS)}
+                  aria-label="Progress toward delivery minimum"
+                >
+                  <div className="cart-nudge__fill" style={{ width: `${minPct}%` }} />
+                </div>
+              </div>
+            )}
+
+            {isDelivery && minMet && inHouse && (
+              <div className={`cart-nudge${freeMet ? ' cart-nudge--met' : ''}`}>
+                <p className="cart-nudge__label" role="status" aria-live="polite">
+                  {freeMet ? (
+                    <>🎉 You’ve unlocked <strong>free delivery</strong>!</>
+                  ) : (
+                    <>
+                      Add <strong>{formatPrice(remainingToFree)}</strong> more for{' '}
+                      <strong>FREE delivery</strong>
+                    </>
+                  )}
+                </p>
+                <div
+                  className="cart-nudge__bar"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={FREE_DELIVERY_THRESHOLD_CENTS}
+                  aria-valuenow={Math.min(subtotal, FREE_DELIVERY_THRESHOLD_CENTS)}
+                  aria-label="Progress toward free delivery"
+                >
+                  <div className="cart-nudge__fill" style={{ width: `${freePct}%` }} />
+                </div>
+              </div>
+            )}
+
+            {isDelivery && minMet && !inHouse && (
+              <div className="cart-nudge cart-nudge--courier">
+                <p className="cart-nudge__label" role="status" aria-live="polite">
+                  🛵 You’re {routing!.distanceMiles.toFixed(1)} mi away — delivered by our courier
+                  partner{routing!.quoteCents > 0 ? <> · {formatPrice(routing!.quoteCents)} delivery</> : null}
+                </p>
+              </div>
+            )}
             {auth.user && rewards && (
               <div className="cart-vault">
                 <div className="cart-vault__header">
@@ -224,7 +314,14 @@ export default function CartDrawer() {
                 </div>
                 {rewards.nextMilestone ? (
                   <>
-                    <div className="vault-progress__bar" aria-hidden="true">
+                    <div
+                      className="vault-progress__bar"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(rewards.progressPct)}
+                      aria-label={`${rewards.pointsToNext.toLocaleString()} points to ${rewards.nextMilestone.label}`}
+                    >
                       <div
                         className="vault-progress__fill"
                         style={{ width: `${rewards.progressPct}%` }}

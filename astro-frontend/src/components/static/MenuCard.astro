@@ -5,9 +5,13 @@ import { formatPrice } from '@lib/formatters';
 interface Props {
   item: MenuItem;
   galleryMode?: boolean;
+  // On the "Most Loved" strip, non-customizable items get a prominent one-tap
+  // "Quick Add" (same add-btn data-* contract → existing delegated handler).
+  // Bundles always keep their Configure → BundleModal flow.
+  quickAdd?: boolean;
 }
 
-const { item, galleryMode = false } = Astro.props;
+const { item, galleryMode = false, quickAdd = false } = Astro.props;
 
 const {
   id,
@@ -49,6 +53,13 @@ const CATEGORY_EMOJI: Record<string, string> = {
 const isBundle = category === 'dinner-special' || category === 'combo';
 
 const emoji = CATEGORY_EMOJI[category] ?? '🍽️';
+
+// Serve next-gen formats where the asset exists: the browser picks the first
+// <source> it can decode (AVIF → WebP) and falls back to the original raster.
+// Derived by extension swap; if the .avif/.webp aren't present the <source>
+// 404s silently and the <img> src wins, so this is safe before assets land.
+const avifUrl = imageUrl ? imageUrl.replace(/\.(jpe?g|png)$/i, '.avif') : null;
+const webpUrl = imageUrl ? imageUrl.replace(/\.(jpe?g|png)$/i, '.webp') : null;
 ---
 
 <article
@@ -64,15 +75,19 @@ const emoji = CATEGORY_EMOJI[category] ?? '🍽️';
 >
   <div class="menu-card__img-wrap">
     {imageUrl ? (
-      <img
-        class="menu-card__img"
-        src={imageUrl}
-        alt={name}
-        loading="lazy"
-        decoding="async"
-        width="400"
-        height="300"
-      />
+      <picture>
+        {avifUrl && <source srcset={avifUrl} type="image/avif" />}
+        {webpUrl && <source srcset={webpUrl} type="image/webp" />}
+        <img
+          class="menu-card__img"
+          src={imageUrl}
+          alt={name}
+          loading="lazy"
+          decoding="async"
+          width="400"
+          height="300"
+        />
+      </picture>
     ) : (
       <div class="menu-card__img-placeholder">{emoji}</div>
     )}
@@ -117,14 +132,16 @@ const emoji = CATEGORY_EMOJI[category] ?? '🍽️';
         </button>
       ) : (
         <button
-          class="menu-card__add-btn"
+          class:list={['menu-card__add-btn', { 'menu-card__add-btn--quick': quickAdd }]}
           disabled={!inStock}
           data-item-id={id}
           data-item-name={name}
           data-price-cents={basePriceCents}
-          aria-label={inStock ? `Add ${name} to cart` : `${name} — sold out`}
+          aria-label={inStock
+            ? quickAdd ? `Quick add ${name} to cart` : `Add ${name} to cart`
+            : `${name} — sold out`}
         >
-          {inStock ? '+ Add to Order' : 'Sold Out'}
+          {inStock ? (quickAdd ? '⚡ Quick Add' : '+ Add to Order') : 'Sold Out'}
         </button>
       )
     )}
