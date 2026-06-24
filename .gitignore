@@ -39,3 +39,10 @@ logs/
 # Temporary files
 tmp/
 temp/
+
+# Internal planning and AI tooling
+ASTRO_MIGRATION.md
+BACKEND_DEBUGGING_PLAYBOOK.md
+joy_curry_tandoor_menu.md
+.claude/
+launch.json
