@@ -141,10 +141,14 @@ export function updateQty(cartItemId: string, qty: number): void {
 export function clearCart(): void {
   cartItems.set([]);
   saveToStorage([]);
+  // scheduledFor reset happens in CheckoutModal after confirmed
 }
 
 export const cartOpen = atom<boolean>(false);
 export const checkoutOpen = atom<boolean>(false);
+
+// P5-D: selected "Schedule for Later" slot, synced from CheckoutModal → read in CartDrawer
+export const scheduledFor = atom<string | null>(null);
 
 // ── Order-flow gate (Phase 3-C): pickup vs delivery fork ──
 // `orderType` is declared above (it drives the fee computed).

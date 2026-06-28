@@ -34,9 +34,11 @@ export default function OrderGate() {
   }, []);
 
   // Reset the inner step each time the gate opens.
+  // Always start at 'choose' so the user can switch between pickup and delivery
+  // even when reopened from within the checkout "Change" button.
   useEffect(() => {
     if (open) {
-      setStep(currentType === 'delivery' ? 'address' : 'choose');
+      setStep('choose');
       setAddress(deliveryAddress.get());
       setError(null);
       setDistanceNote(null);
@@ -109,6 +111,7 @@ export default function OrderGate() {
   return (
     <div
       className={`modal-overlay${open ? ' modal-overlay--visible' : ''}`}
+      style={{ zIndex: 'calc(var(--z-modal) + 20)' }}
       onClick={handleClose}
       role="presentation"
     >

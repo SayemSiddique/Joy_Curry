@@ -6,6 +6,8 @@ import AuthModal from '@components/islands/AuthModal';
 import OrderHistory from '@components/islands/OrderHistory';
 import RewardsPanel from '@components/islands/RewardsPanel';
 import AdminPanel from '@components/islands/AdminPanel';
+import DishDetailModal from '@components/islands/DishDetailModal';
+import OrderTracker from '@components/islands/OrderTracker';
 
 export interface Props {
   title?: string;
@@ -46,5 +48,7 @@ const {
     <OrderHistory client:idle />
     <RewardsPanel client:idle />
     <AdminPanel client:idle />
+    <DishDetailModal client:idle />
+    <OrderTracker client:idle />
   </body>
 </html>

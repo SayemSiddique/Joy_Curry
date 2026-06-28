@@ -6,6 +6,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: 'customer' | 'admin';
+  birthday?: string; // MM-DD format
 }
 
 export interface AuthState {

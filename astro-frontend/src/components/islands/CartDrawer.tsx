@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ReadableAtom } from 'nanostores';
 import {
   cartItems,
@@ -11,6 +11,7 @@ import {
   checkoutOpen,
   orderType,
   deliveryRouting,
+  scheduledFor,
   addToCart,
   removeFromCart,
   updateQty,
@@ -19,15 +20,36 @@ import {
 import { authState, rewardsState, loadRewards } from '@stores/auth';
 import { rewardsApi, type RewardMilestone } from '@lib/api';
 import { MIN_ORDER_CENTS, FREE_DELIVERY_THRESHOLD_CENTS } from '@lib/constants';
-import { formatPrice } from '@lib/formatters';
+import { formatPrice, formatSlotTime } from '@lib/formatters';
 import { showToast } from '@lib/toast';
+import { flyToCart } from '@lib/cartAnimation';
+import { getUpsells } from '@lib/upsells';
+import { startGroupOrder, mergeGroupItems, getGroupSession, listenGroupUpdates } from '@lib/groupOrder';
 
-// Workaround: useSyncExternalStore (used by @nanostores/react useStore) has a
-// compatibility issue with React 19 + Astro SSR. Subscribe manually instead.
 function useNano<T>(store: ReadableAtom<T>): T {
   const [val, setVal] = useState<T>(() => store.get());
   useEffect(() => store.subscribe(setVal), [store]);
   return val;
+}
+
+// P5-C: CSS confetti burst — renders N coloured dots that animate outward
+function Confetti({ active }: { active: boolean }) {
+  const colours = ['#D4AF37', '#874535', '#541C0D', '#F5EBDC', '#B87333'];
+  if (!active) return null;
+  return (
+    <div className="confetti-burst" aria-hidden="true">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <span
+          key={i}
+          className="confetti-dot"
+          style={{
+            '--angle': `${(i / 12) * 360}deg`,
+            '--color': colours[i % colours.length],
+          } as React.CSSProperties}
+        />
+      ))}
+    </div>
+  );
 }
 
 export default function CartDrawer() {
@@ -42,13 +64,21 @@ export default function CartDrawer() {
   const routing = useNano(deliveryRouting);
   const auth = useNano(authState);
   const rewards = useNano(rewardsState);
+  const scheduled = useNano(scheduledFor);
+
+  // ── P5-B: group order state ──────────────────────────────────
+  const [groupUuid, setGroupUuid] = useState<string | null>(null);
+  const [groupParticipantCount, setGroupParticipantCount] = useState(0);
+  const [groupShareUrl, setGroupShareUrl] = useState<string | null>(null);
+  const [groupCopied, setGroupCopied] = useState(false);
+
+  // ── P5-C: confetti on milestone unlock ───────────────────────
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevProjectedPts = useRef<number>(0);
 
   // ── Delivery nudges ─────────────────────────────────────────
-  // For delivery orders, surface (in priority): the $10 minimum (validate.js),
-  // then the in-house free-delivery threshold ($30), then — out of zone — a
-  // courier-partner note (free delivery doesn't apply there).
   const isDelivery = oType !== 'pickup';
-  const inHouse = !routing || routing.withinRadius; // unknown routing → in-house
+  const inHouse = !routing || routing.withinRadius;
   const minMet = subtotal >= MIN_ORDER_CENTS;
   const freeMet = subtotal >= FREE_DELIVERY_THRESHOLD_CENTS;
   const minPct = Math.min(100, Math.round((subtotal / MIN_ORDER_CENTS) * 100));
@@ -66,6 +96,28 @@ export default function CartDrawer() {
   // Highest milestone the customer can redeem right now (if any)
   const topUnlocked: RewardMilestone | null =
     rewards && rewards.unlocked.length > 0 ? rewards.unlocked[rewards.unlocked.length - 1] : null;
+
+  // P5-C: detect when projected balance crosses a milestone threshold → confetti
+  useEffect(() => {
+    if (!rewards) return;
+    const projected = rewards.balance + pointsPreview;
+    const prev = prevProjectedPts.current;
+    const milestones = rewards.milestones ?? [];
+    const crossed = milestones.some(m => prev < m.points && projected >= m.points);
+    if (crossed) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 2000);
+    }
+    prevProjectedPts.current = projected;
+  }, [pointsPreview, rewards]);
+
+  // P5-B: listen for group updates if host
+  useEffect(() => {
+    if (!groupUuid) return;
+    return listenGroupUpdates(groupUuid, (session) => {
+      setGroupParticipantCount(session.participants.length);
+    });
+  }, [groupUuid]);
 
   const handleRedeem = async (milestone: RewardMilestone) => {
     const token = authState.get().token;
@@ -87,6 +139,35 @@ export default function CartDrawer() {
     }
   };
 
+  // P5-B: start group order
+  const handleStartGroupOrder = () => {
+    const uuid = crypto.randomUUID();
+    const hostName = auth.user?.name ?? 'Host';
+    const url = startGroupOrder(uuid, hostName, items);
+    setGroupUuid(uuid);
+    setGroupShareUrl(url);
+    navigator.clipboard.writeText(url).catch(() => {});
+    setGroupCopied(true);
+    setTimeout(() => setGroupCopied(false), 3000);
+    showToast('Group order link copied! Share it with your group.', 'success');
+  };
+
+  // P5-B: merge all participant items into cart
+  const handleMergeGroup = () => {
+    if (!groupUuid) return;
+    const session = getGroupSession(groupUuid);
+    if (!session) return;
+    const extra = mergeGroupItems(groupUuid).filter(
+      i => !session.hostItems.some(h => h.itemId === i.itemId),
+    );
+    for (const item of extra) {
+      addToCart({ ...item });
+    }
+    showToast(`Merged ${extra.length} item(s) from the group into your cart.`, 'success');
+    setGroupUuid(null);
+    setGroupShareUrl(null);
+  };
+
   // Wire up the static Navbar cart button
   useEffect(() => {
     const btn = document.getElementById('navbar-cart-btn');
@@ -106,6 +187,7 @@ export default function CartDrawer() {
       const priceCents = parseInt(btn.dataset.priceCents ?? '0', 10);
       if (!itemId || !name) return;
 
+      flyToCart(btn);
       addToCart({
         itemId,
         name,
@@ -141,8 +223,7 @@ export default function CartDrawer() {
 
   return (
     <>
-      {/* Persistent mobile cart bar — always one tap from the drawer.
-          Mobile-only (CSS), hidden while the drawer itself is open. */}
+      {/* Persistent mobile cart bar */}
       {count > 0 && !open && (
         <button
           type="button"
@@ -176,7 +257,15 @@ export default function CartDrawer() {
         aria-label="Your order"
       >
         <div className="cart-drawer__header">
-          <h2 className="cart-drawer__title">Your Order</h2>
+          <div>
+            <h2 className="cart-drawer__title">Your Order</h2>
+            {/* P5-D: scheduled time badge */}
+            {scheduled && (
+              <p className="cart-drawer__scheduled" aria-live="polite">
+                ⏰ Scheduled for {formatSlotTime(scheduled)}
+              </p>
+            )}
+          </div>
           <button
             className="cart-drawer__close"
             onClick={handleClose}
@@ -252,6 +341,43 @@ export default function CartDrawer() {
           )}
         </div>
 
+        {/* Smart upsells */}
+        {items.length > 0 && (() => {
+          const upsells = getUpsells(items);
+          if (upsells.length === 0) return null;
+          return (
+            <div className="cart-upsells">
+              <p className="cart-upsells__heading">Pairs perfectly with your order</p>
+              {upsells.map(u => (
+                <div key={u.itemId} className="cart-upsell-row">
+                  <span className="cart-upsell-row__emoji" aria-hidden="true">{u.emoji}</span>
+                  <div className="cart-upsell-row__info">
+                    <span className="cart-upsell-row__name">{u.name}</span>
+                    <span className="cart-upsell-row__reason">{u.reason}</span>
+                  </div>
+                  <button
+                    className="cart-upsell-row__add"
+                    onClick={e => {
+                      addToCart({
+                        itemId: u.itemId,
+                        name: u.name,
+                        basePriceCents: u.priceCents,
+                        qty: 1,
+                        lineTotalCents: u.priceCents,
+                        itemType: 'regular',
+                      });
+                      flyToCart(e.currentTarget);
+                    }}
+                    aria-label={`Add ${u.name} to cart`}
+                  >
+                    + Add
+                  </button>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
         {items.length > 0 ? (
           <div className="cart-drawer__footer">
             {isDelivery && !minMet && (
@@ -277,7 +403,7 @@ export default function CartDrawer() {
               <div className={`cart-nudge${freeMet ? ' cart-nudge--met' : ''}`}>
                 <p className="cart-nudge__label" role="status" aria-live="polite">
                   {freeMet ? (
-                    <>🎉 You’ve unlocked <strong>free delivery</strong>!</>
+                    <>🎉 You've unlocked <strong>free delivery</strong>!</>
                   ) : (
                     <>
                       Add <strong>{formatPrice(remainingToFree)}</strong> more for{' '}
@@ -301,17 +427,33 @@ export default function CartDrawer() {
             {isDelivery && minMet && !inHouse && (
               <div className="cart-nudge cart-nudge--courier">
                 <p className="cart-nudge__label" role="status" aria-live="polite">
-                  🛵 You’re {routing!.distanceMiles.toFixed(1)} mi away — delivered by our courier
+                  🛵 You're {routing!.distanceMiles.toFixed(1)} mi away — delivered by our courier
                   partner{routing!.quoteCents > 0 ? <> · {formatPrice(routing!.quoteCents)} delivery</> : null}
                 </p>
               </div>
             )}
+
+            {/* P5-C: Vault progress + confetti */}
             {auth.user && rewards && (
-              <div className="cart-vault">
+              <div className="cart-vault" style={{ position: 'relative' }}>
+                <Confetti active={showConfetti} />
                 <div className="cart-vault__header">
                   <span className="cart-vault__title">✦ Artisan Vault</span>
                   <span className="cart-vault__balance">{rewards.balance.toLocaleString()} pts</span>
                 </div>
+                {auth.user.birthday && auth.user.birthday === (() => {
+                  const d = new Date();
+                  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                })() && (
+                  <div className="cart-vault__birthday">
+                    🎂 It's your birthday! Free dish unlocked
+                  </div>
+                )}
+                {(rewards.streak ?? 0) >= 1 && (
+                  <div className={`cart-vault__streak${(rewards.streak ?? 0) >= 2 ? ' cart-vault__streak--animated' : ''}`}>
+                    🔥 {rewards.streak}-week streak
+                  </div>
+                )}
                 {rewards.nextMilestone ? (
                   <>
                     <div
@@ -347,6 +489,7 @@ export default function CartDrawer() {
                 )}
               </div>
             )}
+
             <div className="cart-drawer__totals">
               <div className="cart-drawer__total-row">
                 <span>Subtotal</span>
@@ -365,6 +508,52 @@ export default function CartDrawer() {
                 <span>{formatPrice(total)}</span>
               </div>
             </div>
+
+            {/* P5-B: Group order controls */}
+            {!groupUuid ? (
+              <button
+                type="button"
+                className="cart-group-btn"
+                onClick={handleStartGroupOrder}
+                aria-label="Start a group order and share a link"
+              >
+                👥 Start Group Order
+              </button>
+            ) : (
+              <div className="cart-group-active">
+                <p className="cart-group-active__label">
+                  Group link {groupCopied ? '✓ Copied!' : 'ready'}
+                  {groupParticipantCount > 0 && (
+                    <span className="cart-group-active__count">
+                      {' '}· {groupParticipantCount} person{groupParticipantCount !== 1 ? 's' : ''} added items
+                    </span>
+                  )}
+                </p>
+                {groupShareUrl && (
+                  <button
+                    type="button"
+                    className="cart-group-active__copy"
+                    onClick={() => {
+                      navigator.clipboard.writeText(groupShareUrl).catch(() => {});
+                      setGroupCopied(true);
+                      setTimeout(() => setGroupCopied(false), 3000);
+                    }}
+                  >
+                    Copy Link
+                  </button>
+                )}
+                {groupParticipantCount > 0 && (
+                  <button
+                    type="button"
+                    className="cart-group-active__merge"
+                    onClick={handleMergeGroup}
+                  >
+                    Merge All Items →
+                  </button>
+                )}
+              </div>
+            )}
+
             <button
               className="cart-drawer__checkout-btn"
               onClick={handleCheckout}

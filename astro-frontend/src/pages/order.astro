@@ -8,6 +8,13 @@ import CategoryRail from '@components/islands/CategoryRail';
 import SearchFilterBar from '@components/islands/SearchFilterBar';
 import BundleModal from '@components/islands/BundleModal';
 import OrderGate from '@components/islands/OrderGate';
+import KitchenTicker from '@components/islands/KitchenTicker';
+import MealConcierge from '@components/islands/MealConcierge';
+import ReorderStrip from '@components/islands/ReorderStrip';
+import SpecialsBanner from '@components/islands/SpecialsBanner';
+import WelcomeStrip from '@components/islands/WelcomeStrip';
+import GroupOrderBanner from '@components/islands/GroupOrderBanner';
+import StockNotifier from '@components/islands/StockNotifier';
 import type { MenuItem } from '@lib/api';
 import { CATEGORIES, API_BASE_URL } from '@lib/constants';
 
@@ -44,6 +51,7 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
   description="Order authentic halal Indian cuisine online for delivery or pickup. Browse our full menu, add to cart, and enjoy Chicken Tikka Masala, Goat Curry, Biryani and more."
 >
   <Navbar />
+  <SpecialsBanner client:idle />
 
   <!-- Order page header -->
   <div class="order-page__header">
@@ -53,12 +61,18 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
     </div>
   </div>
 
+  <!-- P5-A: Personalised welcome strip for returning users -->
+  <WelcomeStrip client:idle />
+  <!-- P5-B: Group order participant banner (shown when ?group=uuid in URL) -->
+  <GroupOrderBanner client:idle />
+  <KitchenTicker client:idle />
   <SearchFilterBar client:idle menuItems={menuItems} />
 
   {!fetchError && <CategoryRail client:idle categories={activeCategories} />}
 
   <main id="main-content">
-    {!fetchError && <PopularStrip items={popularItems} />}
+    <ReorderStrip client:idle />
+  {!fetchError && <PopularStrip items={popularItems} />}
     {fetchError ? (
       <div class="container" style="padding: var(--space-20) 0; text-align: center;">
         <p style="color: var(--color-error); font-size: var(--text-lg);">
@@ -93,6 +107,12 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
 
   <!-- BundleModal island (Chunk I) -->
   <BundleModal client:idle menuItems={menuItems} />
+
+  <!-- P2-D: AI Meal Concierge -->
+  <MealConcierge client:idle menuItems={menuItems} />
+
+  <!-- P6-A: Stock urgency notifier — polls /api/availability, injects badges on cards -->
+  <StockNotifier client:idle />
 
   <!-- OrderGate island (Phase 3-C) — pickup/delivery fork -->
   <OrderGate client:idle />

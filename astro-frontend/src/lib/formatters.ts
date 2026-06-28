@@ -18,3 +18,12 @@ export function formatDateTime(iso: string): string {
     minute: '2-digit',
   });
 }
+
+// "2026-06-22T11:00" → "11:00 AM"
+export function formatSlotTime(slotTime: string): string {
+  const t = slotTime.split('T')[1] ?? '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${hr}:${String(m).padStart(2, '0')} ${ampm}`;
+}

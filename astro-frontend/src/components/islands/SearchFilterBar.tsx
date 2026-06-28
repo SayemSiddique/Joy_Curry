@@ -63,13 +63,41 @@ export default function SearchFilterBar({ menuItems }: Props) {
 
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [visibleCount, setVisibleCount] = useState(menuItems.length);
+  const [viewMode, setViewMode] = useState<'grid' | 'mosaic'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('menu-view-mode') as 'grid' | 'mosaic') ?? 'grid';
+    }
+    return 'grid';
+  });
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // Keep --toolbar-offset in sync with the actual rendered toolbar height so
+  // the category rail's sticky top is always exactly right, even on mobile where
+  // the toolbar wraps to multiple lines.
+  useEffect(() => {
+    const update = () => {
+      const h = toolbarRef.current?.offsetHeight ?? 65;
+      document.documentElement.style.setProperty('--toolbar-offset', `${h}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    if (toolbarRef.current) ro.observe(toolbarRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const count = applyFiltersToDOM(filters);
     setVisibleCount(count);
   }, [filters]);
+
+  useEffect(() => {
+    const menu = document.getElementById('menu');
+    if (!menu) return;
+    menu.classList.toggle('menu-grid--mosaic', viewMode === 'mosaic');
+    localStorage.setItem('menu-view-mode', viewMode);
+  }, [viewMode]);
 
   const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -103,7 +131,7 @@ export default function SearchFilterBar({ menuItems }: Props) {
 
   return (
     <>
-      <div className="toolbar" role="search" aria-label="Filter menu items">
+      <div ref={toolbarRef} className="toolbar" role="search" aria-label="Filter menu items">
         <div className="container">
           <div className="toolbar__inner">
             {/* Search */}
@@ -198,6 +226,32 @@ export default function SearchFilterBar({ menuItems }: Props) {
                 </button>
               </>
             )}
+
+            {/* View mode toggle */}
+            <div className="toolbar__divider" aria-hidden="true" />
+            <button
+              type="button"
+              className={`toolbar__view-btn${viewMode === 'mosaic' ? ' toolbar__view-btn--active' : ''}`}
+              onClick={() => setViewMode(v => v === 'grid' ? 'mosaic' : 'grid')}
+              aria-label={viewMode === 'grid' ? 'Switch to photo mosaic view' : 'Switch to grid view'}
+              title={viewMode === 'grid' ? 'Photo mosaic' : 'Card grid'}
+            >
+              {viewMode === 'grid' ? (
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"/>
+                  <rect x="9" y="1" width="8" height="6" rx="1" fill="currentColor"/>
+                  <rect x="1" y="9" width="8" height="8" rx="1" fill="currentColor"/>
+                  <rect x="11" y="9" width="6" height="8" rx="1" fill="currentColor"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <rect x="1" y="1" width="7" height="7" rx="1" fill="currentColor"/>
+                  <rect x="10" y="1" width="7" height="7" rx="1" fill="currentColor"/>
+                  <rect x="1" y="10" width="7" height="7" rx="1" fill="currentColor"/>
+                  <rect x="10" y="10" width="7" height="7" rx="1" fill="currentColor"/>
+                </svg>
+              )}
+            </button>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ReadableAtom } from 'nanostores';
 import {
   cartItems,
@@ -10,15 +10,18 @@ import {
   orderType,
   deliveryAddress,
   orderGateOpen,
+  scheduledFor,
   clearCart,
   type CartItem,
 } from '@stores/cart';
 import { authState } from '@stores/auth';
 import { ordersApi, slotsApi, type Order, type Slot } from '@lib/api';
 import { MIN_ORDER_CENTS } from '@lib/constants';
-import { formatPrice } from '@lib/formatters';
+import { formatPrice, formatSlotTime } from '@lib/formatters';
 import { showToast } from '@lib/toast';
 import { useFocusTrap } from '@lib/hooks';
+import PaymentRequestButton from '@components/islands/PaymentRequestButton';
+import type { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 
 // Restaurant-local (America/New_York) date string, optionally offset by days.
 function nyDateStr(offsetDays = 0): string {
@@ -146,6 +149,11 @@ export default function CheckoutModal() {
     };
   }, [open, whenMode, slotDate]);
 
+  // P5-D: sync selected slot → cart store so CartDrawer header shows it
+  useEffect(() => {
+    scheduledFor.set(whenMode === 'later' ? selectedSlot : null);
+  }, [whenMode, selectedSlot]);
+
   // After modal closes and user was on confirmed screen, reset for next use
   useEffect(() => {
     if (!open && screen === 'confirmed') {
@@ -157,6 +165,7 @@ export default function CheckoutModal() {
         setConfirmedOrder(null);
         setWhenMode('asap');
         setSelectedSlot(null);
+        scheduledFor.set(null);
       }, 350);
       return () => clearTimeout(t);
     }
@@ -244,6 +253,7 @@ export default function CheckoutModal() {
       clearCart();
       idempotencyKey.current = crypto.randomUUID();
       setScreen('confirmed');
+      window.dispatchEvent(new CustomEvent('order:confirmed', { detail: res.order }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
       setGlobalError(msg);
@@ -266,6 +276,98 @@ export default function CheckoutModal() {
       setSelectedSlot(null);
     }, 350);
   };
+
+  const handlePaymentRequest = async (event: PaymentRequestPaymentMethodEvent) => {
+    // Validate form fields before processing the payment method
+    const errs = validate();
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) throw new Error('Please fill in all required fields.');
+
+    if (deliveryType === 'delivery' && subtotal < DELIVERY_MIN_CENTS) {
+      throw new Error(`Minimum order for delivery is ${formatPrice(DELIVERY_MIN_CENTS)}.`);
+    }
+
+    setScreen('submitting');
+    setGlobalError(null);
+
+    const addressFull = form.address.trim()
+      ? `${form.address.trim()}${form.apt.trim() ? ', ' + form.apt.trim() : ''}`
+      : undefined;
+
+    const payload = {
+      deliveryType,
+      customerName: event.payerName ?? form.name.trim(),
+      customerPhone: event.payerPhone ?? form.phone.trim(),
+      customerEmail: event.payerEmail ?? form.email.trim(),
+      ...(deliveryType === 'delivery' && { deliveryAddress: addressFull }),
+      scheduledFor: null,
+      idempotencyKey: idempotencyKey.current,
+      paymentMethodId: event.paymentMethod.id,
+      items: items.map((item: CartItem) => ({
+        itemId: item.itemId,
+        itemName: item.name,
+        itemType: item.itemType,
+        basePriceCents: item.basePriceCents,
+        qty: item.qty,
+        selectedOptions: item.selectedOptions ?? [],
+        slotChoices: item.slotChoices ?? {},
+      })),
+    };
+
+    const res = await ordersApi.place(payload, auth.token ?? '');
+    setConfirmedOrder(res.order);
+    clearCart();
+    idempotencyKey.current = crypto.randomUUID();
+    setScreen('confirmed');
+    window.dispatchEvent(new CustomEvent('order:confirmed', { detail: res.order }));
+  };
+
+  // P6-B: Referral code derived from user ID or email
+  const referralCode = auth.user
+    ? `JCT-${auth.user.id}`
+    : `JCT-${Math.abs(form.email.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 9000 + 1000)}`;
+
+  const referralUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/order?ref=${referralCode}`
+    : '';
+
+  const [referralCopied, setReferralCopied] = useState(false);
+
+  const handleCopyReferral = useCallback(() => {
+    navigator.clipboard.writeText(referralUrl).catch(() => {});
+    setReferralCopied(true);
+    setTimeout(() => setReferralCopied(false), 3000);
+  }, [referralUrl]);
+
+  const handleShareReferral = useCallback(() => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Joy Curry & Tandoor — Order Online',
+        text: `I just ordered from Joy Curry & Tandoor — best halal Indian in NYC! Use my link for your first order:`,
+        url: referralUrl,
+      }).catch(() => {});
+    } else {
+      handleCopyReferral();
+    }
+  }, [referralUrl, handleCopyReferral]);
+
+  // P6-D: WhatsApp message builder
+  const buildWhatsAppMessage = useCallback((order: Order) => {
+    const itemLines = order.lineItems
+      .map(li => `• ${li.qty}× ${li.itemName}`)
+      .join('\n');
+    const eta = order.estimatedWaitMin ? `ETA: ~${order.estimatedWaitMin} min` : '';
+    const msg = [
+      `✅ Joy Curry & Tandoor — Order Confirmed!`,
+      `Order #${order.id}`,
+      ``,
+      itemLines,
+      ``,
+      `Total: ${formatPrice(order.totalCents)}`,
+      eta,
+    ].filter(Boolean).join('\n');
+    return `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  }, []);
 
   const fieldChange =
     (name: keyof Form) =>
@@ -313,9 +415,50 @@ export default function CheckoutModal() {
                     <strong>{confirmedOrder.estimatedWaitMin} minutes</strong>
                   </p>
                 ) : null}
+                {/* P5-D: show scheduled time if pre-order */}
+                {whenMode === 'later' && selectedSlot && (
+                  <p className="confirmation__detail confirmation__detail--scheduled">
+                    ⏰ Scheduled for <strong>{formatSlotTime(selectedSlot)}</strong>
+                  </p>
+                )}
                 <p className="confirmation__detail">
                   We'll send updates to <strong>{form.email}</strong>
                 </p>
+
+                {/* P6-D: WhatsApp share */}
+                <a
+                  href={buildWhatsAppMessage(confirmedOrder)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn--whatsapp"
+                  style={{ marginTop: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', justifyContent: 'center' }}
+                >
+                  <span aria-hidden="true">💬</span> Send to WhatsApp
+                </a>
+
+                {/* P6-B: Referral share card */}
+                <div className="referral-card">
+                  <p className="referral-card__heading">Share & Earn 🎁</p>
+                  <p className="referral-card__sub">Give a friend their first order discount — you'll both earn bonus Vault points when they order.</p>
+                  <div className="referral-card__code">{referralCode}</div>
+                  <div className="referral-card__actions">
+                    <button
+                      type="button"
+                      className="referral-card__copy"
+                      onClick={handleCopyReferral}
+                    >
+                      {referralCopied ? '✓ Copied!' : '📋 Copy Link'}
+                    </button>
+                    <button
+                      type="button"
+                      className="referral-card__share"
+                      onClick={handleShareReferral}
+                    >
+                      🔗 Share
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   className="btn btn--primary"
                   onClick={handleBackToMenu}
@@ -653,6 +796,10 @@ export default function CheckoutModal() {
                     {globalError}
                   </p>
                 )}
+                <PaymentRequestButton
+                  totalCents={total}
+                  onPaymentMethod={handlePaymentRequest}
+                />
                 <button
                   type="submit"
                   className="btn btn--primary"

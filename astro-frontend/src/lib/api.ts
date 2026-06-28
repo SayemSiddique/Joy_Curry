@@ -17,6 +17,7 @@ export interface MenuItem {
   sizeOptions: { id: string; label: string; priceCents: number }[];
   tags: string[];
   imageUrl?: string;
+  videoUrl?: string;
   inStock: boolean;
   isActive: boolean;
   servedWith?: string;
@@ -196,6 +197,7 @@ export interface RewardsSummary {
   pointsToNext: number;
   progressPct: number;
   lifetimeCents: number;
+  streak?: number;
 }
 
 export interface RewardLine {

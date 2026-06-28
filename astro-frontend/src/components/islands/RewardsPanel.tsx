@@ -1,10 +1,71 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ReadableAtom } from 'nanostores';
 import { authState, rewardsState, vaultOpen, loadRewards } from '@stores/auth';
 import { addToCart, cartOpen } from '@stores/cart';
-import { rewardsApi, type RewardMilestone } from '@lib/api';
+import { rewardsApi, type RewardMilestone, type RewardsSummary } from '@lib/api';
 import { formatPrice } from '@lib/formatters';
 import { showToast } from '@lib/toast';
+
+// P6-C: Badge definitions — derived purely from rewards data (no extra API calls)
+interface Badge {
+  id: string;
+  emoji: string;
+  label: string;
+  desc: string;
+  unlocked: boolean;
+}
+
+function computeBadges(rewards: RewardsSummary): Badge[] {
+  const spendDollars = rewards.lifetimeCents / 100;
+  const totalOrders = Math.floor(rewards.balance / 100); // proxy: every $1 = 100 pts, so balance/100 ≈ order count
+  const streak = rewards.streak ?? 0;
+  const unlockedMilestones = rewards.unlocked?.length ?? 0;
+
+  return [
+    {
+      id: 'first-bite',
+      emoji: '🍽️',
+      label: 'First Bite',
+      desc: 'Placed your first order',
+      unlocked: rewards.balance > 0,
+    },
+    {
+      id: 'loyal-regular',
+      emoji: '⭐',
+      label: 'Loyal Regular',
+      desc: '3-week ordering streak',
+      unlocked: streak >= 3,
+    },
+    {
+      id: 'hot-streak',
+      emoji: '🔥',
+      label: 'Hot Streak',
+      desc: '5-week ordering streak',
+      unlocked: streak >= 5,
+    },
+    {
+      id: 'big-spender',
+      emoji: '💎',
+      label: 'Big Spender',
+      desc: 'Over $100 lifetime spend',
+      unlocked: spendDollars >= 100,
+    },
+    {
+      id: 'vault-explorer',
+      emoji: '🏆',
+      label: 'Vault Explorer',
+      desc: 'Unlocked a rewards milestone',
+      unlocked: unlockedMilestones >= 1,
+    },
+    {
+      id: 'connoisseur',
+      emoji: '👑',
+      label: 'Curry Connoisseur',
+      desc: 'Over $250 lifetime spend',
+      unlocked: spendDollars >= 250,
+    },
+  ];
+}
 
 // Manual nanostore subscription — avoids the @nanostores/react useStore
 // React 19 + Astro SSR "Invalid hook call" issue (see CartDrawer/AuthModal).
@@ -18,11 +79,35 @@ export default function RewardsPanel() {
   const open = useNano(vaultOpen);
   const auth = useNano(authState);
   const rewards = useNano(rewardsState);
+  const prevUnlockedBadgeIds = useRef<Set<string>>(new Set());
 
   // Refresh balance each time the panel opens for a signed-in user
   useEffect(() => {
     if (open && auth.token) loadRewards();
   }, [open, auth.token]);
+
+  // P6-C: Fire a toast when a badge unlocks for the first time this session
+  useEffect(() => {
+    if (!rewards) return;
+    const badges = computeBadges(rewards);
+    const STORAGE_KEY = 'jc_earned_badges';
+    const earned: string[] = (() => {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]'); } catch { return []; }
+    })();
+    const earnedSet = new Set(earned);
+    let changed = false;
+    for (const badge of badges) {
+      if (badge.unlocked && !earnedSet.has(badge.id)) {
+        showToast(`🏅 Badge unlocked: ${badge.label}!`, 'success');
+        earnedSet.add(badge.id);
+        changed = true;
+      }
+    }
+    if (changed) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...earnedSet])); } catch {}
+    }
+    prevUnlockedBadgeIds.current = earnedSet;
+  }, [rewards]);
 
   const handleClose = () => vaultOpen.set(false);
 
@@ -126,6 +211,26 @@ export default function RewardsPanel() {
                     </div>
                   );
                 })}
+              </div>
+
+              {/* P6-C: Gamified badges */}
+              <div className="vault-badges">
+                <p className="vault-badges__heading">Your Badges</p>
+                <div className="vault-badges__grid">
+                  {computeBadges(rewards).map(badge => (
+                    <div
+                      key={badge.id}
+                      className={`vault-badge${badge.unlocked ? ' vault-badge--unlocked' : ' vault-badge--locked'}`}
+                      title={badge.desc}
+                      aria-label={`${badge.label}: ${badge.desc}${badge.unlocked ? ' (earned)' : ' (locked)'}`}
+                    >
+                      <span className="vault-badge__emoji" aria-hidden="true">
+                        {badge.unlocked ? badge.emoji : '🔒'}
+                      </span>
+                      <span className="vault-badge__label">{badge.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="vault-stats">
