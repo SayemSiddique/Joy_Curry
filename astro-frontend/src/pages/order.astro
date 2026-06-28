@@ -70,7 +70,7 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
       </div>
     ) : (
       <div id="menu" class="container order-page-menu" style="padding-bottom: var(--space-20)">
-        {activeCategories.map((cat) => {
+        {activeCategories.map((cat, i) => {
           const items = byCategory.get(cat.id) ?? [];
           return (
             <MenuSection
@@ -78,6 +78,7 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
               label={cat.label}
               emoji={cat.emoji}
               items={items}
+              priority={i === 0}
             />
           );
         })}

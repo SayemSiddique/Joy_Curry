@@ -92,7 +92,7 @@ const restaurantSchema = {
       </div>
     ) : (
       <div class="container" style="padding-bottom: var(--space-20)">
-        {activeCategories.map((cat) => {
+        {activeCategories.map((cat, i) => {
           const items = byCategory.get(cat.id) ?? [];
           return (
             <MenuSection
@@ -101,6 +101,7 @@ const restaurantSchema = {
               emoji={cat.emoji}
               items={items}
               galleryMode={true}
+              priority={i === 0}
             />
           );
         })}

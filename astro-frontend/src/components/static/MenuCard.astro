@@ -9,9 +9,12 @@ interface Props {
   // "Quick Add" (same add-btn data-* contract → existing delegated handler).
   // Bundles always keep their Configure → BundleModal flow.
   quickAdd?: boolean;
+  // Above-the-fold cards (first row of a section / hero strip) load eagerly with
+  // high fetch priority so the LCP image isn't deferred by lazy-loading.
+  aboveFold?: boolean;
 }
 
-const { item, galleryMode = false, quickAdd = false } = Astro.props;
+const { item, galleryMode = false, quickAdd = false, aboveFold = false } = Astro.props;
 
 const {
   id,
@@ -54,12 +57,17 @@ const isBundle = category === 'dinner-special' || category === 'combo';
 
 const emoji = CATEGORY_EMOJI[category] ?? '🍽️';
 
-// Serve next-gen formats where the asset exists: the browser picks the first
-// <source> it can decode (AVIF → WebP) and falls back to the original raster.
-// Derived by extension swap; if the .avif/.webp aren't present the <source>
-// 404s silently and the <img> src wins, so this is safe before assets land.
-const avifUrl = imageUrl ? imageUrl.replace(/\.(jpe?g|png)$/i, '.avif') : null;
-const webpUrl = imageUrl ? imageUrl.replace(/\.(jpe?g|png)$/i, '.webp') : null;
+// Serve next-gen formats + responsive sizes where the asset exists. The image
+// pipeline (scripts/optimize-images.mjs) emits per slug: {base}-400.{avif,webp,jpg}
+// (mobile card) and {base}-800.{ext} (tablet/desktop + modal), plus non-suffixed
+// {base}.{ext} = 800w for back-compat. The browser picks the first <source> it
+// can decode (AVIF → WebP), then the right width via srcset/sizes; if a variant
+// is absent the <source> 404s silently and the <img> src wins — safe pre-assets.
+const base = imageUrl ? imageUrl.replace(/\.(jpe?g|png)$/i, '') : null;
+const srcsetFor = (ext: string) =>
+  base ? `${base}-400.${ext} 400w, ${base}-800.${ext} 800w` : undefined;
+// 45vw on phones (2-up grid), capped at 280px on larger viewports.
+const sizes = '(max-width: 640px) 45vw, 280px';
 ---
 
 <article
@@ -75,19 +83,28 @@ const webpUrl = imageUrl ? imageUrl.replace(/\.(jpe?g|png)$/i, '.webp') : null;
 >
   <div class="menu-card__img-wrap">
     {imageUrl ? (
-      <picture>
-        {avifUrl && <source srcset={avifUrl} type="image/avif" />}
-        {webpUrl && <source srcset={webpUrl} type="image/webp" />}
-        <img
-          class="menu-card__img"
-          src={imageUrl}
-          alt={name}
-          loading="lazy"
-          decoding="async"
-          width="400"
-          height="300"
-        />
-      </picture>
+      <>
+        <picture>
+          <source srcset={srcsetFor('avif')} sizes={sizes} type="image/avif" />
+          <source srcset={srcsetFor('webp')} sizes={sizes} type="image/webp" />
+          <img
+            class="menu-card__img"
+            src={imageUrl}
+            srcset={srcsetFor('jpg')}
+            sizes={sizes}
+            alt={name}
+            loading={aboveFold ? 'eager' : 'lazy'}
+            fetchpriority={aboveFold ? 'high' : 'auto'}
+            decoding="async"
+            width="400"
+            height="300"
+            onerror="this.closest('picture').style.display='none';this.closest('picture').nextElementSibling.style.display='flex';"
+          />
+        </picture>
+        {/* Graceful fallback: if the asset 404s (slug has no photo yet), the
+            broken <img> is hidden and this emoji placeholder is revealed. */}
+        <div class="menu-card__img-placeholder" style="display:none">{emoji}</div>
+      </>
     ) : (
       <div class="menu-card__img-placeholder">{emoji}</div>
     )}

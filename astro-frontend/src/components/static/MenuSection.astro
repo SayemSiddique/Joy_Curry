@@ -8,9 +8,15 @@ interface Props {
   emoji: string;
   items: MenuItem[];
   galleryMode?: boolean;
+  // Set on the first rendered section only: its first row of cards is the LCP,
+  // so those images load eagerly instead of lazily.
+  priority?: boolean;
 }
 
-const { category, label, emoji, items, galleryMode = false } = Astro.props;
+const { category, label, emoji, items, galleryMode = false, priority = false } = Astro.props;
+
+// First 3 cards form the visible first row above the fold on the priority section.
+const ABOVE_FOLD_COUNT = 3;
 ---
 
 <section
@@ -27,6 +33,8 @@ const { category, label, emoji, items, galleryMode = false } = Astro.props;
   </div>
 
   <div class="menu-grid" data-section={category}>
-    {items.map((item) => <MenuCard item={item} galleryMode={galleryMode} />)}
+    {items.map((item, i) => (
+      <MenuCard item={item} galleryMode={galleryMode} aboveFold={priority && i < ABOVE_FOLD_COUNT} />
+    ))}
   </div>
 </section>
