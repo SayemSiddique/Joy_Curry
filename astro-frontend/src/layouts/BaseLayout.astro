@@ -27,24 +27,12 @@ const {
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.ico" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    {/* Preload the brand display face (Playfair Display 700, latin subset) so
-        headings paint with the real font on first paint instead of swapping in
-        late (FOUT). Stale URL on a Google version bump degrades to a harmless
-        unused-preload warning, never a broken page. */}
     <link
       rel="preload"
       as="font"
-      type="font/woff2"
-      href="https://fonts.gstatic.com/s/playfairdisplay/v40/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKeiunDXbtM.woff2"
+      type="font/woff"
+      href="/fonts/Fertigo_18.woff"
       crossorigin
-    />
-    {/* Fonts loaded via a <link> in <head> (not a CSS @import) so they're
-        discovered early in the preload scan, ahead of the font preload above. */}
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap"
     />
     <slot name="head" />
   </head>
