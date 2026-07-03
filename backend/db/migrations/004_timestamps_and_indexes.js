@@ -6,9 +6,9 @@ import logger from '../../utils/logger.js';
  * add scalable indexes.
  *
  * Why:
- *   - created_at/updated_at were stored as TEXT (a SQLite-era artifact). Date
- *     range/`::date` queries on TEXT can't use a B-tree index and rely on
- *     string-format luck. Native timestamptz makes them sargable and TZ-correct.
+ *   - created_at/updated_at were previously stored as TEXT. Date range/`::date`
+ *     queries on TEXT can't use a B-tree index and rely on string-format luck.
+ *     Native timestamptz makes them sargable and TZ-correct.
  *   - Menu search uses `ILIKE '%term%'`; a leading wildcard can never use a
  *     B-tree, so a pg_trgm GIN index is needed for it to scale.
  *

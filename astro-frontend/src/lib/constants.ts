@@ -1,10 +1,11 @@
-// PUBLIC_API_BASE_URL can be set in Vercel dashboard to override the default.
-// Vite injects PUBLIC_* vars at build time so they work in both SSR and client code.
+// In production the backend URL MUST come from PUBLIC_API_BASE_URL, set in the
+// Vercel project settings (Settings → Environment Variables). Vite injects
+// PUBLIC_* vars at build time so they work in both SSR and client code.
+// The empty prod fallback is intentional: a misconfigured deploy fails loudly
+// rather than silently calling a stale, deleted host.
 export const API_BASE_URL =
   import.meta.env.PUBLIC_API_BASE_URL ||
-  (import.meta.env.PROD
-    ? 'https://joy-curry-tandoor-api.onrender.com'
-    : 'http://localhost:3000');
+  (import.meta.env.PROD ? '' : 'http://localhost:3000');
 
 export const TAX_RATE = 0.0875;
 // In-house delivery fee + free-delivery threshold — display mirror of the

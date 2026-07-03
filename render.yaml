@@ -15,8 +15,11 @@ services:
           property: connectionString
       - key: JWT_EXPIRES_IN
         value: 7d
+      # Set to the live Vercel frontend URL(s) in the Render dashboard AFTER the
+      # frontend deploy (comma-separated for multiple origins). sync:false keeps
+      # it out of source control so a redeploy never carries a stale domain.
       - key: CORS_ORIGIN
-        value: https://joycurry.sayemsiddique.com,https://joy-curry-tandoor.vercel.app
+        sync: false
       - key: JWT_SECRET
         sync: false
 

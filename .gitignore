@@ -25,12 +25,10 @@ dist/
 build/
 .vercel/
 
-# Database (SQLite — replaced by Postgres; WAL/SHM are transient SQLite files)
+# Local database dumps / backups (the app uses managed PostgreSQL — never commit dumps)
 *.db
-*.db-wal
-*.db-shm
-*.sqlite
-*.sqlite3
+*.dump
+*.sql.gz
 
 # Logs
 logs/
@@ -41,9 +39,7 @@ tmp/
 temp/
 
 # Internal planning and AI tooling
-ASTRO_MIGRATION.md
-BACKEND_DEBUGGING_PLAYBOOK.md
 joy_curry_tandoor_menu.md
-BK_RESKIN_UX_PROGRESS.md
+JCT_Food_Picture/
 .claude/
 launch.json

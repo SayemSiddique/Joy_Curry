@@ -278,8 +278,8 @@ const SQL = `
  * means existing rows are left untouched. Returns the count newly inserted.
  *
  * This is wired into the boot seed path (db/seed.js) so dinner-specials and
- * combos can never silently drop off a fresh database — the regression that
- * happened after the SQLite→Postgres migration when this was a manual script.
+ * combos can never silently drop off a fresh database — a regression that
+ * previously occurred when this ran as a separate manual script.
  */
 export async function seedBundles() {
   let inserted = 0;

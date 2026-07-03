@@ -2,15 +2,9 @@
 
 A full-stack online ordering system for **Joy Curry & Tandoor**, a Halal Indian restaurant in Midtown Manhattan (est. 1994). Built with Astro, Node.js/Express, and PostgreSQL — featuring a complete customer-facing storefront, guest and authenticated checkout, and a role-gated admin panel.
 
-## Live
+## Status
 
-| | URL |
-|---|---|
-| **Frontend** | [joycurry.sayemsiddique.com](https://joycurry.sayemsiddique.com) |
-| **Backend API** | [joy-curry-tandoor-api.onrender.com/api](https://joy-curry-tandoor-api.onrender.com/api/health) |
-| **Docs** | [joycurry.sayemsiddique.com/docs](https://joycurry.sayemsiddique.com/docs) |
-
-> The backend is hosted on Render's free tier and cold-starts after 15 minutes of inactivity. The first request after idle may take ~30 seconds.
+Preparing for first production deployment. Live URLs will be published here once the frontend (Vercel) and backend (Render) environments are provisioned. Run locally with the steps under [Local Development](#local-development).
 
 ## Features
 
@@ -49,8 +43,8 @@ A full-stack online ordering system for **Joy Curry & Tandoor**, a Halal Indian 
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/SayemSiddique/joy-curry-tandoor.git
-cd joy-curry-tandoor
+git clone <your-repo-url>
+cd Joy_Curry
 
 # 2. Start the backend
 cd backend

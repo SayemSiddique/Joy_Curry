@@ -17,7 +17,7 @@ export const API_BASE_URL =
   typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:3000/api'
-    : 'https://joy-curry-tandoor.onrender.com/api';
+    : '/api';
 
 // Allergen disclaimer — displayed as site-wide banner
 export const ALLERGEN_NOTE_DEFAULT = 

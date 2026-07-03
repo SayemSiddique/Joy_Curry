@@ -1,7 +1,7 @@
 /**
  * seed-images.mjs
  * Updates image_url in the backend DB with verified Unsplash CDN URLs.
- * Run from repo root: DATABASE_URL=./backend/joy-curry.db node scripts/seed-images.mjs
+ * Run from repo root: DATABASE_URL=postgres://... node scripts/seed-images.mjs
  *
  * All photo IDs below are verified as returning HTTP 200 from Unsplash CDN.
  */
