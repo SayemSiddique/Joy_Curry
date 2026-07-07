@@ -15,6 +15,7 @@ import ordersRoutes from './routes/orders.js';
 import slotsRoutes from './routes/slots.js';
 import rewardsRoutes from './routes/rewards.js';
 import distanceRoutes from './routes/distance.js';
+import paymentsRoutes, { webhookHandler } from './routes/payments.js';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -56,6 +57,10 @@ app.use(cors({
 // Gzip compression for all JSON and text responses.
 app.use(compression());
 
+// Stripe webhook — MUST be mounted before express.json: signature verification
+// needs the raw body, and the JSON parser would consume it first.
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), webhookHandler);
+
 app.use(express.json({ limit: '10kb' }));
 app.use(logger.request);
 app.use(globalLimiter);
@@ -73,6 +78,7 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/slots', slotsRoutes);
 app.use('/api/rewards', rewardsRoutes);
 app.use('/api/distance', distanceRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found.' } });

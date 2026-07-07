@@ -15,13 +15,14 @@ import {
   type CartItem,
 } from '@lib/core';
 import { authState } from '@lib/core';
-import { ordersApi, slotsApi, type Order, type Slot } from '@lib/core';
+import { ordersApi, slotsApi, paymentsApi, type Order, type Slot } from '@lib/core';
 import { MIN_ORDER_CENTS } from '@lib/core';
 import { formatPrice, formatSlotTime } from '@lib/core';
 import { showToast } from '@lib/toast';
 import { useFocusTrap } from '@lib/hooks';
+import { getStripe, isStripeEnabled } from '@lib/stripe';
 import PaymentRequestButton from '@components/islands/PaymentRequestButton';
-import type { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
+import type { PaymentRequestPaymentMethodEvent, StripeElements } from '@stripe/stripe-js';
 
 // Restaurant-local (America/New_York) date string, optionally offset by days.
 function nyDateStr(offsetDays = 0): string {
@@ -56,7 +57,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DELIVERY_MIN_CENTS = MIN_ORDER_CENTS;
 
 type DeliveryType = 'delivery' | 'pickup';
-type Screen = 'form' | 'submitting' | 'confirmed';
+type Screen = 'form' | 'submitting' | 'payment' | 'confirmed';
 
 interface Form {
   name: string;
@@ -101,6 +102,17 @@ export default function CheckoutModal() {
   const [screen, setScreen] = useState<Screen>('form');
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
+
+  // ── Stripe payment step (Session 4) ──
+  // Order is created UNPAID first; Stripe Payment Element collects the card;
+  // the webhook flips it to paid/confirmed server-side.
+  const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [payElementReady, setPayElementReady] = useState(false);
+  const elementsRef = useRef<StripeElements | null>(null);
+  const payElRef = useRef<HTMLDivElement>(null);
 
   // ── Scheduling (Phase 3-C) ──
   const [whenMode, setWhenMode] = useState<'asap' | 'later'>('asap');
@@ -166,6 +178,10 @@ export default function CheckoutModal() {
         setWhenMode('asap');
         setSelectedSlot(null);
         scheduledFor.set(null);
+        setPendingOrder(null);
+        setClientSecret(null);
+        setPaymentError(null);
+        setPaying(false);
       }, 350);
       return () => clearTimeout(t);
     }
@@ -249,16 +265,89 @@ export default function CheckoutModal() {
 
     try {
       const res = await ordersApi.place(payload, auth.token ?? '');
-      setConfirmedOrder(res.order);
-      clearCart();
-      idempotencyKey.current = crypto.randomUUID();
-      setScreen('confirmed');
-      window.dispatchEvent(new CustomEvent('order:confirmed', { detail: res.order }));
+
+      // Stripe not configured (e.g. local dev without keys): fall back to the
+      // pre-payments behavior so the flow still completes.
+      if (!isStripeEnabled()) {
+        finishOrder(res.order);
+        return;
+      }
+
+      // Card required: create/reuse the PaymentIntent (amount computed
+      // server-side from the stored order) and move to the payment step.
+      // The cart is NOT cleared until payment succeeds.
+      const intent = await paymentsApi.createIntent(res.order.id, auth.token ?? '');
+      setPendingOrder(res.order);
+      setClientSecret(intent.clientSecret);
+      setPaymentError(null);
+      setScreen('payment');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
       setGlobalError(msg);
       showToast(msg, 'error');
       setScreen('form');
+    }
+  };
+
+  // Shared post-payment (or no-Stripe fallback) completion.
+  const finishOrder = (order: Order) => {
+    setConfirmedOrder(order);
+    clearCart();
+    idempotencyKey.current = crypto.randomUUID();
+    setPendingOrder(null);
+    setClientSecret(null);
+    setPaying(false);
+    setScreen('confirmed');
+    window.dispatchEvent(new CustomEvent('order:confirmed', { detail: order }));
+  };
+
+  // Mount the Stripe Payment Element when the payment step opens.
+  useEffect(() => {
+    if (screen !== 'payment' || !clientSecret) return;
+    let cancelled = false;
+    setPayElementReady(false);
+    (async () => {
+      const stripe = await getStripe();
+      if (!stripe || cancelled || !payElRef.current) return;
+      const elements = stripe.elements({
+        clientSecret,
+        appearance: { theme: 'stripe', variables: { colorPrimary: '#b45309' } },
+      });
+      elementsRef.current = elements;
+      const payEl = elements.create('payment');
+      payEl.mount(payElRef.current);
+      payEl.on('ready', () => {
+        if (!cancelled) setPayElementReady(true);
+      });
+    })();
+    return () => {
+      cancelled = true;
+      elementsRef.current = null;
+    };
+  }, [screen, clientSecret]);
+
+  const handlePay = async () => {
+    const stripe = await getStripe();
+    const elements = elementsRef.current;
+    if (!stripe || !elements || !pendingOrder) return;
+    setPaying(true);
+    setPaymentError(null);
+    // redirect:'if_required' keeps card + wallet flows in-page; 3DS opens the
+    // Stripe-hosted challenge in an iframe and resolves here.
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      redirect: 'if_required',
+    });
+    if (error) {
+      setPaymentError(error.message ?? 'Payment failed. Please try again.');
+      setPaying(false);
+      return;
+    }
+    if (paymentIntent && ['succeeded', 'processing'].includes(paymentIntent.status)) {
+      finishOrder(pendingOrder);
+    } else {
+      setPaymentError('Payment was not completed. Please try again.');
+      setPaying(false);
     }
   };
 
@@ -274,52 +363,91 @@ export default function CheckoutModal() {
       setConfirmedOrder(null);
       setWhenMode('asap');
       setSelectedSlot(null);
+      setPendingOrder(null);
+      setClientSecret(null);
+      setPaymentError(null);
+      setPaying(false);
     }, 350);
   };
 
+  // Apple Pay / Google Pay via the Payment Request API. This handler owns the
+  // full lifecycle including event.complete() — the sheet must be closed
+  // promptly, before any 3DS challenge runs in-page.
   const handlePaymentRequest = async (event: PaymentRequestPaymentMethodEvent) => {
-    // Validate form fields before processing the payment method
-    const errs = validate();
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) throw new Error('Please fill in all required fields.');
+    let sheetClosed = false;
+    try {
+      const errs = validate();
+      setErrors(errs);
+      if (Object.keys(errs).length > 0) throw new Error('Please fill in all required fields.');
 
-    if (deliveryType === 'delivery' && subtotal < DELIVERY_MIN_CENTS) {
-      throw new Error(`Minimum order for delivery is ${formatPrice(DELIVERY_MIN_CENTS)}.`);
+      if (deliveryType === 'delivery' && subtotal < DELIVERY_MIN_CENTS) {
+        throw new Error(`Minimum order for delivery is ${formatPrice(DELIVERY_MIN_CENTS)}.`);
+      }
+
+      setScreen('submitting');
+      setGlobalError(null);
+
+      const addressFull = form.address.trim()
+        ? `${form.address.trim()}${form.apt.trim() ? ', ' + form.apt.trim() : ''}`
+        : undefined;
+
+      const payload = {
+        deliveryType,
+        customerName: event.payerName ?? form.name.trim(),
+        customerPhone: event.payerPhone ?? form.phone.trim(),
+        customerEmail: event.payerEmail ?? form.email.trim(),
+        ...(deliveryType === 'delivery' && { deliveryAddress: addressFull }),
+        scheduledFor: null,
+        idempotencyKey: idempotencyKey.current,
+        items: items.map((item: CartItem) => ({
+          itemId: item.itemId,
+          itemName: item.name,
+          itemType: item.itemType,
+          basePriceCents: item.basePriceCents,
+          qty: item.qty,
+          selectedOptions: item.selectedOptions ?? [],
+          slotChoices: item.slotChoices ?? {},
+        })),
+      };
+
+      const res = await ordersApi.place(payload, auth.token ?? '');
+      const { clientSecret: secret } = await paymentsApi.createIntent(res.order.id, auth.token ?? '');
+      const stripe = await getStripe();
+      if (!stripe) throw new Error('Payments are unavailable right now.');
+
+      // Confirm with the wallet's payment method; defer 3DS (handleActions:false)
+      // so the wallet sheet can close first.
+      const first = await stripe.confirmCardPayment(
+        secret,
+        { payment_method: event.paymentMethod.id },
+        { handleActions: false },
+      );
+      if (first.error) {
+        event.complete('fail');
+        sheetClosed = true;
+        throw new Error(first.error.message ?? 'Payment failed. Please try again.');
+      }
+      event.complete('success');
+      sheetClosed = true;
+
+      let intent = first.paymentIntent;
+      if (intent && intent.status === 'requires_action') {
+        const second = await stripe.confirmCardPayment(secret);
+        if (second.error) throw new Error(second.error.message ?? 'Payment authentication failed.');
+        intent = second.paymentIntent;
+      }
+      if (!intent || !['succeeded', 'processing'].includes(intent.status)) {
+        throw new Error('Payment was not completed. Please try again.');
+      }
+
+      finishOrder(res.order);
+    } catch (err) {
+      if (!sheetClosed) event.complete('fail');
+      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      setGlobalError(msg);
+      showToast(msg, 'error');
+      setScreen('form');
     }
-
-    setScreen('submitting');
-    setGlobalError(null);
-
-    const addressFull = form.address.trim()
-      ? `${form.address.trim()}${form.apt.trim() ? ', ' + form.apt.trim() : ''}`
-      : undefined;
-
-    const payload = {
-      deliveryType,
-      customerName: event.payerName ?? form.name.trim(),
-      customerPhone: event.payerPhone ?? form.phone.trim(),
-      customerEmail: event.payerEmail ?? form.email.trim(),
-      ...(deliveryType === 'delivery' && { deliveryAddress: addressFull }),
-      scheduledFor: null,
-      idempotencyKey: idempotencyKey.current,
-      paymentMethodId: event.paymentMethod.id,
-      items: items.map((item: CartItem) => ({
-        itemId: item.itemId,
-        itemName: item.name,
-        itemType: item.itemType,
-        basePriceCents: item.basePriceCents,
-        qty: item.qty,
-        selectedOptions: item.selectedOptions ?? [],
-        slotChoices: item.slotChoices ?? {},
-      })),
-    };
-
-    const res = await ordersApi.place(payload, auth.token ?? '');
-    setConfirmedOrder(res.order);
-    clearCart();
-    idempotencyKey.current = crypto.randomUUID();
-    setScreen('confirmed');
-    window.dispatchEvent(new CustomEvent('order:confirmed', { detail: res.order }));
   };
 
   // P6-B: Referral code derived from user ID or email
@@ -467,6 +595,65 @@ export default function CheckoutModal() {
                   Back to Menu
                 </button>
               </div>
+            </div>
+          </>
+        ) : screen === 'payment' ? (
+          /* ── Payment step (Stripe Payment Element) ───────── */
+          <>
+            <div className="modal__header">
+              <h2 className="modal__title">Payment</h2>
+              <button
+                className="modal__close"
+                onClick={handleClose}
+                aria-label="Close checkout"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal__body">
+              <div className="order-summary" style={{ marginBottom: 'var(--space-4)' }}>
+                <div className="order-summary__row order-summary__row--total">
+                  <span>Total to pay</span>
+                  <span className="order-summary__price">
+                    {formatPrice(pendingOrder?.totalCents ?? total)}
+                  </span>
+                </div>
+              </div>
+              <div ref={payElRef} />
+              {!payElementReady && (
+                <p className="form-hint">Loading secure payment form…</p>
+              )}
+              {paymentError && (
+                <p
+                  role="alert"
+                  style={{
+                    color: 'var(--color-error)',
+                    fontSize: 'var(--text-sm)',
+                    marginTop: 'var(--space-3)',
+                  }}
+                >
+                  {paymentError}
+                </p>
+              )}
+            </div>
+            <div className="modal__footer">
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={handlePay}
+                disabled={paying || !payElementReady}
+                style={{ width: '100%' }}
+              >
+                {paying
+                  ? 'Processing payment…'
+                  : `Pay ${formatPrice(pendingOrder?.totalCents ?? total)}`}
+              </button>
+              <p
+                className="form-hint"
+                style={{ textAlign: 'center', marginTop: 'var(--space-2)' }}
+              >
+                🔒 Payments are processed securely by Stripe.
+              </p>
             </div>
           </>
         ) : (
@@ -808,7 +995,9 @@ export default function CheckoutModal() {
                 >
                   {screen === 'submitting'
                     ? 'Placing order…'
-                    : `Place Order · ${formatPrice(total)}`}
+                    : isStripeEnabled()
+                      ? `Continue to Payment · ${formatPrice(total)}`
+                      : `Place Order · ${formatPrice(total)}`}
                 </button>
               </div>
             </form>

@@ -35,6 +35,7 @@ export interface Order {
   deliveryFeeCents: number;
   totalCents: number;
   status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  paymentStatus?: 'unpaid' | 'paid' | 'failed' | 'refunded';
   estimatedWaitMin?: number;
   createdAt: string;
   lineItems: OrderLineItem[];
@@ -104,6 +105,7 @@ function normalizeOrder(o: any): Order {
     deliveryFeeCents: o.delivery_fee_cents ?? o.deliveryFeeCents,
     totalCents: o.total_cents ?? o.totalCents,
     status: o.status,
+    paymentStatus: o.payment_status ?? o.paymentStatus,
     estimatedWaitMin: o.estimated_wait_min ?? o.estimatedWaitMin,
     createdAt: o.created_at ?? o.createdAt,
     lineItems: (o.lineItems ?? []).map((li: any): OrderLineItem => ({
@@ -134,6 +136,14 @@ export const ordersApi = {
   async getById(id: string, token: string): Promise<{ order: Order }> {
     const res = await apiFetch<{ order: unknown }>(`/api/orders/${id}`, {}, token);
     return { order: normalizeOrder(res.order) };
+  },
+};
+
+export const paymentsApi = {
+  // The server derives the charge amount from the stored order total —
+  // the client only identifies WHICH order it is paying.
+  createIntent(orderId: string, token: string): Promise<{ clientSecret: string; amountCents: number }> {
+    return apiFetch('/api/payments/intent', { method: 'POST', body: JSON.stringify({ orderId }) }, token);
   },
 };
 

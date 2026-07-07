@@ -69,11 +69,8 @@ export async function createOrder({
       );
     }
 
-    // Credit points to user
-    await tx.run(
-      'UPDATE users SET rewards_points = rewards_points + $1, rewards_lifetime_cents = rewards_lifetime_cents + $2 WHERE id = $3',
-      [pointsEarned, totalCents, userId]
-    );
+    // Points are NOT credited here — orders are card-required (Session 4),
+    // so loyalty points land in markOrderPaid() once Stripe confirms payment.
   });
 
   const order     = await db.get('SELECT * FROM orders WHERE id = $1', [orderId]);
@@ -94,6 +91,81 @@ export async function setOrderDelivery(orderId, { externalDeliveryId, deliveryPa
     [externalDeliveryId ?? null, deliveryPartner, orderId],
   );
   return row ?? null;
+}
+
+/**
+ * Persist the Stripe PaymentIntent id on an order so a retried checkout can
+ * reuse the same intent and webhooks can be cross-checked.
+ */
+export async function setOrderPaymentIntent(orderId, paymentIntentId) {
+  const row = await db.get(
+    'UPDATE orders SET payment_intent_id = $1 WHERE id = $2 RETURNING *',
+    [paymentIntentId, orderId],
+  );
+  return row ?? null;
+}
+
+/**
+ * Mark an order paid (webhook: payment_intent.succeeded).
+ *
+ * Idempotent at the row level: the conditional UPDATE only fires while the
+ * order is still un-paid, so a redelivered webhook can never double-credit
+ * loyalty points. Confirms the order in the same transaction.
+ * Returns the updated order, or null if it was already paid / not found.
+ */
+export async function markOrderPaid(orderId, paymentIntentId) {
+  let updated = null;
+  await db.transaction(async (tx) => {
+    const result = await tx.run(
+      `UPDATE orders
+          SET payment_status = 'paid',
+              status = CASE WHEN status = 'pending' THEN 'confirmed' ELSE status END,
+              paid_at = now(),
+              payment_intent_id = COALESCE(payment_intent_id, $2)
+        WHERE id = $1 AND payment_status <> 'paid'
+        RETURNING *`,
+      [orderId, paymentIntentId ?? null],
+    );
+    const order = result.rows?.[0];
+    if (!order) return;
+    await tx.run(
+      'UPDATE users SET rewards_points = rewards_points + $1, rewards_lifetime_cents = rewards_lifetime_cents + $2 WHERE id = $3',
+      [order.points_earned, order.total_cents, order.user_id],
+    );
+    updated = order;
+  });
+  return updated;
+}
+
+/**
+ * Record a failed payment attempt (webhook: payment_intent.payment_failed).
+ * Never downgrades a paid order — the customer can retry, so 'failed' is a
+ * transient marker, not a terminal state.
+ */
+export async function markOrderPaymentFailed(orderId) {
+  const row = await db.get(
+    `UPDATE orders SET payment_status = 'failed'
+      WHERE id = $1 AND payment_status <> 'paid'
+      RETURNING *`,
+    [orderId],
+  );
+  return row ?? null;
+}
+
+/**
+ * Idempotency ledger for Stripe webhooks (at-least-once delivery).
+ * Returns true if this event id is new (caller should process it),
+ * false if it was already recorded (caller should skip).
+ */
+export async function recordPaymentEvent(stripeEventId, eventType, orderId) {
+  const result = await db.run(
+    `INSERT INTO payment_events (stripe_event_id, event_type, order_id)
+       VALUES ($1, $2, $3)
+     ON CONFLICT (stripe_event_id) DO NOTHING
+     RETURNING id`,
+    [stripeEventId, eventType, orderId ?? null],
+  );
+  return Boolean(result.rows?.[0]);
 }
 
 export async function getOrdersByUserId(userId) {

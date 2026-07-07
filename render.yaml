@@ -31,3 +31,9 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      # Stripe (Session 4) — test-mode keys until launch (S6 swaps to live).
+      # Webhook secret comes from the Stripe dashboard webhook endpoint config.
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false

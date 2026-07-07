@@ -1,31 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Stripe, PaymentRequest, PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
+import type { PaymentRequest, PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
+import { getStripe, isStripeEnabled } from '@lib/stripe';
 
 interface Props {
   totalCents: number;
+  // Handler owns the full lifecycle INCLUDING event.complete() — it must close
+  // the wallet sheet itself (success/fail) before any 3DS challenge runs.
   onPaymentMethod: (event: PaymentRequestPaymentMethodEvent) => Promise<void>;
 }
-
-const STRIPE_KEY = import.meta.env.PUBLIC_STRIPE_KEY as string | undefined;
 
 export default function PaymentRequestButton({ totalCents, onPaymentMethod }: Props) {
   const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
-  const stripeRef = useRef<Stripe | null>(null);
   const prRef = useRef<PaymentRequest | null>(null);
   const mountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!STRIPE_KEY) { setLoading(false); return; }
+    if (!isStripeEnabled()) { setLoading(false); return; }
 
     let cancelled = false;
 
     (async () => {
       try {
-        const { loadStripe } = await import('@stripe/stripe-js');
-        const stripe = await loadStripe(STRIPE_KEY);
+        const stripe = await getStripe();
         if (!stripe || cancelled) return;
-        stripeRef.current = stripe;
 
         const pr = stripe.paymentRequest({
           country: 'US',
@@ -50,13 +48,10 @@ export default function PaymentRequestButton({ totalCents, onPaymentMethod }: Pr
           if (mountRef.current) prButton.mount(mountRef.current);
           setAvailable(true);
 
-          pr.on('paymentmethod', async (event: PaymentRequestPaymentMethodEvent) => {
-            try {
-              await onPaymentMethod(event);
-              event.complete('success');
-            } catch {
-              event.complete('fail');
-            }
+          // The handler calls event.complete() itself (it must close the sheet
+          // before running any in-page 3DS challenge).
+          pr.on('paymentmethod', (event: PaymentRequestPaymentMethodEvent) => {
+            void onPaymentMethod(event);
           });
         }
       } catch {
@@ -78,7 +73,7 @@ export default function PaymentRequestButton({ totalCents, onPaymentMethod }: Pr
     }
   }, [totalCents]);
 
-  if (loading || !available || !STRIPE_KEY) return null;
+  if (loading || !available || !isStripeEnabled()) return null;
 
   return (
     <div className="payment-request-wrap">

@@ -1,33 +1,93 @@
-// Stripe payment processing — not yet activated.
-// Stripe handles: Visa, Mastercard, Amex, Discover, Apple Pay, Google Pay,
-// PayPal, and Venmo — all through one integration.
+// Stripe payment processing (Session 4 — test mode).
+// Stripe handles: Visa, Mastercard, Amex, Discover, Apple Pay, Google Pay —
+// all through one PaymentIntent integration. Card data never touches this
+// server (PCI-DSS SAQ A): the client confirms with Stripe Elements using the
+// clientSecret returned here.
 // Docs: https://stripe.com/docs/payments
 
-/**
- * Create a Stripe PaymentIntent for the given amount.
- * The frontend uses the returned clientSecret to render Stripe Elements
- * (card, Apple Pay, Google Pay, etc.) without any card data touching the server.
- *
- * Requires env vars: STRIPE_SECRET_KEY
- *
- * @param {number} amountCents - integer cents (e.g. 1550 for $15.50)
- * @param {string} currency    - ISO 4217 lowercase (e.g. 'usd')
- * @returns {Promise<{ clientSecret: string }>}
- */
-export async function createPaymentIntent(_amountCents, _currency = 'usd') {
-  throw new Error('Stripe payment processing is not yet activated.');
+import Stripe from 'stripe';
+
+let stripeClient = null;
+
+export function getStripe() {
+  if (!stripeClient) {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) {
+      const err = new Error('Stripe is not configured (STRIPE_SECRET_KEY missing).');
+      err.code = 'PAYMENT_NOT_CONFIGURED';
+      throw err;
+    }
+    stripeClient = new Stripe(key);
+  }
+  return stripeClient;
+}
+
+export function isStripeConfigured() {
+  return Boolean(process.env.STRIPE_SECRET_KEY);
 }
 
 /**
- * Verify a Stripe webhook event signature to prevent replay attacks.
- * Called from POST /api/payments/webhook.
+ * Get-or-create the PaymentIntent for an order. The amount is ALWAYS the
+ * server-computed order total — never a client-supplied number.
  *
- * Requires env vars: STRIPE_WEBHOOK_SECRET
+ * Reuse rules: if the order already has an intent and it is still usable and
+ * matches the current total, return it (so a retried checkout doesn't strand
+ * intents). Otherwise create a fresh one keyed to the order id.
  *
- * @param {Buffer} rawBody - raw request body (not parsed)
- * @param {string} signature - value of the Stripe-Signature header
- * @returns {object} verified Stripe event
+ * @param {object} order - full order row (id, total_cents, payment_intent_id)
+ * @returns {Promise<{ clientSecret: string, paymentIntentId: string }>}
  */
-export function constructWebhookEvent(_rawBody, _signature) {
-  throw new Error('Stripe webhook verification is not yet activated.');
+export async function getOrCreateIntentForOrder(order) {
+  const stripe = getStripe();
+
+  if (order.payment_intent_id) {
+    try {
+      const existing = await stripe.paymentIntents.retrieve(order.payment_intent_id);
+      const usable = !['succeeded', 'canceled'].includes(existing.status);
+      if (usable) {
+        if (existing.amount !== order.total_cents) {
+          const updated = await stripe.paymentIntents.update(existing.id, {
+            amount: order.total_cents,
+          });
+          return { clientSecret: updated.client_secret, paymentIntentId: updated.id };
+        }
+        return { clientSecret: existing.client_secret, paymentIntentId: existing.id };
+      }
+    } catch (err) {
+      // Missing/foreign intent id — fall through and mint a new one.
+      console.error('[payments] could not reuse intent, creating new:', err.message);
+    }
+  }
+
+  const intent = await getStripe().paymentIntents.create(
+    {
+      amount: order.total_cents,
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+      metadata: { orderId: order.id },
+      description: `Joy Curry & Tandoor — Order ${order.id}`,
+    },
+    // Stripe-side idempotency: a retried request for the same order+amount
+    // returns the same intent instead of minting a duplicate.
+    { idempotencyKey: `order-${order.id}-${order.total_cents}` },
+  );
+  return { clientSecret: intent.client_secret, paymentIntentId: intent.id };
+}
+
+/**
+ * Verify a Stripe webhook signature and return the parsed event.
+ * MUST be called with the raw request body (Buffer), not parsed JSON.
+ *
+ * @param {Buffer} rawBody
+ * @param {string} signature - Stripe-Signature header
+ * @returns {import('stripe').Stripe.Event}
+ */
+export function constructWebhookEvent(rawBody, signature) {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) {
+    const err = new Error('Stripe webhook secret is not configured.');
+    err.code = 'PAYMENT_NOT_CONFIGURED';
+    throw err;
+  }
+  return getStripe().webhooks.constructEvent(rawBody, signature, secret);
 }
