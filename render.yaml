@@ -4,7 +4,15 @@ services:
     runtime: node
     plan: free
     rootDir: apps/api
-    buildCommand: npm install
+    # Repo is a pnpm workspace (see packageManager in root package.json) —
+    # `pnpm-lock.yaml` is the source of truth for resolved versions. Plain
+    # `npm install` here ignores that lockfile, re-resolves every semver
+    # range fresh under npm's strict (non-pnpm) peer-dep rules, and has no
+    # lockfile to fall back on — any latent version mismatch in a
+    # package.json (e.g. a devDependency pinned to an incompatible major)
+    # only surfaces here, at deploy time, instead of in local dev/CI.
+    # `--frozen-lockfile` installs the exact tree already validated locally.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
