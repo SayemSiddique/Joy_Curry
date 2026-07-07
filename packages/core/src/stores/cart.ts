@@ -1,5 +1,6 @@
 import { atom, computed } from 'nanostores';
-import { TAX_RATE, DELIVERY_FEE_CENTS, FREE_DELIVERY_THRESHOLD_CENTS } from '@lib/constants';
+import { TAX_RATE, DELIVERY_FEE_CENTS, FREE_DELIVERY_THRESHOLD_CENTS } from '../constants';
+import { getStorage, onCoreInit, generateId } from '../config';
 
 export interface CartItem {
   cartItemId: string;
@@ -21,14 +22,12 @@ const ROUTING_KEY = 'jc_delivery_routing';
 export type OrderType = 'pickup' | 'delivery';
 
 function loadOrderType(): OrderType | null {
-  if (typeof window === 'undefined') return null;
-  const v = window.localStorage.getItem(ORDER_TYPE_KEY);
+  const v = getStorage().getItem(ORDER_TYPE_KEY);
   return v === 'pickup' || v === 'delivery' ? v : null;
 }
 
 function loadAddress(): string {
-  if (typeof window === 'undefined') return '';
-  return window.localStorage.getItem(ADDRESS_KEY) ?? '';
+  return getStorage().getItem(ADDRESS_KEY) ?? '';
 }
 
 export interface DeliveryRouting {
@@ -39,9 +38,8 @@ export interface DeliveryRouting {
 }
 
 function loadRouting(): DeliveryRouting | null {
-  if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage.getItem(ROUTING_KEY);
+    const raw = getStorage().getItem(ROUTING_KEY);
     return raw ? (JSON.parse(raw) as DeliveryRouting) : null;
   } catch {
     return null;
@@ -49,15 +47,13 @@ function loadRouting(): DeliveryRouting | null {
 }
 
 function saveRouting(routing: DeliveryRouting | null): void {
-  if (typeof window === 'undefined') return;
-  if (routing) window.localStorage.setItem(ROUTING_KEY, JSON.stringify(routing));
-  else window.localStorage.removeItem(ROUTING_KEY);
+  if (routing) getStorage().setItem(ROUTING_KEY, JSON.stringify(routing));
+  else getStorage().removeItem(ROUTING_KEY);
 }
 
 function loadFromStorage(): CartItem[] {
-  if (typeof window === 'undefined') return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = getStorage().getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as CartItem[]) : [];
   } catch {
     return [];
@@ -65,11 +61,10 @@ function loadFromStorage(): CartItem[] {
 }
 
 function saveToStorage(items: CartItem[]): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  getStorage().setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-export const cartItems = atom<CartItem[]>(loadFromStorage());
+export const cartItems = atom<CartItem[]>([]);
 
 export const cartCount = computed(cartItems, (items) =>
   items.reduce((sum, i) => sum + i.qty, 0),
@@ -84,18 +79,18 @@ export const taxCents = computed(subtotalCents, (sub) =>
 );
 
 // ── Order type + delivery routing (these drive the fee) ──
-export const orderType = atom<OrderType | null>(loadOrderType());
+export const orderType = atom<OrderType | null>(null);
 
 // Set by OrderGate after the /api/distance check. null = unknown → treated as
 // in-house (so the fee degrades gracefully before/without a routing decision).
-export const deliveryRouting = atom<DeliveryRouting | null>(loadRouting());
+export const deliveryRouting = atom<DeliveryRouting | null>(null);
 
 export function setDeliveryRouting(routing: DeliveryRouting | null): void {
   deliveryRouting.set(routing);
   saveRouting(routing);
 }
 
-// Delivery fee policy (mirrors backend/config/delivery.js resolveDeliveryFeeCents):
+// Delivery fee policy (mirrors apps/api/config/delivery.js resolveDeliveryFeeCents):
 //   pickup → 0 · out-of-zone → courier pass-through quote · in-house → $3, free ≥ $30.
 export const deliveryFeeCents = computed(
   [orderType, deliveryRouting, subtotalCents],
@@ -112,8 +107,7 @@ export const totalCents = computed(
 );
 
 export function addToCart(item: Omit<CartItem, 'cartItemId'>): void {
-  const id = crypto.randomUUID();
-  const next = [...cartItems.get(), { ...item, cartItemId: id }];
+  const next = [...cartItems.get(), { ...item, cartItemId: generateId() }];
   cartItems.set(next);
   saveToStorage(next);
 }
@@ -152,21 +146,29 @@ export const scheduledFor = atom<string | null>(null);
 
 // ── Order-flow gate (Phase 3-C): pickup vs delivery fork ──
 // `orderType` is declared above (it drives the fee computed).
-export const deliveryAddress = atom<string>(loadAddress());
+export const deliveryAddress = atom<string>('');
 export const orderGateOpen = atom<boolean>(false);
 
 /** Persist + apply the customer's pickup/delivery choice (and address). */
 export function setOrderType(type: OrderType, address = ''): void {
   orderType.set(type);
-  if (typeof window !== 'undefined') window.localStorage.setItem(ORDER_TYPE_KEY, type);
+  getStorage().setItem(ORDER_TYPE_KEY, type);
 
   if (type === 'delivery') {
     deliveryAddress.set(address);
-    if (typeof window !== 'undefined') window.localStorage.setItem(ADDRESS_KEY, address);
+    getStorage().setItem(ADDRESS_KEY, address);
     // Routing is set separately by OrderGate after the /api/distance check.
   } else {
     deliveryAddress.set('');
-    if (typeof window !== 'undefined') window.localStorage.removeItem(ADDRESS_KEY);
+    getStorage().removeItem(ADDRESS_KEY);
     setDeliveryRouting(null); // pickup → no delivery routing/fee
   }
 }
+
+// Hydrate persisted state once the platform storage is injected (initCore).
+onCoreInit(() => {
+  cartItems.set(loadFromStorage());
+  orderType.set(loadOrderType());
+  deliveryRouting.set(loadRouting());
+  deliveryAddress.set(loadAddress());
+});

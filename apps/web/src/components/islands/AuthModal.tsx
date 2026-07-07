@@ -10,8 +10,8 @@ import {
   setAuth,
   clearAuth,
   type AuthState,
-} from '@stores/auth';
-import { authApi } from '@lib/api';
+} from '@lib/core';
+import { authApi } from '@lib/core';
 import { showToast } from '@lib/toast';
 import { useFocusTrap } from '@lib/hooks';
 

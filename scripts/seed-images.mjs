@@ -5,7 +5,7 @@
  *
  * All photo IDs below are verified as returning HTTP 200 from Unsplash CDN.
  */
-import { db } from '../backend/config/db.js';
+import { db } from '../apps/api/config/db.js';
 
 const Q = '?q=80&w=800&auto=format&fit=crop';
 const U = (id) => `https://images.unsplash.com/photo-${id}${Q}`;

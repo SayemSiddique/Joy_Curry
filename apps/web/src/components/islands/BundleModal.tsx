@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { ReadableAtom } from 'nanostores';
-import type { MenuItem } from '@lib/api';
+import type { MenuItem } from '@lib/core';
 import {
   BUNDLE_MAP,
   buildDefaultSelections,
   type BundleDefinition,
   type BundleSlot,
-} from '@lib/bundleData';
-import { cartOpen, addToCart } from '@stores/cart';
-import { formatPrice } from '@lib/formatters';
+} from '@lib/core';
+import { cartOpen, addToCart } from '@lib/core';
+import { formatPrice } from '@lib/core';
 
 // Same useNano pattern used by all other islands — avoids @nanostores/react
 // React 19 + Astro SSR compatibility issue.

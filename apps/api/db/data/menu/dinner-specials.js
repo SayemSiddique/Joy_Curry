@@ -10,7 +10,6 @@
 // ============================================================================
 
 import {
-  COMBO_VEG_IDS,
   DINNER_SPECIAL_APPETIZER_IDS,
   DINNER_SPECIAL_DESSERT_IDS,
 } from '../config/constants.js';

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { authState } from '@stores/auth';
-import { API_BASE_URL } from '@lib/constants';
+import { authState } from '@lib/core';
+import { API_BASE_URL } from '@lib/core';
 import { showToast } from '@lib/toast';
 
 interface Review {

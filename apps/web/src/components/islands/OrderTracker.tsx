@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Order } from '@lib/api';
-import { formatPrice } from '@lib/formatters';
+import type { Order } from '@lib/core';
+import { formatPrice } from '@lib/core';
 
 type DeliveryType = 'delivery' | 'pickup';
 

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ReadableAtom } from 'nanostores';
-import { orderType, orderGateOpen, deliveryAddress, subtotalCents, setOrderType, setDeliveryRouting } from '@stores/cart';
-import { distanceApi } from '@lib/api';
-import { formatPrice } from '@lib/formatters';
-import { FREE_DELIVERY_THRESHOLD_CENTS } from '@lib/constants';
+import { orderType, orderGateOpen, deliveryAddress, subtotalCents, setOrderType, setDeliveryRouting } from '@lib/core';
+import { distanceApi } from '@lib/core';
+import { formatPrice } from '@lib/core';
+import { FREE_DELIVERY_THRESHOLD_CENTS } from '@lib/core';
 import { useFocusTrap } from '@lib/hooks';
 
 // React 19 + Astro SSR: subscribe manually instead of @nanostores/react useStore.

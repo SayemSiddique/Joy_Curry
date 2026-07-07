@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './constants';
+import { getApiBaseUrl } from './config';
 
 export interface MenuItem {
   id: string;
@@ -64,7 +64,7 @@ async function apiFetch<T>(
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  const res = await fetch(`${getApiBaseUrl()}${path}`, { ...options, headers });
   const json = await res.json();
   if (!res.ok) throw new Error(json?.error?.message ?? `HTTP ${res.status}`);
   return json as T;

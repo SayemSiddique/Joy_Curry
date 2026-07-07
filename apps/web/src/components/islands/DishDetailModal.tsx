@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { MenuItem } from '@lib/api';
-import { formatPrice } from '@lib/formatters';
-import { addToCart } from '@stores/cart';
+import type { MenuItem } from '@lib/core';
+import { formatPrice } from '@lib/core';
+import { addToCart } from '@lib/core';
 import { flyToCart } from '@lib/cartAnimation';
 import ReviewGallery from './ReviewGallery';
 

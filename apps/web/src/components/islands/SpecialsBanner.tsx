@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { ReadableAtom } from 'nanostores';
-import { addToCart } from '@stores/cart';
+import { addToCart } from '@lib/core';
 import { flyToCart } from '@lib/cartAnimation';
-import { formatPrice } from '@lib/formatters';
-import { API_BASE_URL } from '@lib/constants';
+import { formatPrice } from '@lib/core';
+import { API_BASE_URL } from '@lib/core';
 import { useRef } from 'react';
 
 interface Special {

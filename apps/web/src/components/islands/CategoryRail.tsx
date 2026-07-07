@@ -5,7 +5,7 @@ import {
   setActiveCategory,
   sectionId,
   deepLinkCategory,
-} from '@stores/menuView';
+} from '@lib/core';
 
 // Same useNano pattern used by all other islands — avoids @nanostores/react
 // (useSyncExternalStore is buggy under React 19 + Astro SSR).

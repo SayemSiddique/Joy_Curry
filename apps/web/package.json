@@ -1,7 +1,8 @@
 {
-  "name": "astro-frontend",
+  "name": "@joy-curry/web",
   "type": "module",
   "version": "0.0.1",
+  "private": true,
   "engines": {
     "node": ">=22.12.0"
   },
@@ -15,6 +16,7 @@
     "@astrojs/node": "^10.1.4",
     "@astrojs/react": "^5.0.7",
     "@astrojs/vercel": "^10.0.8",
+    "@joy-curry/core": "workspace:*",
     "@nanostores/react": "^1.1.0",
     "@stripe/stripe-js": "^9.8.0",
     "@types/react": "^19.2.17",

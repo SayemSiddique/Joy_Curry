@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API_BASE_URL } from '@lib/constants';
+import { API_BASE_URL } from '@lib/core';
 
 interface KitchenStatus {
   isOpen: boolean;

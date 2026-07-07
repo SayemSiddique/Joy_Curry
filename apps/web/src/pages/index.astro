@@ -5,8 +5,8 @@ import TimeBasedHero from '@components/islands/TimeBasedHero';
 import Footer from '@components/static/Footer.astro';
 import BentoGrid from '@components/static/BentoGrid.astro';
 import MenuCard from '@components/static/MenuCard.astro';
-import type { MenuItem } from '@lib/api';
-import { CATEGORIES, API_BASE_URL } from '@lib/constants';
+import type { MenuItem } from '@lib/core';
+import { CATEGORIES, API_BASE_URL } from '@lib/core';
 
 let menuItems: MenuItem[] = [];
 let fetchError: string | null = null;

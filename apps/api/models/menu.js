@@ -126,7 +126,7 @@ export async function getAllMenuItems(filters = {}) {
     params.push(filters.limit);
   }
   if (filters.offset) {
-    sql += ` OFFSET $${n++}`;
+    sql += ` OFFSET $${n}`;
     params.push(filters.offset);
   }
 

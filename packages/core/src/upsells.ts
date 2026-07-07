@@ -1,4 +1,4 @@
-import type { CartItem } from '@stores/cart';
+import type { CartItem } from './stores/cart';
 
 export interface UpsellSuggestion {
   itemId: string;

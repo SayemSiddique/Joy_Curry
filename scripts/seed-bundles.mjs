@@ -11,9 +11,9 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 
-// Load DATABASE_URL from backend/.env
+// Load DATABASE_URL from apps/api/.env
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const envPath = resolve(__dirname, '../backend/.env');
+const envPath = resolve(__dirname, '../apps/api/.env');
 for (const line of readFileSync(envPath, 'utf8').split('\n')) {
   const m = line.match(/^([A-Z_]+)=(.+)/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();

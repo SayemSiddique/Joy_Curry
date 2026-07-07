@@ -16,6 +16,10 @@ export default [
         clearTimeout: 'readonly',
         URL:       'readonly',
         crypto:    'readonly',
+        fetch:     'readonly',
+        URLSearchParams: 'readonly',
+        setInterval:     'readonly',
+        clearInterval:   'readonly',
       },
     },
     rules: {

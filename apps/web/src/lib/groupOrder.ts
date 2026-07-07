@@ -1,4 +1,4 @@
-import type { CartItem } from '@stores/cart';
+import type { CartItem } from '@lib/core';
 
 const PREFIX = 'jc_group_';
 const CHANNEL = 'jc_group_order';

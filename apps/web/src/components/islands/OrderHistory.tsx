@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { ReadableAtom } from 'nanostores';
-import { orderHistoryOpen } from '@stores/auth';
-import { authState } from '@stores/auth';
-import { addToCart, cartOpen } from '@stores/cart';
-import { ordersApi, type Order } from '@lib/api';
-import { formatPrice, formatDateTime } from '@lib/formatters';
+import { orderHistoryOpen } from '@lib/core';
+import { authState } from '@lib/core';
+import { addToCart, cartOpen } from '@lib/core';
+import { ordersApi, type Order } from '@lib/core';
+import { formatPrice, formatDateTime } from '@lib/core';
 import { showToast } from '@lib/toast';
 
 function useNano<T>(store: ReadableAtom<T>): T {

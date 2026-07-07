@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ReadableAtom } from 'nanostores';
-import { authState } from '@stores/auth';
-import { addToCart, cartOpen } from '@stores/cart';
-import { ordersApi, type Order } from '@lib/api';
-import { formatPrice } from '@lib/formatters';
+import { authState } from '@lib/core';
+import { addToCart, cartOpen } from '@lib/core';
+import { ordersApi, type Order } from '@lib/core';
+import { formatPrice } from '@lib/core';
 import { flyToCart } from '@lib/cartAnimation';
 import { showToast } from '@lib/toast';
 

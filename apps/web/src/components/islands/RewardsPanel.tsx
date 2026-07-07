@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ReadableAtom } from 'nanostores';
-import { authState, rewardsState, vaultOpen, loadRewards } from '@stores/auth';
-import { addToCart, cartOpen } from '@stores/cart';
-import { rewardsApi, type RewardMilestone, type RewardsSummary } from '@lib/api';
-import { formatPrice } from '@lib/formatters';
+import { authState, rewardsState, vaultOpen, loadRewards } from '@lib/core';
+import { addToCart, cartOpen } from '@lib/core';
+import { rewardsApi, type RewardMilestone, type RewardsSummary } from '@lib/core';
+import { formatPrice } from '@lib/core';
 import { showToast } from '@lib/toast';
 
 // P6-C: Badge definitions — derived purely from rewards data (no extra API calls)

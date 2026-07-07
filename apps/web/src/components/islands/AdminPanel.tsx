@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { ReadableAtom } from 'nanostores';
-import { adminPanelOpen, authState } from '@stores/auth';
-import { adminApi, type MenuItem, type AdminOrder, type DashboardStats } from '@lib/api';
-import { formatPrice } from '@lib/formatters';
-import { CATEGORIES } from '@lib/constants';
+import { adminPanelOpen, authState } from '@lib/core';
+import { adminApi, type MenuItem, type AdminOrder, type DashboardStats } from '@lib/core';
+import { formatPrice } from '@lib/core';
+import { CATEGORIES } from '@lib/core';
 
 function useNano<T>(store: ReadableAtom<T>): T {
   const [val, setVal] = useState<T>(() => store.get());

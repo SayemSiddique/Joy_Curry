@@ -9,15 +9,8 @@ export const MIN_ORDER = 10.00;        // Minimum order for delivery
 
 // NOTE: This file is the original vanilla-frontend constants module, retained
 // only as the source of the COMBO_*/DINNER_SPECIAL_* id arrays that the menu
-// data files (dinner-specials.js, joy-combos.js) reference. It is imported by
-// the Node dev/validation scripts, so the `window` lookup below is guarded to
-// avoid a ReferenceError under Node. The live app does NOT use this value —
-// the Astro frontend has its own API_BASE_URL in astro-frontend/src/lib/constants.ts.
-export const API_BASE_URL =
-  typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:3000/api'
-    : '/api';
+// data files (dinner-specials.js, joy-combos.js) reference. The web app's API
+// base URL lives in @joy-curry/core (initCore), not here.
 
 // Allergen disclaimer — displayed as site-wide banner
 export const ALLERGEN_NOTE_DEFAULT = 

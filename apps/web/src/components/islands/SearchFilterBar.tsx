@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import type { MenuItem } from '@lib/api';
-import { CATEGORIES, DIETARY_FILTERS, SPICE_LEVELS } from '@lib/constants';
-import { formatPrice } from '@lib/formatters';
+import type { MenuItem } from '@lib/core';
+import { CATEGORIES, DIETARY_FILTERS, SPICE_LEVELS } from '@lib/core';
+import { formatPrice } from '@lib/core';
 
 interface Props {
   menuItems: MenuItem[];

@@ -20,7 +20,7 @@
 //   node scripts/validate-menu.mjs --self-test# prove it fails on bad data
 // ============================================================================
 
-import { menu } from '../backend/db/data/menu/index.js';
+import { menu } from '../apps/api/db/data/menu/index.js';
 
 // ----------------------------------------------------------------------------
 // Configuration: per-file export-name map mirrors index.js exactly.

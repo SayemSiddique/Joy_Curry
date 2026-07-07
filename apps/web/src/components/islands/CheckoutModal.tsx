@@ -13,11 +13,11 @@ import {
   scheduledFor,
   clearCart,
   type CartItem,
-} from '@stores/cart';
-import { authState } from '@stores/auth';
-import { ordersApi, slotsApi, type Order, type Slot } from '@lib/api';
-import { MIN_ORDER_CENTS } from '@lib/constants';
-import { formatPrice, formatSlotTime } from '@lib/formatters';
+} from '@lib/core';
+import { authState } from '@lib/core';
+import { ordersApi, slotsApi, type Order, type Slot } from '@lib/core';
+import { MIN_ORDER_CENTS } from '@lib/core';
+import { formatPrice, formatSlotTime } from '@lib/core';
 import { showToast } from '@lib/toast';
 import { useFocusTrap } from '@lib/hooks';
 import PaymentRequestButton from '@components/islands/PaymentRequestButton';

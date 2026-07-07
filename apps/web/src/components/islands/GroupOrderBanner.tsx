@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ReadableAtom } from 'nanostores';
-import { authState } from '@stores/auth';
-import { addToCart, cartOpen, cartItems } from '@stores/cart';
+import { authState } from '@lib/core';
+import { addToCart, cartOpen, cartItems } from '@lib/core';
 import {
   getGroupSession,
   addParticipant,

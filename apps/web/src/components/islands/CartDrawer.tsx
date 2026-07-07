@@ -16,14 +16,14 @@ import {
   removeFromCart,
   updateQty,
   type CartItem,
-} from '@stores/cart';
-import { authState, rewardsState, loadRewards } from '@stores/auth';
-import { rewardsApi, type RewardMilestone } from '@lib/api';
-import { MIN_ORDER_CENTS, FREE_DELIVERY_THRESHOLD_CENTS } from '@lib/constants';
-import { formatPrice, formatSlotTime } from '@lib/formatters';
+} from '@lib/core';
+import { authState, rewardsState, loadRewards } from '@lib/core';
+import { rewardsApi, type RewardMilestone } from '@lib/core';
+import { MIN_ORDER_CENTS, FREE_DELIVERY_THRESHOLD_CENTS } from '@lib/core';
+import { formatPrice, formatSlotTime } from '@lib/core';
 import { showToast } from '@lib/toast';
 import { flyToCart } from '@lib/cartAnimation';
-import { getUpsells } from '@lib/upsells';
+import { getUpsells } from '@lib/core';
 import { startGroupOrder, mergeGroupItems, getGroupSession, listenGroupUpdates } from '@lib/groupOrder';
 
 function useNano<T>(store: ReadableAtom<T>): T {
