@@ -47,4 +47,5 @@ temp/
 joy_curry_tandoor_menu.md
 JCT_Food_Picture/
 .claude/
+.agent/
 launch.json
