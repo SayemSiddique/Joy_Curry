@@ -278,6 +278,19 @@ export async function toggleItemStock(id, inStock) {
   return { id, inStock: Boolean(inStock) };
 }
 
+/**
+ * Live availability snapshot for the storefront. Returns the id of every
+ * active, non-deleted item together with its real stock state. We track stock
+ * as a boolean (`in_stock`) — there is no per-item quantity — so we never
+ * fabricate "N servings left" scarcity. The client badges sold-out items only.
+ */
+export async function getAvailability() {
+  const rows = await db.all(
+    'SELECT id, in_stock FROM menu_items WHERE is_active = 1 AND deleted_at IS NULL'
+  );
+  return rows.map((r) => ({ itemId: r.id, inStock: Boolean(r.in_stock) }));
+}
+
 function spiceLabelToInt(label) {
   const map = { Mild: 1, Medium: 2, Hot: 3 };
   return map[label] ?? 0;

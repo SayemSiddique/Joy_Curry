@@ -23,7 +23,8 @@ export default function SpecialsBanner() {
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/specials`)
       .then(r => r.ok ? r.json() : Promise.reject())
-      .then((data: { special: Special }) => {
+      .then((data: { special: Special | null }) => {
+        if (!data.special) return; // No special configured — banner stays hidden.
         const key = `specials-dismissed-${data.special.itemId}`;
         if (sessionStorage.getItem(key)) return;
         setSpecial(data.special);

@@ -1,44 +1,41 @@
 import { useEffect } from 'react';
+import { API_BASE_URL } from '@lib/core';
 
-interface AvailabilityItem {
-  itemId: string;
-  remaining: number | null;
-  urgent: boolean;
+interface AvailabilityResponse {
+  soldOut: string[];
+  items: { itemId: string; inStock: boolean }[];
 }
 
-// Polls /api/availability and injects urgency badges directly onto menu card DOM nodes.
-// Degrades silently on 404 (endpoint not deployed yet).
+// Polls /api/availability and marks sold-out menu cards. Stock is a boolean in
+// our data (no per-item quantity), so we surface honest "Sold out today"
+// status only — never fabricated "N left" scarcity. Degrades silently on error.
 export default function StockNotifier() {
   useEffect(() => {
     async function fetchAndInject() {
       try {
-        const res = await fetch('/api/availability');
+        const res = await fetch(`${API_BASE_URL}/api/availability`);
         if (!res.ok) return;
-        const { items }: { items: AvailabilityItem[] } = await res.json();
+        const { soldOut }: AvailabilityResponse = await res.json();
 
-        // Clear stale badges from a previous poll
+        // Clear stale badges from a previous poll.
         document.querySelectorAll('.stock-urgency').forEach(el => el.remove());
 
-        for (const avail of items) {
-          if (!avail.urgent || avail.remaining === null) continue;
-          // Match the card by scanning data-item-json attribute
+        for (const itemId of soldOut) {
           const card = document.querySelector(
-            `[data-item-json*='"id":"${avail.itemId}"']`,
+            `[data-item-json*='"id":"${itemId}"']`,
           ) as HTMLElement | null;
           if (!card) continue;
 
           const badge = document.createElement('span');
-          badge.className = avail.remaining <= 3 ? 'stock-urgency stock-urgency--critical' : 'stock-urgency';
-          badge.setAttribute('aria-label', `${avail.remaining} servings left today`);
-          badge.textContent = avail.remaining <= 3
-            ? `🔴 Only ${avail.remaining} left!`
-            : `⚡ ${avail.remaining} left today`;
+          badge.className = 'stock-urgency stock-urgency--critical';
+          badge.setAttribute('aria-label', 'Sold out today');
+          badge.textContent = '🔴 Sold out today';
 
           const imgWrap = card.querySelector('.menu-card__img-wrap');
           if (imgWrap) imgWrap.appendChild(badge);
         }
       } catch {
-        // Degrade silently — endpoint may not exist yet
+        // Degrade silently.
       }
     }
 

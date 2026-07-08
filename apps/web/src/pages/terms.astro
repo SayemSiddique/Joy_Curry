@@ -1,0 +1,156 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Navbar from '@components/static/Navbar.astro';
+import Footer from '@components/static/Footer.astro';
+
+const lastUpdated = 'July 8, 2026';
+// NOTE: temporary subdomain for pre-launch testing — swap to the restaurant's
+// real domain alongside the Resend sending domain before launch (S6 checklist).
+const contactEmail = 'orders@joycurry.sayemsiddique.com';
+---
+
+<BaseLayout
+  title="Terms of Service — Joy Curry & Tandoor"
+  description="The terms governing orders placed through the Joy Curry & Tandoor website."
+>
+  <Navbar />
+
+  <main id="main-content" class="legal">
+    <div class="container legal__container">
+      <h1 class="legal__title">Terms of Service</h1>
+      <p class="legal__updated">Last updated: {lastUpdated}</p>
+
+      <p>
+        These Terms of Service ("Terms") govern your use of the Joy Curry &amp; Tandoor
+        online ordering website (the "Site"), operated by Joy Curry &amp; Tandoor, located at
+        148 East 46th Street, New York, NY 10017. By placing an order, you agree to these Terms.
+      </p>
+
+      <h2>Ordering</h2>
+      <ul>
+        <li>Orders may be placed for <strong>pickup</strong> or <strong>delivery</strong>, subject to availability and our delivery area.</li>
+        <li>All prices are in U.S. dollars. Applicable sales tax and any delivery fee are shown at checkout before you pay.</li>
+        <li>An order is confirmed only after payment is successfully completed. We may decline or cancel an order (for example, if an item is unavailable), in which case you will not be charged, or will be refunded.</li>
+        <li>Estimated preparation and delivery times are estimates, not guarantees.</li>
+      </ul>
+
+      <h2>Payment</h2>
+      <p>
+        Payment is required at checkout and is processed securely by <strong>Stripe</strong>.
+        We do not store your full card details. By submitting payment you authorize the charge
+        for the total shown, including tax and any delivery fee.
+      </p>
+
+      <h2>Cancellations &amp; Refunds</h2>
+      <p>
+        Because food is prepared to order, please contact us as soon as possible if you need
+        to change or cancel an order. Refunds for orders that cannot be fulfilled are issued to
+        your original payment method. To request a change, call us at
+        <a href="tel:+12126972000">(212) 697-2000</a>.
+      </p>
+
+      <h2>Artisan Vault Rewards</h2>
+      <ul>
+        <li>Points are earned on eligible completed orders and may be redeemed for rewards as described in the program.</li>
+        <li>Points have no cash value, are non-transferable, and may expire or change. We may modify or end the program at any time.</li>
+      </ul>
+
+      <h2>Halal &amp; Allergen Notice</h2>
+      <p>
+        Our kitchen serves 100% Halal cuisine. It also handles nuts, dairy, gluten, and
+        shellfish, and not all items are gluten-free. If you have a food allergy or dietary
+        requirement, please tell us before ordering. You are responsible for reviewing item
+        descriptions and allergen information.
+      </p>
+
+      <h2>Reviews &amp; User Content</h2>
+      <p>
+        If you submit a review, you grant us permission to display it on the Site. You agree
+        not to post unlawful, misleading, offensive, or infringing content. We may remove any
+        content at our discretion.
+      </p>
+
+      <h2>Acceptable Use</h2>
+      <p>
+        You agree not to misuse the Site, interfere with its operation, attempt unauthorized
+        access, or use it for any unlawful purpose.
+      </p>
+
+      <h2>Limitation of Liability</h2>
+      <p>
+        The Site is provided "as is." To the fullest extent permitted by law, Joy Curry &amp;
+        Tandoor is not liable for indirect or consequential damages arising from your use of
+        the Site. Nothing in these Terms limits liability that cannot be limited under
+        applicable law.
+      </p>
+
+      <h2>Governing Law</h2>
+      <p>
+        These Terms are governed by the laws of the State of New York, without regard to its
+        conflict-of-law rules.
+      </p>
+
+      <h2>Changes to These Terms</h2>
+      <p>
+        We may update these Terms from time to time. Material changes will be reflected by
+        updating the "Last updated" date above.
+      </p>
+
+      <h2>Contact Us</h2>
+      <p>
+        Questions about these Terms? Contact us at
+        <a href={`mailto:${contactEmail}`}>{contactEmail}</a>,
+        by phone at <a href="tel:+12126972000">(212) 697-2000</a>,
+        or by mail at 148 East 46th Street, New York, NY 10017.
+      </p>
+
+      <p class="legal__nav"><a href="/privacy">View our Privacy Policy →</a></p>
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  .legal {
+    padding: var(--space-10, 3rem) 0 var(--space-12, 4rem);
+    background: var(--color-surface, #fff);
+  }
+  .legal__container {
+    max-width: 780px;
+  }
+  .legal__title {
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    margin-bottom: var(--space-2, 0.5rem);
+  }
+  .legal__updated {
+    color: var(--color-text-muted, #666);
+    font-size: 0.95rem;
+    margin-bottom: var(--space-6, 1.5rem);
+  }
+  .legal h2 {
+    margin-top: var(--space-8, 2rem);
+    margin-bottom: var(--space-3, 0.75rem);
+    font-size: 1.4rem;
+  }
+  .legal p,
+  .legal li {
+    line-height: 1.7;
+    color: var(--color-text, #222);
+  }
+  .legal ul {
+    padding-left: 1.25rem;
+    margin-bottom: var(--space-4, 1rem);
+  }
+  .legal li {
+    margin-bottom: 0.5rem;
+  }
+  .legal a {
+    color: var(--color-cta, #c0392b);
+    text-decoration: underline;
+  }
+  .legal__nav {
+    margin-top: var(--space-8, 2rem);
+    font-weight: 600;
+  }
+</style>

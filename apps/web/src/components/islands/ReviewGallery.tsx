@@ -48,7 +48,6 @@ export default function ReviewGallery({ itemId }: { itemId: string }) {
   const [showForm, setShowForm] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
-  const [photo, setPhoto] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const auth = authState.get();
 
@@ -70,24 +69,22 @@ export default function ReviewGallery({ itemId }: { itemId: string }) {
     if (!rating) { showToast('Please select a star rating'); return; }
     setSubmitting(true);
     try {
-      const fd = new FormData();
-      fd.append('itemId', itemId);
-      fd.append('rating', String(rating));
-      fd.append('comment', comment);
-      if (photo) fd.append('photo', photo);
       const token = authState.get().token;
       const res = await fetch(`${API_BASE_URL}/api/reviews`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: fd,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ itemId, rating, comment }),
       });
       if (!res.ok) throw new Error();
       const { review } = await res.json();
-      setReviews(prev => [review, ...prev]);
+      // One review per user per item — replace any prior version, else prepend.
+      setReviews(prev => [review, ...prev.filter(r => r.id !== review.id)]);
       setShowForm(false);
       setRating(0);
       setComment('');
-      setPhoto(null);
       showToast('Review submitted — thank you!');
     } catch {
       showToast('Could not submit review — please try again');
@@ -140,11 +137,6 @@ export default function ReviewGallery({ itemId }: { itemId: string }) {
                 value={comment}
                 onChange={e => setComment(e.target.value)}
                 maxLength={500}
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={e => setPhoto(e.target.files?.[0] ?? null)}
               />
               <button
                 className="review-upload-form__submit"

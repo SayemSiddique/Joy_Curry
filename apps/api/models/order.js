@@ -281,6 +281,20 @@ export async function getDashboardStats() {
   };
 }
 
+/**
+ * Count orders currently "in the kitchen" (paid/confirmed but not yet ready or
+ * completed). Used by GET /api/status to derive a real, load-aware wait
+ * estimate instead of a hard-coded number.
+ */
+export async function getKitchenLoad() {
+  const row = await db.get(
+    `SELECT COUNT(*)::int AS active FROM orders
+      WHERE status IN ('confirmed', 'pending')
+        AND payment_status = 'paid'`
+  );
+  return row?.active ?? 0;
+}
+
 // N+1 fix: load line items for many orders in a single `= ANY($1)` query,
 // then group in memory — instead of one query per order.
 async function attachLineItems(orders) {

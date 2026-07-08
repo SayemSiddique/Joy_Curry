@@ -16,6 +16,7 @@
   "author": "Sam Siddique",
   "license": "MIT",
   "dependencies": {
+    "@sentry/node": "^10.64.0",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
     "cors": "^2.8.6",

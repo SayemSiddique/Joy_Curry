@@ -1,0 +1,176 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import Navbar from '@components/static/Navbar.astro';
+import Footer from '@components/static/Footer.astro';
+
+const lastUpdated = 'July 8, 2026';
+// NOTE: temporary subdomain for pre-launch testing — swap to the restaurant's
+// real domain alongside the Resend sending domain before launch (S6 checklist).
+const contactEmail = 'orders@joycurry.sayemsiddique.com';
+---
+
+<BaseLayout
+  title="Privacy Policy — Joy Curry & Tandoor"
+  description="How Joy Curry & Tandoor collects, uses, and protects your personal information."
+>
+  <Navbar />
+
+  <main id="main-content" class="legal">
+    <div class="container legal__container">
+      <h1 class="legal__title">Privacy Policy</h1>
+      <p class="legal__updated">Last updated: {lastUpdated}</p>
+
+      <p>
+        This Privacy Policy explains how Joy Curry &amp; Tandoor ("we", "us", or "our"),
+        located at 148 East 46th Street, New York, NY 10017, collects, uses, and protects
+        your information when you use our online ordering website (the "Site"). By using the
+        Site, you agree to the practices described here.
+      </p>
+
+      <h2>Information We Collect</h2>
+      <ul>
+        <li>
+          <strong>Account information:</strong> your name, email address, phone number,
+          and a securely hashed password. You may optionally save dietary preferences and
+          delivery addresses.
+        </li>
+        <li>
+          <strong>Order information:</strong> the items you order, order history, pickup or
+          delivery selection, delivery address, and scheduled time slots.
+        </li>
+        <li>
+          <strong>Payment information:</strong> card payments are processed by our payment
+          provider, <strong>Stripe</strong>. Your full card details are entered directly
+          into Stripe's secure fields and are <strong>never stored on our servers</strong>.
+          We retain only a payment reference and status.
+        </li>
+        <li>
+          <strong>Rewards information:</strong> points balance and reward activity for our
+          Artisan Vault loyalty program.
+        </li>
+        <li>
+          <strong>Reviews:</strong> if you submit a review, your rating, comment, and first
+          name are displayed publicly alongside the dish.
+        </li>
+        <li>
+          <strong>Technical information:</strong> basic device and error diagnostics used to
+          keep the Site reliable (for example, error reports and anonymous usage analytics).
+        </li>
+      </ul>
+
+      <h2>How We Use Your Information</h2>
+      <ul>
+        <li>To process, prepare, and fulfill your pickup and delivery orders.</li>
+        <li>To send order confirmations and updates by email (via our email provider, Resend).</li>
+        <li>To operate your account and the Artisan Vault rewards program.</li>
+        <li>To calculate delivery eligibility and fees based on your address.</li>
+        <li>To secure the Site, prevent abuse, and diagnose technical problems.</li>
+        <li>To display reviews you choose to submit.</li>
+      </ul>
+
+      <h2>How We Share Information</h2>
+      <p>
+        We do not sell your personal information. We share information only with the service
+        providers that make the Site work — including Stripe (payments), Resend (email),
+        our hosting and database providers, and error/analytics tooling — and only as needed
+        to provide the service, or when required by law.
+      </p>
+
+      <h2>Cookies &amp; Local Storage</h2>
+      <p>
+        We use your browser's local storage to keep you signed in and to remember the items
+        in your cart. These are essential to the ordering experience and are not used for
+        third-party advertising.
+      </p>
+
+      <h2>Data Retention</h2>
+      <p>
+        We keep account and order records for as long as your account is active or as needed
+        to provide the service and meet legal, tax, and accounting obligations. You may
+        request deletion of your account and associated personal information at any time.
+      </p>
+
+      <h2>Security</h2>
+      <p>
+        Passwords are stored using industry-standard hashing, all traffic is encrypted over
+        HTTPS, and card data is handled entirely by Stripe. No method of transmission or
+        storage is perfectly secure, but we take reasonable measures to protect your data.
+      </p>
+
+      <h2>Your Choices</h2>
+      <ul>
+        <li>Access or update your account details from your profile.</li>
+        <li>Request a copy or deletion of your personal data by contacting us.</li>
+        <li>Opt out of non-essential emails; transactional order emails are required to fulfill orders.</li>
+      </ul>
+
+      <h2>Children's Privacy</h2>
+      <p>
+        The Site is not directed to children under 13, and we do not knowingly collect
+        personal information from them.
+      </p>
+
+      <h2>Changes to This Policy</h2>
+      <p>
+        We may update this policy from time to time. Material changes will be reflected by
+        updating the "Last updated" date above.
+      </p>
+
+      <h2>Contact Us</h2>
+      <p>
+        Questions about this policy or your data? Contact us at
+        <a href={`mailto:${contactEmail}`}>{contactEmail}</a>,
+        by phone at <a href="tel:+12126972000">(212) 697-2000</a>,
+        or by mail at 148 East 46th Street, New York, NY 10017.
+      </p>
+
+      <p class="legal__nav"><a href="/terms">View our Terms of Service →</a></p>
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  .legal {
+    padding: var(--space-10, 3rem) 0 var(--space-12, 4rem);
+    background: var(--color-surface, #fff);
+  }
+  .legal__container {
+    max-width: 780px;
+  }
+  .legal__title {
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    margin-bottom: var(--space-2, 0.5rem);
+  }
+  .legal__updated {
+    color: var(--color-text-muted, #666);
+    font-size: 0.95rem;
+    margin-bottom: var(--space-6, 1.5rem);
+  }
+  .legal h2 {
+    margin-top: var(--space-8, 2rem);
+    margin-bottom: var(--space-3, 0.75rem);
+    font-size: 1.4rem;
+  }
+  .legal p,
+  .legal li {
+    line-height: 1.7;
+    color: var(--color-text, #222);
+  }
+  .legal ul {
+    padding-left: 1.25rem;
+    margin-bottom: var(--space-4, 1rem);
+  }
+  .legal li {
+    margin-bottom: 0.5rem;
+  }
+  .legal a {
+    color: var(--color-cta, #c0392b);
+    text-decoration: underline;
+  }
+  .legal__nav {
+    margin-top: var(--space-8, 2rem);
+    font-weight: 600;
+  }
+</style>

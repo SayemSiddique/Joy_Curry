@@ -17,7 +17,10 @@ export function getStripe() {
       err.code = 'PAYMENT_NOT_CONFIGURED';
       throw err;
     }
-    stripeClient = new Stripe(key);
+    // Pin the API version so a Stripe-side account upgrade can't silently
+    // change the shape of PaymentIntents or webhook events under us. Matches
+    // the version the installed SDK's types are generated against.
+    stripeClient = new Stripe(key, { apiVersion: '2026-06-24.dahlia' });
   }
   return stripeClient;
 }

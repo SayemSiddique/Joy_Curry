@@ -12,6 +12,18 @@ function formatCents(cents) {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+// Escape user-controlled values before interpolating into the email HTML.
+// Fields like delivery_address and selected options originate from customer
+// input; without escaping they'd inject markup into the confirmation email.
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function estimatedWait(deliveryType) {
   return deliveryType === 'delivery' ? '45–60 minutes' : '20–30 minutes';
 }
@@ -21,22 +33,22 @@ function buildLineItemsHtml(lineItems) {
     .map((li) => {
       const opts = li.selectedOptions
         ? `<br><small style="color:#666;">${Object.entries(li.selectedOptions)
-            .map(([k, v]) => `${k}: ${v}`)
+            .map(([k, v]) => `${esc(k)}: ${esc(v)}`)
             .join(', ')}</small>`
         : '';
       const slots = li.slotChoices
         ? `<br><small style="color:#666;">${Object.entries(li.slotChoices)
             .flatMap(([slot, choices]) =>
               Array.isArray(choices)
-                ? choices.map((c) => `${slot}: ${c.name ?? c}`)
-                : [`${slot}: ${choices.name ?? choices}`]
+                ? choices.map((c) => `${esc(slot)}: ${esc(c.name ?? c)}`)
+                : [`${esc(slot)}: ${esc(choices.name ?? choices)}`]
             )
             .join(', ')}</small>`
         : '';
       return `
         <tr>
           <td style="padding:8px 0;border-bottom:1px solid #eee;">
-            ${li.item_name}${opts}${slots}
+            ${esc(li.item_name)}${opts}${slots}
           </td>
           <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:center;">×${li.qty}</td>
           <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;">${formatCents(li.line_total_cents)}</td>
@@ -56,7 +68,7 @@ function buildHtml(order, lineItems) {
 
   const addressRow =
     order.delivery_type === 'delivery' && order.delivery_address
-      ? `<p style="margin:4px 0;color:#555;"><strong>Delivery to:</strong> ${order.delivery_address}</p>`
+      ? `<p style="margin:4px 0;color:#555;"><strong>Delivery to:</strong> ${esc(order.delivery_address)}</p>`
       : `<p style="margin:4px 0;color:#555;"><strong>Order type:</strong> Pickup</p>`;
 
   return `<!DOCTYPE html>

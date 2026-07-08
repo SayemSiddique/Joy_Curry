@@ -5,6 +5,7 @@ import { up as addOrders } from './migrations/002_add_orders.js';
 import { up as addRewardsAndScheduling } from './migrations/003_add_rewards_and_scheduling.js';
 import { up as convertTimestampsAndIndexes } from './migrations/004_timestamps_and_indexes.js';
 import { up as addPayments } from './migrations/005_add_payments.js';
+import { up as addReviews } from './migrations/006_add_reviews.js';
 
 export async function initializeSchema() {
   await db.run(`
@@ -77,6 +78,7 @@ export async function initializeSchema() {
   await addRewardsAndScheduling();
   await convertTimestampsAndIndexes();
   await addPayments();
+  await addReviews();
 
   logger.info('Database schema ready.');
 }
