@@ -204,7 +204,7 @@ export default function CartDrawer() {
   const handleClose = () => cartOpen.set(false);
   const handleCheckout = () => {
     cartOpen.set(false);
-    checkoutOpen.set(true);
+    window.location.href = '/cart';
   };
 
   const [editingItemId, setEditingItemId] = useState<string | null>(null);

@@ -2,7 +2,6 @@
 import '@styles/global.css';
 import NavBar from '@components/islands/NavBar';
 import CartDrawer from '@components/islands/CartDrawer';
-import CheckoutModal from '@components/islands/CheckoutModal';
 import AuthModal from '@components/islands/AuthModal';
 import OrderHistory from '@components/islands/OrderHistory';
 import RewardsPanel from '@components/islands/RewardsPanel';
@@ -75,7 +74,6 @@ const {
     <slot />
     <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
     <CartDrawer client:idle />
-    <CheckoutModal client:idle />
     <AuthModal client:idle />
     <OrderHistory client:idle />
     <RewardsPanel client:idle />

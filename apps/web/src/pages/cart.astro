@@ -1,0 +1,13 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import CartPage from '@components/islands/CartPage';
+---
+
+<BaseLayout
+  title="Your Cart — Joy Curry & Tandoor"
+  description="Review your order and checkout"
+>
+  <main id="main-content">
+    <CartPage client:load />
+  </main>
+</BaseLayout>

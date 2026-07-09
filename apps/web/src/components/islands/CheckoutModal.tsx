@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle, Gift, Copy, Share2, Lock, ShoppingBag, Truck } from 'lucide-react';
+import { MessageCircle, Gift, Copy, Share2, Lock, ShoppingBag, Truck, MapPin, Tag, ChevronDown } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import {
   cartItems,
@@ -16,7 +16,7 @@ import {
   type CartItem,
 } from '@lib/core';
 import { authState, authOpen } from '@lib/core';
-import { ordersApi, slotsApi, paymentsApi, type Order, type Slot } from '@lib/core';
+import { ordersApi, slotsApi, paymentsApi, rewardsApi, type Order, type Slot, type RewardsSummary, type RewardMilestone, type RewardLine } from '@lib/core';
 import { MIN_ORDER_CENTS } from '@lib/core';
 import { formatPrice, formatSlotTime } from '@lib/core';
 import { showToast } from '@lib/toast';
@@ -115,6 +115,18 @@ export default function CheckoutModal() {
   const elementsRef = useRef<StripeElements | null>(null);
   const payElRef = useRef<HTMLDivElement>(null);
 
+  // ── Artisan Vault rewards ──
+  const [rewardsSummary, setRewardsSummary] = useState<RewardsSummary | null>(null);
+  const [selectedMilestone, setSelectedMilestone] = useState<RewardMilestone | null>(null);
+  const [appliedReward, setAppliedReward] = useState<RewardLine | null>(null);
+  const [rewardLoading, setRewardLoading] = useState(false);
+  const [rewardError, setRewardError] = useState<string | null>(null);
+
+  // ── Promo code ──
+  const [promoExpanded, setPromoExpanded] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoMsg, setPromoMsg] = useState<string | null>(null);
+
   // ── Scheduling (Phase 3-C) ──
   const [whenMode, setWhenMode] = useState<'asap' | 'later'>('asap');
   const [slotDate, setSlotDate] = useState<string>(nyDateStr(0));
@@ -162,6 +174,16 @@ export default function CheckoutModal() {
     };
   }, [open, whenMode, slotDate]);
 
+  // Fetch rewards summary when checkout opens (requires auth)
+  useEffect(() => {
+    if (!open || !auth.token) return;
+    let cancelled = false;
+    rewardsApi.getMine(auth.token).then((res) => {
+      if (!cancelled) setRewardsSummary(res.rewards);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [open, auth.token]);
+
   // P5-D: sync selected slot → cart store so CartDrawer header shows it
   useEffect(() => {
     scheduledFor.set(whenMode === 'later' ? selectedSlot : null);
@@ -183,6 +205,12 @@ export default function CheckoutModal() {
         setClientSecret(null);
         setPaymentError(null);
         setPaying(false);
+        setAppliedReward(null);
+        setSelectedMilestone(null);
+        setRewardError(null);
+        setPromoCode('');
+        setPromoMsg(null);
+        setPromoExpanded(false);
       }, 350);
       return () => clearTimeout(t);
     }
@@ -264,15 +292,26 @@ export default function CheckoutModal() {
       }),
       scheduledFor,
       idempotencyKey: idempotencyKey.current,
-      items: items.map((item: CartItem) => ({
-        itemId: item.itemId,
-        itemName: item.name,
-        itemType: item.itemType,
-        basePriceCents: item.basePriceCents,
-        qty: item.qty,
-        selectedOptions: item.selectedOptions ?? [],
-        slotChoices: item.slotChoices ?? {},
-      })),
+      items: [
+        ...items.map((item: CartItem) => ({
+          itemId: item.itemId,
+          itemName: item.name,
+          itemType: item.itemType,
+          basePriceCents: item.basePriceCents,
+          qty: item.qty,
+          selectedOptions: item.selectedOptions ?? [],
+          slotChoices: item.slotChoices ?? {},
+        })),
+        ...(appliedReward ? [{
+          itemId: appliedReward.itemId,
+          itemName: appliedReward.itemName,
+          itemType: appliedReward.itemType,
+          basePriceCents: 0,
+          qty: 1,
+          selectedOptions: [],
+          slotChoices: {},
+        }] : []),
+      ],
     };
 
     try {
@@ -379,6 +418,12 @@ export default function CheckoutModal() {
       setClientSecret(null);
       setPaymentError(null);
       setPaying(false);
+      setAppliedReward(null);
+      setSelectedMilestone(null);
+      setRewardError(null);
+      setPromoCode('');
+      setPromoMsg(null);
+      setPromoExpanded(false);
     }, 350);
   };
 
@@ -417,15 +462,26 @@ export default function CheckoutModal() {
         ...(deliveryType === 'delivery' && { deliveryAddress: addressFull }),
         scheduledFor: null,
         idempotencyKey: idempotencyKey.current,
-        items: items.map((item: CartItem) => ({
-          itemId: item.itemId,
-          itemName: item.name,
-          itemType: item.itemType,
-          basePriceCents: item.basePriceCents,
-          qty: item.qty,
-          selectedOptions: item.selectedOptions ?? [],
-          slotChoices: item.slotChoices ?? {},
-        })),
+        items: [
+          ...items.map((item: CartItem) => ({
+            itemId: item.itemId,
+            itemName: item.name,
+            itemType: item.itemType,
+            basePriceCents: item.basePriceCents,
+            qty: item.qty,
+            selectedOptions: item.selectedOptions ?? [],
+            slotChoices: item.slotChoices ?? {},
+          })),
+          ...(appliedReward ? [{
+            itemId: appliedReward.itemId,
+            itemName: appliedReward.itemName,
+            itemType: appliedReward.itemType,
+            basePriceCents: 0,
+            qty: 1,
+            selectedOptions: [],
+            slotChoices: {},
+          }] : []),
+        ],
       };
 
       const res = await ordersApi.place(payload, auth.token ?? '');
@@ -515,6 +571,32 @@ export default function CheckoutModal() {
     return `https://wa.me/?text=${encodeURIComponent(msg)}`;
   }, []);
 
+  const handleApplyReward = async () => {
+    if (!auth.token || !selectedMilestone) return;
+    setRewardLoading(true);
+    setRewardError(null);
+    try {
+      const res = await rewardsApi.redeem({ milestonePoints: selectedMilestone.points }, auth.token);
+      setAppliedReward(res.reward);
+      setRewardsSummary((prev) => prev ? { ...prev, balance: prev.balance - selectedMilestone.points } : prev);
+    } catch (err) {
+      setRewardError(err instanceof Error ? err.message : 'Could not apply reward. Please try again.');
+    } finally {
+      setRewardLoading(false);
+    }
+  };
+
+  const handleRemoveReward = () => {
+    setAppliedReward(null);
+    setSelectedMilestone(null);
+    setRewardError(null);
+  };
+
+  const handlePromoSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPromoMsg('Promo codes are coming soon!');
+  };
+
   const fieldChange =
     (name: keyof Form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -522,6 +604,9 @@ export default function CheckoutModal() {
       if (errors[name as keyof Errors])
         setErrors((prev) => ({ ...prev, [name]: undefined }));
     };
+
+  // Step indicator helper
+  const stepIndex = screen === 'confirmed' ? 2 : screen === 'payment' ? 1 : 0;
 
   return (
     <div
@@ -537,6 +622,21 @@ export default function CheckoutModal() {
         aria-label="Checkout"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* ── Step indicator ── */}
+        {screen !== 'confirmed' && (
+          <div className="checkout-steps" aria-label="Checkout progress">
+            {['Details', 'Payment', 'Done'].map((label, i) => (
+              <div
+                key={label}
+                className={`checkout-steps__step${i === stepIndex ? ' checkout-steps__step--active' : i < stepIndex ? ' checkout-steps__step--done' : ''}`}
+              >
+                <span className="checkout-steps__num">{i < stepIndex ? '✓' : i + 1}</span>
+                <span className="checkout-steps__label">{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {screen === 'confirmed' && confirmedOrder ? (
           /* ── Confirmation screen ─────────────────────────── */
           <>
@@ -561,7 +661,6 @@ export default function CheckoutModal() {
                     <strong>{confirmedOrder.estimatedWaitMin} minutes</strong>
                   </p>
                 ) : null}
-                {/* P5-D: show scheduled time if pre-order */}
                 {whenMode === 'later' && selectedSlot && (
                   <p className="confirmation__detail confirmation__detail--scheduled">
                     ⏰ Scheduled for <strong>{formatSlotTime(selectedSlot)}</strong>
@@ -571,7 +670,6 @@ export default function CheckoutModal() {
                   We'll send updates to <strong>{form.email}</strong>
                 </p>
 
-                {/* P6-D: WhatsApp share */}
                 <a
                   href={buildWhatsAppMessage(confirmedOrder)}
                   target="_blank"
@@ -582,7 +680,6 @@ export default function CheckoutModal() {
                   <MessageCircle size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> Send to WhatsApp
                 </a>
 
-                {/* P6-B: Referral share card */}
                 <div className="referral-card">
                   <p className="referral-card__heading">Share & Earn <Gift size={14} aria-hidden="true" style={{ verticalAlign: '-2px' }} /></p>
                   <p className="referral-card__sub">Give a friend their first order discount — you'll both earn bonus Vault points when they order.</p>
@@ -629,14 +726,47 @@ export default function CheckoutModal() {
               </button>
             </div>
             <div className="modal__body">
-              <div className="order-summary" style={{ marginBottom: 'var(--space-4)' }}>
-                <div className="order-summary__row order-summary__row--total">
-                  <span>Total to pay</span>
-                  <span className="order-summary__price">
-                    {formatPrice(pendingOrder?.totalCents ?? total)}
-                  </span>
+              {/* Mini order recap above the payment element */}
+              <div className="payment-recap">
+                <div className="payment-recap__items">
+                  {items.map((item: CartItem) => (
+                    <div key={item.cartItemId} className="payment-recap__row">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt=""
+                          className="payment-recap__thumb"
+                          loading="lazy"
+                          width={40}
+                          height={40}
+                        />
+                      ) : (
+                        <div className="payment-recap__thumb payment-recap__thumb--fallback" aria-hidden="true">
+                          {item.name.charAt(0)}
+                        </div>
+                      )}
+                      <span className="payment-recap__name">
+                        {item.qty}&times; {item.name}
+                      </span>
+                    </div>
+                  ))}
+                  {appliedReward && (
+                    <div className="payment-recap__row">
+                      <div className="payment-recap__thumb payment-recap__thumb--reward" aria-hidden="true">
+                        <Gift size={16} />
+                      </div>
+                      <span className="payment-recap__name payment-recap__name--reward">
+                        1&times; {appliedReward.itemName} <span className="payment-recap__free">Free</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="payment-recap__total">
+                  <span>Total</span>
+                  <span>{formatPrice(pendingOrder?.totalCents ?? total)}</span>
                 </div>
               </div>
+
               <div ref={payElRef} />
               {!payElementReady && (
                 <p className="form-hint">Loading secure payment form…</p>
@@ -695,36 +825,34 @@ export default function CheckoutModal() {
             >
               <div className="modal__body modal__body--two-col">
                 {/* ── Left: form fields ── */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'var(--space-5)',
-                  }}
-                >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
                   {/* Order type — chosen in OrderGate, shown read-only here */}
                   <div className="form-group">
                     <span className="form-label">Order Type</span>
                     <div className="checkout-ordertype">
                       <span className="checkout-ordertype__value">
-                        {deliveryType === 'pickup' ? <><ShoppingBag size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Pickup</> : <><Truck size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Delivery</>}
+                        {deliveryType === 'pickup'
+                          ? <><ShoppingBag size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Pickup</>
+                          : <><Truck size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Delivery</>}
                       </span>
-                      <button
-                        type="button"
-                        className="checkout-ordertype__change"
-                        onClick={() => orderGateOpen.set(true)}
-                      >
+                      <button type="button" className="checkout-ordertype__change" onClick={() => orderGateOpen.set(true)}>
                         Change
                       </button>
                     </div>
+
+                    {/* Pickup confirmation card */}
                     {deliveryType === 'pickup' && (
-                      <p className="form-hint">
-                        Pick up at 148 E 46th St, New York, NY 10017
-                      </p>
+                      <div className="checkout-pickup-card">
+                        <MapPin size={15} className="checkout-pickup-card__icon" aria-hidden="true" />
+                        <div className="checkout-pickup-card__info">
+                          <strong className="checkout-pickup-card__address">148 E 46th St, New York, NY 10017</strong>
+                          <span className="checkout-pickup-card__hours">Mon–Sun · 11:30 AM – 10:00 PM</span>
+                        </div>
+                      </div>
                     )}
                   </div>
 
-                  {/* When? — ASAP vs scheduled (Phase 3-C) */}
+                  {/* When? — ASAP vs scheduled */}
                   <div className="form-group">
                     <span className="form-label">When?</span>
                     <div className="bundle-slot__options">
@@ -750,20 +878,14 @@ export default function CheckoutModal() {
                           <button
                             type="button"
                             className={`bundle-slot__option${slotDate === nyDateStr(0) ? ' bundle-slot__option--selected' : ''}`}
-                            onClick={() => {
-                              setSlotDate(nyDateStr(0));
-                              setSelectedSlot(null);
-                            }}
+                            onClick={() => { setSlotDate(nyDateStr(0)); setSelectedSlot(null); }}
                           >
                             Today
                           </button>
                           <button
                             type="button"
                             className={`bundle-slot__option${slotDate === nyDateStr(1) ? ' bundle-slot__option--selected' : ''}`}
-                            onClick={() => {
-                              setSlotDate(nyDateStr(1));
-                              setSelectedSlot(null);
-                            }}
+                            onClick={() => { setSlotDate(nyDateStr(1)); setSelectedSlot(null); }}
                           >
                             Tomorrow
                           </button>
@@ -805,113 +927,61 @@ export default function CheckoutModal() {
 
                   {/* Name */}
                   <div className="form-group">
-                    <label htmlFor="co-name" className="form-label form-label--required">
-                      Name
-                    </label>
+                    <label htmlFor="co-name" className="form-label form-label--required">Name</label>
                     <input
-                      id="co-name"
-                      type="text"
+                      id="co-name" type="text"
                       className={`form-input${errors.name ? ' form-input--error' : ''}`}
-                      value={form.name}
-                      onChange={fieldChange('name')}
-                      autoComplete="name"
-                      placeholder="Your full name"
+                      value={form.name} onChange={fieldChange('name')}
+                      autoComplete="name" placeholder="Your full name"
                     />
-                    {errors.name && (
-                      <span className="form-error" role="alert">
-                        {errors.name}
-                      </span>
-                    )}
+                    {errors.name && <span className="form-error" role="alert">{errors.name}</span>}
                   </div>
 
                   {/* Phone */}
                   <div className="form-group">
-                    <label htmlFor="co-phone" className="form-label form-label--required">
-                      Phone
-                    </label>
+                    <label htmlFor="co-phone" className="form-label form-label--required">Phone</label>
                     <input
-                      id="co-phone"
-                      type="tel"
+                      id="co-phone" type="tel"
                       className={`form-input${errors.phone ? ' form-input--error' : ''}`}
-                      value={form.phone}
-                      onChange={fieldChange('phone')}
-                      autoComplete="tel"
-                      placeholder="(212) 555-0100"
+                      value={form.phone} onChange={fieldChange('phone')}
+                      autoComplete="tel" placeholder="(212) 555-0100"
                     />
-                    {errors.phone && (
-                      <span className="form-error" role="alert">
-                        {errors.phone}
-                      </span>
-                    )}
+                    {errors.phone && <span className="form-error" role="alert">{errors.phone}</span>}
                   </div>
 
                   {/* Email */}
                   <div className="form-group">
-                    <label htmlFor="co-email" className="form-label form-label--required">
-                      Email
-                    </label>
+                    <label htmlFor="co-email" className="form-label form-label--required">Email</label>
                     <input
-                      id="co-email"
-                      type="email"
+                      id="co-email" type="email"
                       className={`form-input${errors.email ? ' form-input--error' : ''}`}
-                      value={form.email}
-                      onChange={fieldChange('email')}
-                      autoComplete="email"
-                      placeholder="you@example.com"
+                      value={form.email} onChange={fieldChange('email')}
+                      autoComplete="email" placeholder="you@example.com"
                     />
-                    {errors.email && (
-                      <span className="form-error" role="alert">
-                        {errors.email}
-                      </span>
-                    )}
+                    {errors.email && <span className="form-error" role="alert">{errors.email}</span>}
                   </div>
 
                   {/* Delivery address (delivery only) */}
                   {deliveryType === 'delivery' && (
                     <>
                       <div className="form-group">
-                        <label
-                          htmlFor="co-address"
-                          className="form-label form-label--required"
-                        >
-                          Delivery Address
-                        </label>
+                        <label htmlFor="co-address" className="form-label form-label--required">Delivery Address</label>
                         <input
-                          id="co-address"
-                          type="text"
+                          id="co-address" type="text"
                           className={`form-input${errors.address ? ' form-input--error' : ''}`}
-                          value={form.address}
-                          onChange={fieldChange('address')}
-                          autoComplete="street-address"
-                          placeholder="123 Main St, New York, NY"
+                          value={form.address} onChange={fieldChange('address')}
+                          autoComplete="street-address" placeholder="123 Main St, New York, NY"
                         />
-                        {errors.address && (
-                          <span className="form-error" role="alert">
-                            {errors.address}
-                          </span>
-                        )}
+                        {errors.address && <span className="form-error" role="alert">{errors.address}</span>}
                       </div>
-
                       <div className="form-group">
                         <label htmlFor="co-apt" className="form-label">
-                          Apt / Floor{' '}
-                          <span
-                            style={{
-                              fontWeight: 400,
-                              color: 'var(--color-text-muted)',
-                            }}
-                          >
-                            (optional)
-                          </span>
+                          Apt / Floor <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span>
                         </label>
                         <input
-                          id="co-apt"
-                          type="text"
-                          className="form-input"
-                          value={form.apt}
-                          onChange={fieldChange('apt')}
-                          autoComplete="address-line2"
-                          placeholder="Apt 4B"
+                          id="co-apt" type="text" className="form-input"
+                          value={form.apt} onChange={fieldChange('apt')}
+                          autoComplete="address-line2" placeholder="Apt 4B"
                         />
                       </div>
                     </>
@@ -920,23 +990,12 @@ export default function CheckoutModal() {
                   {/* Special instructions */}
                   <div className="form-group">
                     <label htmlFor="co-notes" className="form-label">
-                      Special Instructions{' '}
-                      <span
-                        style={{
-                          fontWeight: 400,
-                          color: 'var(--color-text-muted)',
-                        }}
-                      >
-                        (optional)
-                      </span>
+                      Special Instructions <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span>
                     </label>
                     <textarea
-                      id="co-notes"
-                      className="form-textarea"
-                      value={form.specialInstructions}
-                      onChange={fieldChange('specialInstructions')}
-                      placeholder="Allergies, spice preferences, extra napkins…"
-                      rows={3}
+                      id="co-notes" className="form-textarea"
+                      value={form.specialInstructions} onChange={fieldChange('specialInstructions')}
+                      placeholder="Allergies, spice preferences, extra napkins…" rows={3}
                     />
                   </div>
                 </div>
@@ -946,25 +1005,43 @@ export default function CheckoutModal() {
                   <div className="order-summary__heading">Order Summary</div>
 
                   {items.length === 0 ? (
-                    <p
-                      style={{
-                        color: 'var(--color-text-muted)',
-                        fontSize: 'var(--text-sm)',
-                      }}
-                    >
-                      No items in cart.
-                    </p>
+                    <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>No items in cart.</p>
                   ) : (
                     items.map((item: CartItem) => (
-                      <div key={item.cartItemId} className="order-summary__row">
-                        <span>
+                      <div key={item.cartItemId} className="order-summary__row order-summary__row--item">
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt=""
+                            className="order-summary__thumb"
+                            loading="lazy"
+                            width={40}
+                            height={40}
+                          />
+                        ) : (
+                          <div className="order-summary__thumb order-summary__thumb--fallback" aria-hidden="true">
+                            {item.name.charAt(0)}
+                          </div>
+                        )}
+                        <span className="order-summary__item-name">
                           {item.qty}&times;&nbsp;{item.name}
                         </span>
-                        <span className="order-summary__price">
-                          {formatPrice(item.lineTotalCents)}
-                        </span>
+                        <span className="order-summary__price">{formatPrice(item.lineTotalCents)}</span>
                       </div>
                     ))
+                  )}
+
+                  {/* Applied reward line */}
+                  {appliedReward && (
+                    <div className="order-summary__row order-summary__row--item order-summary__row--reward">
+                      <div className="order-summary__thumb order-summary__thumb--reward" aria-hidden="true">
+                        <Gift size={16} />
+                      </div>
+                      <span className="order-summary__item-name">
+                        1&times;&nbsp;{appliedReward.itemName}
+                      </span>
+                      <span className="order-summary__price order-summary__price--free">Free</span>
+                    </div>
                   )}
 
                   <div className="order-summary__row">
@@ -977,34 +1054,94 @@ export default function CheckoutModal() {
                   </div>
                   <div className="order-summary__row">
                     <span>Delivery fee</span>
-                    <span className="order-summary__price">
-                      {fee === 0 ? 'Free' : formatPrice(fee)}
-                    </span>
+                    <span className="order-summary__price">{fee === 0 ? 'Free' : formatPrice(fee)}</span>
                   </div>
                   <div className="order-summary__row order-summary__row--total">
                     <span>Total</span>
                     <span className="order-summary__price">{formatPrice(total)}</span>
+                  </div>
+
+                  {/* ── Artisan Vault redemption ── */}
+                  {auth.token && rewardsSummary && rewardsSummary.unlocked.length > 0 && !appliedReward && (
+                    <div className="vault-section">
+                      <div className="vault-section__header">
+                        <Gift size={14} aria-hidden="true" />
+                        <span className="vault-section__title">Artisan Vault</span>
+                        <span className="vault-section__balance">{rewardsSummary.balance.toLocaleString()} pts</span>
+                      </div>
+                      <p className="vault-section__hint">Select a reward to apply to this order:</p>
+                      <div className="vault-section__milestones">
+                        {rewardsSummary.unlocked.map((m) => (
+                          <button
+                            key={m.points}
+                            type="button"
+                            className={`vault-milestone__pill${selectedMilestone?.points === m.points ? ' vault-milestone__pill--selected' : ''}`}
+                            onClick={() => setSelectedMilestone(selectedMilestone?.points === m.points ? null : m)}
+                          >
+                            {m.label}
+                            <span className="vault-milestone__pts">· {m.points.toLocaleString()} pts</span>
+                          </button>
+                        ))}
+                      </div>
+                      {rewardError && <p className="form-error" role="alert" style={{ marginTop: 'var(--space-2)' }}>{rewardError}</p>}
+                      {selectedMilestone && (
+                        <button
+                          type="button"
+                          className="btn btn--secondary vault-section__apply"
+                          onClick={handleApplyReward}
+                          disabled={rewardLoading}
+                        >
+                          {rewardLoading ? 'Applying…' : `Apply — ${selectedMilestone.label}`}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {appliedReward && (
+                    <div className="vault-section vault-section--applied">
+                      <Gift size={14} aria-hidden="true" />
+                      <span className="vault-section__applied-label">Reward applied: {appliedReward.itemName}</span>
+                      <button type="button" className="vault-section__remove" onClick={handleRemoveReward}>Remove</button>
+                    </div>
+                  )}
+
+                  {/* ── Promo code ── */}
+                  <div className="promo-section">
+                    <button
+                      type="button"
+                      className="promo-section__toggle"
+                      onClick={() => { setPromoExpanded((v) => !v); setPromoMsg(null); }}
+                      aria-expanded={promoExpanded}
+                    >
+                      <Tag size={13} aria-hidden="true" />
+                      Have a promo code?
+                      <ChevronDown size={13} className={`promo-section__chevron${promoExpanded ? ' promo-section__chevron--open' : ''}`} aria-hidden="true" />
+                    </button>
+                    {promoExpanded && (
+                      <form className="promo-section__form" onSubmit={handlePromoSubmit}>
+                        <input
+                          type="text"
+                          className="form-input promo-section__input"
+                          value={promoCode}
+                          onChange={(e) => { setPromoCode(e.target.value); setPromoMsg(null); }}
+                          placeholder="Enter code"
+                          aria-label="Promo code"
+                        />
+                        <button type="submit" className="btn btn--secondary promo-section__btn">Apply</button>
+                      </form>
+                    )}
+                    {promoMsg && <p className="promo-section__msg">{promoMsg}</p>}
                   </div>
                 </div>
               </div>
 
               <div className="modal__footer">
                 {globalError && (
-                  <p
-                    role="alert"
-                    style={{
-                      color: 'var(--color-error)',
-                      fontSize: 'var(--text-sm)',
-                      marginBottom: 'var(--space-3)',
-                    }}
-                  >
+                  <p role="alert" style={{ color: 'var(--color-error)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)' }}>
                     {globalError}
                   </p>
                 )}
-                <PaymentRequestButton
-                  totalCents={total}
-                  onPaymentMethod={handlePaymentRequest}
-                />
+                <PaymentRequestButton totalCents={total} onPaymentMethod={handlePaymentRequest} />
                 <button
                   type="submit"
                   className="btn btn--primary"
