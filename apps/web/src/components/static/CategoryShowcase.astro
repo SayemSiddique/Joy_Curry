@@ -1,0 +1,94 @@
+---
+import { CATEGORIES } from '@lib/core';
+import { categoryIcon, chevronLeftIcon, chevronRightIcon } from '@lib/icons';
+
+interface Props {
+  activeCategories: string[];
+  /** Prefix for chip links. Empty string = same-page anchor. '/order' = cross-page. */
+  linkPrefix?: string;
+}
+
+const { activeCategories, linkPrefix = '' } = Astro.props;
+
+// Category → verified Unsplash photo IDs (all confirmed HTTP 200)
+const Q = '?q=80&w=600&auto=format&fit=crop';
+const U = (id: string) => `https://images.unsplash.com/photo-${id}${Q}`;
+
+const TILE_IMAGES: Record<string, string> = {
+  'appetizer':        U('1601050690597-df0568f70950'), // chaat/snack
+  'salad':            U('1490645935967-10de6ba17061'), // fresh greens
+  'soup':             U('1547592166-23ac45744acd'),    // cream soup
+  'vegetable-entree': U('1585937421612-70a008356fbe'), // veg curry
+  'vegan-entree':     U('1585937421612-70a008356fbe'), // veg curry
+  'chicken-entree':   U('1565557623262-b51c2513a641'), // tikka masala
+  'meat-entree':      U('1529692236671-f1f6cf9683ba'), // grilled meat
+  'fish-shrimp':      U('1534482421-64566f976cfa'),    // fish/shrimp
+  'tandoori':         U('1599487488170-d11ec9c172f0'), // grilled skewers
+  'rice-biryani':     U('1563379091339-03b21ab4a4f8'), // biryani
+  'express-lunch':    U('1585937421612-70a008356fbe'), // veg curry plate
+  'bread':            U('1631452180519-c014fe946bc7'), // curry + bread visible
+  'side':             U('1547592166-23ac45744acd'),    // soup/side bowl
+  'condiment':        U('1547592166-23ac45744acd'),    // sauce/soup bowl
+  'dessert':          U('1567620905732-2d1ec7ab7445'), // Indian sweets ✅
+  'beverage':         U('1547592166-23ac45744acd'),    // soup/warm drink
+};
+
+const visibleCategories = CATEGORIES.filter((c) => activeCategories.includes(c.id));
+---
+
+<section class="category-showcase container" aria-label="Browse by category">
+  <p class="category-showcase__heading">Browse by Category</p>
+  <div class="category-showcase__wrap">
+    <button type="button" class="category-showcase__chevron category-showcase__chevron--left" data-dir="-1" aria-label="Scroll categories left">
+      <Fragment set:html={chevronLeftIcon(18)} />
+    </button>
+
+    <div class="category-showcase__track">
+      {visibleCategories.map((cat) => {
+        const img = TILE_IMAGES[cat.id];
+        return (
+          <a
+            href={`${linkPrefix}#${cat.id}`}
+            class="category-showcase__chip"
+            aria-label={`Jump to ${cat.label}`}
+          >
+            {img && (
+              <img
+                class="category-showcase__chip-img"
+                src={img}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+                width="200"
+                height="150"
+              />
+            )}
+            <div class="category-showcase__chip-overlay" aria-hidden="true"></div>
+            <div class="category-showcase__chip-label">
+              <span class="category-showcase__chip-icon" aria-hidden="true"><Fragment set:html={categoryIcon(cat.id, 18)} /></span>
+              <span class="category-showcase__chip-name">{cat.label}</span>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+
+    <button type="button" class="category-showcase__chevron category-showcase__chevron--right" data-dir="1" aria-label="Scroll categories right">
+      <Fragment set:html={chevronRightIcon(18)} />
+    </button>
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.category-showcase__wrap').forEach((wrap) => {
+    const track = wrap.querySelector<HTMLElement>('.category-showcase__track');
+    if (!track) return;
+    wrap.querySelectorAll<HTMLButtonElement>('.category-showcase__chevron').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const dir = Number(btn.dataset.dir);
+        track.scrollBy({ left: dir * 300, behavior: 'smooth' });
+      });
+    });
+  });
+</script>

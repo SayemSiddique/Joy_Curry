@@ -21,7 +21,9 @@ export default function OrderGate() {
   const currentType = useNano(orderType);
   const savedAddress = useNano(deliveryAddress);
 
-  const [step, setStep] = useState<Step>('choose');
+  const [step, setStep] = useState<Step>(
+    orderType.get() === 'delivery' && deliveryAddress.get().trim() === '' ? 'address' : 'choose',
+  );
   const [address, setAddress] = useState(savedAddress);
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -30,16 +32,22 @@ export default function OrderGate() {
   useFocusTrap(modalRef, open);
 
   // First visit to /order with no choice yet → open the gate automatically.
+  // Also reopens (landing on the address step) if the home-screen toggle
+  // already set orderType='delivery' but no address was collected yet.
   useEffect(() => {
-    if (orderType.get() === null) orderGateOpen.set(true);
+    const type = orderType.get();
+    const needsAddress = type === 'delivery' && deliveryAddress.get().trim() === '';
+    if (type === null || needsAddress) orderGateOpen.set(true);
   }, []);
 
   // Reset the inner step each time the gate opens.
-  // Always start at 'choose' so the user can switch between pickup and delivery
-  // even when reopened from within the checkout "Change" button.
+  // Start on 'address' only when delivery is chosen but has no address yet
+  // (home-screen toggle case). Otherwise always start at 'choose' so the user
+  // can switch between pickup and delivery even when reopened from within the
+  // checkout "Change" button.
   useEffect(() => {
     if (open) {
-      setStep('choose');
+      setStep(orderType.get() === 'delivery' && deliveryAddress.get().trim() === '' ? 'address' : 'choose');
       setAddress(deliveryAddress.get());
       setError(null);
       setDistanceNote(null);

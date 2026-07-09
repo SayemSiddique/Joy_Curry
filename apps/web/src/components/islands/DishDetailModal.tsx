@@ -24,12 +24,16 @@ function SpiceMeter({ level }: { level?: string }) {
 export default function DishDetailModal() {
   const [item, setItem] = useState<MenuItem | null>(null);
   const [closing, setClosing] = useState(false);
+  const [qty, setQty] = useState(1);
+  const [selectedModIds, setSelectedModIds] = useState<string[]>([]);
   const addBtnRef = useRef<HTMLButtonElement>(null);
 
   const open = useCallback((e: Event) => {
     const detail = (e as CustomEvent<MenuItem>).detail;
     setClosing(false);
     setItem(detail);
+    setQty(1);
+    setSelectedModIds([]);
   }, []);
 
   const close = useCallback(() => {
@@ -55,14 +59,28 @@ export default function DishDetailModal() {
 
   if (!item) return null;
 
+  const modifiers = item.modifiers ?? [];
+  const selectedMods = modifiers.filter((m) => selectedModIds.includes(m.id));
+  const unitPriceCents = item.basePriceCents + selectedMods.reduce((sum, m) => sum + m.priceDeltaCents, 0);
+  const totalCents = unitPriceCents * qty;
+
+  const toggleModifier = (id: string) => {
+    setSelectedModIds((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id],
+    );
+  };
+
   const handleAdd = () => {
     addToCart({
       itemId: item.id,
       name: item.name,
       basePriceCents: item.basePriceCents,
-      qty: 1,
-      lineTotalCents: item.basePriceCents,
+      qty,
+      lineTotalCents: totalCents,
       itemType: 'regular',
+      ...(selectedMods.length > 0
+        ? { selectedOptions: selectedMods.map((m) => ({ label: m.label, priceDeltaCents: m.priceDeltaCents })) }
+        : {}),
     });
     if (addBtnRef.current) flyToCart(addBtnRef.current);
     close();
@@ -138,25 +156,62 @@ export default function DishDetailModal() {
             )}
 
             {/* Modifiers */}
-            {item.modifiers?.length > 0 && (
-              <div className="dish-modal__modifiers">
-                <span className="dish-modal__modifiers-label">Customise:</span>
+            {modifiers.length > 0 && (
+              <fieldset className="dish-modal__modifiers">
+                <legend className="dish-modal__modifiers-label">Customise:</legend>
                 <div className="dish-modal__modifier-list">
-                  {item.modifiers.map(m => (
-                    <span key={m.id} className="dish-modal__modifier-chip">
-                      {m.label}
-                      {m.priceDeltaCents !== 0 && (
-                        <span className="dish-modal__modifier-price">
-                          {m.priceDeltaCents > 0 ? ' +' : ' '}{formatPrice(Math.abs(m.priceDeltaCents))}
-                        </span>
-                      )}
-                    </span>
-                  ))}
+                  {modifiers.map(m => {
+                    const checked = selectedModIds.includes(m.id);
+                    return (
+                      <label
+                        key={m.id}
+                        className={`dish-modal__modifier-option${checked ? ' dish-modal__modifier-option--selected' : ''}`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="dish-modal__modifier-input"
+                          checked={checked}
+                          onChange={() => toggleModifier(m.id)}
+                        />
+                        <span className="dish-modal__modifier-name">{m.label}</span>
+                        {m.priceDeltaCents !== 0 && (
+                          <span className="dish-modal__modifier-price">
+                            {m.priceDeltaCents > 0 ? '+' : ''}{formatPrice(m.priceDeltaCents)}
+                          </span>
+                        )}
+                        <span className="dish-modal__modifier-check" aria-hidden="true">✓</span>
+                      </label>
+                    );
+                  })}
                 </div>
-              </div>
+              </fieldset>
             )}
 
             <ReviewGallery itemId={item.id} />
+
+            {/* Quantity */}
+            <div className="bundle-modal__qty-row">
+              <span className="bundle-modal__qty-label">Qty</span>
+              <div className="cart-item__qty" role="group" aria-label="Quantity">
+                <button
+                  className="cart-item__qty-btn"
+                  onClick={() => setQty(q => Math.max(1, q - 1))}
+                  aria-label="Decrease quantity"
+                  type="button"
+                >
+                  −
+                </button>
+                <span className="cart-item__qty-value" aria-live="polite">{qty}</span>
+                <button
+                  className="cart-item__qty-btn"
+                  onClick={() => setQty(q => Math.min(10, q + 1))}
+                  aria-label="Increase quantity"
+                  type="button"
+                >
+                  +
+                </button>
+              </div>
+            </div>
 
             {/* Add to Order */}
             <button
@@ -165,7 +220,7 @@ export default function DishDetailModal() {
               disabled={!item.inStock}
               onClick={handleAdd}
             >
-              {item.inStock ? `Add to Order · ${formatPrice(item.basePriceCents)}` : 'Sold Out'}
+              {item.inStock ? `Add to Order · ${formatPrice(totalCents)}` : 'Sold Out'}
             </button>
           </div>
         </div>

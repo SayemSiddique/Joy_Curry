@@ -1,8 +1,9 @@
 ---
 import BaseLayout from '@layouts/BaseLayout.astro';
 import TimeBasedHero from '@components/islands/TimeBasedHero';
+import OrderTypeToggle from '@components/islands/OrderTypeToggle';
 import Footer from '@components/static/Footer.astro';
-import BentoGrid from '@components/static/BentoGrid.astro';
+import CategoryShowcase from '@components/static/CategoryShowcase.astro';
 import MenuCard from '@components/static/MenuCard.astro';
 import type { MenuItem } from '@lib/core';
 import { CATEGORIES, API_BASE_URL } from '@lib/core';
@@ -37,8 +38,17 @@ const featuredItems = FEATURED_CATEGORIES
 
 <BaseLayout>
   <TimeBasedHero client:load />
+  <OrderTypeToggle client:load />
 
   <main id="main-content">
+
+    {/* ── Category Showcase ───────────────────────────────────── */}
+    {!fetchError && activeCategories.length > 0 && (
+      <CategoryShowcase
+        activeCategories={activeCategories.map((c) => c.id)}
+        linkPrefix="/order"
+      />
+    )}
 
     {/* ── Featured Best Sellers ───────────────────────────────── */}
     {!fetchError && featuredItems.length > 0 && (
@@ -87,14 +97,6 @@ const featuredItems = FEATURED_CATEGORIES
         </div>
       </div>
     </section>
-
-    {/* ── Category Bento Showcase ─────────────────────────────── */}
-    {!fetchError && activeCategories.length > 0 && (
-      <BentoGrid
-        activeCategories={activeCategories.map((c) => c.id)}
-        linkPrefix="/order"
-      />
-    )}
 
     {/* ── CTA Strip ───────────────────────────────────────────── */}
     <div class="landing-cta-strip">

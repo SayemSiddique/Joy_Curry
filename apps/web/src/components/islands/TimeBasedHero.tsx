@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, Truck, Leaf, Star } from 'lucide-react';
+import { Moon, Star } from 'lucide-react';
 
 type TimeWindow = 'lunch' | 'afternoon' | 'dinner' | 'default';
 
@@ -128,30 +128,6 @@ export default function TimeBasedHero() {
           </h1>
 
           <p className="hero__subtitle">{w.subtitle}</p>
-
-          <div className="hero__actions">
-            <a href={w.cta1.href} className="btn btn--cta">
-              {w.cta1.text}
-            </a>
-            <a href={w.cta2.href} className="btn btn--outline">
-              {w.cta2.text}
-            </a>
-          </div>
-
-          <div className="hero__badge-row" aria-label="Restaurant highlights">
-            <span className="hero__badge">
-              <Star size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> Halal Certified
-            </span>
-            <span className="hero__badge">
-              <Truck size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> Fast Delivery
-            </span>
-            <span className="hero__badge">
-              <Leaf size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> Vegetarian Options
-            </span>
-            <span className="hero__badge">
-              <Star size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> 30+ Years Serving NYC
-            </span>
-          </div>
         </div>
       </div>
     </section>
