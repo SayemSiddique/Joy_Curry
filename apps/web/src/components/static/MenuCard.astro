@@ -1,7 +1,7 @@
 ---
 import type { MenuItem } from '@lib/core';
 import { formatPrice } from '@lib/core';
-import { categoryIcon, flameIcon, leafIcon, chefHatIcon, plusIcon } from '@lib/icons';
+import { categoryIcon, heartIcon, leafIcon, chefHatIcon, plusIcon } from '@lib/icons';
 
 interface Props {
   item: MenuItem;
@@ -138,7 +138,7 @@ const sizes = '(max-width: 640px) 45vw, 280px';
       {isGlutenFree && <span class="badge badge--gf">GF</span>}
       {isHalal && <span class="badge badge--halal">Halal</span>}
       {(item.tags ?? []).includes('popular') && (
-        <span class="badge badge--popular"><Fragment set:html={flameIcon(12)} /> Most Loved</span>
+        <span class="badge badge--popular"><Fragment set:html={heartIcon(12)} /> Most Loved</span>
       )}
       {(item.tags ?? []).includes('chefs-pick') && (
         <span class="badge badge--chefs-pick"><Fragment set:html={chefHatIcon(12)} /> Chef's Pick</span>

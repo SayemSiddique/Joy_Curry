@@ -587,13 +587,22 @@ export default function CartPage() {
               <div className="cp-summary">
                 <div className="cp-summary__heading">Order Total</div>
 
-                {/* Order type */}
-                <div className="cp-summary__ordertype">
-                  <span>{deliveryType === 'pickup'
-                    ? <><ShoppingBag size={13} aria-hidden="true" /> Pickup</>
-                    : <><Truck size={13} aria-hidden="true" /> Delivery</>}
-                  </span>
-                  <button type="button" className="cp-summary__change" onClick={() => orderGateOpen.set(true)}>Change</button>
+                {/* Order type toggle */}
+                <div className="cp-summary__type-toggle">
+                  <button
+                    type="button"
+                    className={`cp-summary__type-btn${deliveryType === 'pickup' ? ' cp-summary__type-btn--active' : ''}`}
+                    onClick={() => orderType.set('pickup')}
+                  >
+                    <ShoppingBag size={13} aria-hidden="true" /> Pickup
+                  </button>
+                  <button
+                    type="button"
+                    className={`cp-summary__type-btn${deliveryType === 'delivery' ? ' cp-summary__type-btn--active' : ''}`}
+                    onClick={() => orderType.set('delivery')}
+                  >
+                    <Truck size={13} aria-hidden="true" /> Delivery
+                  </button>
                 </div>
 
                 {deliveryType === 'pickup' && (
@@ -677,13 +686,21 @@ export default function CartPage() {
               {/* Order type */}
               <div className="form-group">
                 <span className="form-label">Order Type</span>
-                <div className="checkout-ordertype">
-                  <span className="checkout-ordertype__value">
-                    {deliveryType === 'pickup'
-                      ? <><ShoppingBag size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Pickup</>
-                      : <><Truck size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Delivery</>}
-                  </span>
-                  <button type="button" className="checkout-ordertype__change" onClick={() => orderGateOpen.set(true)}>Change</button>
+                <div className="cp-summary__type-toggle">
+                  <button
+                    type="button"
+                    className={`cp-summary__type-btn${deliveryType === 'pickup' ? ' cp-summary__type-btn--active' : ''}`}
+                    onClick={() => orderType.set('pickup')}
+                  >
+                    <ShoppingBag size={13} aria-hidden="true" /> Pickup
+                  </button>
+                  <button
+                    type="button"
+                    className={`cp-summary__type-btn${deliveryType === 'delivery' ? ' cp-summary__type-btn--active' : ''}`}
+                    onClick={() => orderType.set('delivery')}
+                  >
+                    <Truck size={13} aria-hidden="true" /> Delivery
+                  </button>
                 </div>
                 {deliveryType === 'pickup' && (
                   <div className="checkout-pickup-card">

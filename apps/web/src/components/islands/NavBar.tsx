@@ -75,14 +75,14 @@ export default function NavBar() {
             <a href="/#rewards" className="navbar__nav-link">REWARDS</a>
             {auth.user && (
               <a
-                className="navbar__btn navbar__nav-link"
+                className="navbar__nav-link"
                 href="/orders"
               >MY ORDERS</a>
             )}
             {auth.user && (
               <button
                 type="button"
-                className="navbar__btn navbar__nav-link"
+                className="navbar__nav-link"
                 aria-label="Artisan Vault rewards"
                 onClick={() => vaultOpen.set(true)}
               >✦ VAULT</button>
@@ -90,7 +90,7 @@ export default function NavBar() {
             {auth.user?.role === 'admin' && (
               <button
                 type="button"
-                className="navbar__btn navbar__nav-link"
+                className="navbar__nav-link"
                 aria-label="Admin panel"
                 onClick={() => adminPanelOpen.set(true)}
               >ADMIN</button>
