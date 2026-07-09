@@ -8,7 +8,7 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "node --import ./instrument.js server.js",
     "dev": "nodemon server.js",
     "seed": "node db/seed.js"
   },

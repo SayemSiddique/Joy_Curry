@@ -3,9 +3,9 @@ import { db } from '../../config/db.js';
 export async function up() {
   await db.run(`
     CREATE TABLE IF NOT EXISTS favorites (
-      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      item_id     UUID NOT NULL,
+      id          SERIAL PRIMARY KEY,
+      user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      item_id     TEXT NOT NULL,
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE (user_id, item_id)
     )
