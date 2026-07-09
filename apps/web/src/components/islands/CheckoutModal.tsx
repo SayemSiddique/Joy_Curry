@@ -15,7 +15,7 @@ import {
   clearCart,
   type CartItem,
 } from '@lib/core';
-import { authState } from '@lib/core';
+import { authState, authOpen } from '@lib/core';
 import { ordersApi, slotsApi, paymentsApi, type Order, type Slot } from '@lib/core';
 import { MIN_ORDER_CENTS } from '@lib/core';
 import { formatPrice, formatSlotTime } from '@lib/core';
@@ -203,6 +203,17 @@ export default function CheckoutModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Orders are tied to an account (server requires a JWT), so guest
+    // checkout isn't supported yet: send the customer to sign in/register
+    // first rather than letting the request fail with a 401 at payment time.
+    if (!auth.token) {
+      checkoutOpen.set(false);
+      authOpen.set(true);
+      showToast('Please sign in to complete your order — your cart is saved.', 'info');
+      return;
+    }
+
     const errs = validate();
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -377,6 +388,12 @@ export default function CheckoutModal() {
   const handlePaymentRequest = async (event: PaymentRequestPaymentMethodEvent) => {
     let sheetClosed = false;
     try {
+      if (!auth.token) {
+        event.complete('fail');
+        sheetClosed = true;
+        throw new Error('Please sign in to complete your order.');
+      }
+
       const errs = validate();
       setErrors(errs);
       if (Object.keys(errs).length > 0) throw new Error('Please fill in all required fields.');
