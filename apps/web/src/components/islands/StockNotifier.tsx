@@ -29,7 +29,7 @@ export default function StockNotifier() {
           const badge = document.createElement('span');
           badge.className = 'stock-urgency stock-urgency--critical';
           badge.setAttribute('aria-label', 'Sold out today');
-          badge.textContent = '🔴 Sold out today';
+          badge.textContent = 'Sold out today';
 
           const imgWrap = card.querySelector('.menu-card__img-wrap');
           if (imgWrap) imgWrap.appendChild(badge);

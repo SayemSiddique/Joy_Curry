@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Flame, Leaf, ChefHat } from 'lucide-react';
 import type { MenuItem } from '@lib/core';
 import { formatPrice } from '@lib/core';
 import { addToCart } from '@lib/core';
@@ -10,9 +11,9 @@ function SpiceMeter({ level }: { level?: string }) {
   const lvl = level === 'Hot' ? 3 : level === 'Medium' ? 2 : 1;
   return (
     <span className="spice-meter" aria-label={`Spice level: ${level}`}>
-      <span className="spice-meter__chilies">
+      <span className="spice-meter__dots" aria-hidden="true">
         {[1, 2, 3].map(i => (
-          <span key={i} className={`spice-meter__chili${i <= lvl ? ' spice-meter__chili--lit' : ''}`} aria-hidden="true">🌶</span>
+          <span key={i} className={`spice-dot${i <= lvl ? ' spice-dot--lit' : ''}`} />
         ))}
       </span>
       <span className="spice-meter__label">{level}</span>
@@ -91,7 +92,7 @@ export default function DishDetailModal() {
               loading="eager"
             />
           ) : (
-            <div className="dish-modal__img-placeholder">🍽️</div>
+            <div className="dish-modal__img-placeholder" aria-hidden="true"><Flame size={48} strokeWidth={1.5} /></div>
           )}
         </div>
 
@@ -110,13 +111,13 @@ export default function DishDetailModal() {
 
             {/* Badges */}
             <div className="dish-modal__badges">
-              {item.isVegan && <span className="badge badge--vegan">🌱 Vegan</span>}
-              {!item.isVegan && item.isVegetarian && <span className="badge badge--veg">🟢 Vegetarian</span>}
-              {!isVeg && <span className="badge badge--nonveg">🔴 Non-Veg</span>}
+              {item.isVegan && <span className="badge badge--vegan"><Leaf size={12} aria-hidden="true" /> Vegan</span>}
+              {!item.isVegan && item.isVegetarian && <span className="badge badge--veg"><span className="badge__dot badge__dot--veg" aria-hidden="true" /> Vegetarian</span>}
+              {!isVeg && <span className="badge badge--nonveg"><span className="badge__dot badge__dot--nonveg" aria-hidden="true" /> Non-Veg</span>}
               {item.isGlutenFree && <span className="badge badge--gf">GF</span>}
               {item.isHalal && <span className="badge badge--halal">Halal</span>}
-              {(item.tags ?? []).includes('popular') && <span className="badge badge--popular">🔥 Most Loved</span>}
-              {(item.tags ?? []).includes('chefs-pick') && <span className="badge badge--chefs-pick">👨‍🍳 Chef's Pick</span>}
+              {(item.tags ?? []).includes('popular') && <span className="badge badge--popular"><Flame size={12} aria-hidden="true" /> Most Loved</span>}
+              {(item.tags ?? []).includes('chefs-pick') && <span className="badge badge--chefs-pick"><ChefHat size={12} aria-hidden="true" /> Chef's Pick</span>}
             </div>
 
             {/* Served with */}

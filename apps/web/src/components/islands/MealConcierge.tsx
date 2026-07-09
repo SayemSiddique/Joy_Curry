@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Sparkles, Flame } from 'lucide-react';
 import type { MenuItem } from '@lib/core';
 
 interface Props {
@@ -60,7 +61,7 @@ export default function MealConcierge({ menuItems }: Props) {
     if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     const label = count === 1 ? '1 dish' : `${count} dishes`;
-    showToast(`✨ We picked ${label} for you`);
+    showToast(`We picked ${label} for you`);
     closeModal();
   };
 
@@ -68,7 +69,7 @@ export default function MealConcierge({ menuItems }: Props) {
     <>
       {/* Floating trigger button */}
       <button className="meal-concierge__fab" onClick={openModal} aria-label="Build my meal">
-        ✨ Build my meal
+        <Sparkles size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} /> Build my meal
       </button>
 
       {/* Modal */}
@@ -84,7 +85,7 @@ export default function MealConcierge({ menuItems }: Props) {
             <button className="dish-modal__close" onClick={closeModal} aria-label="Close">✕</button>
 
             <div className="concierge-modal__header">
-              <span className="concierge-modal__icon">✨</span>
+              <Sparkles size={28} className="concierge-modal__icon" aria-hidden="true" />
               <h2 className="concierge-modal__title">Build My Meal</h2>
               <p className="concierge-modal__sub">Answer 3 quick questions</p>
               {/* Step dots */}
@@ -125,7 +126,7 @@ export default function MealConcierge({ menuItems }: Props) {
                         className={`concierge-chip${spice === s ? ' concierge-chip--active' : ''}`}
                         onClick={() => { setSpice(s); setStep(3); }}
                       >
-                        {s === 'Mild' ? '🙂 Mild' : s === 'Medium' ? '🌶 Medium' : '🔥 Hot'}
+                        {s === 'Mild' ? 'Mild' : s === 'Medium' ? <><Flame size={12} aria-hidden="true" /> Medium</> : <><Flame size={12} aria-hidden="true" /><Flame size={12} aria-hidden="true" /> Hot</>}
                       </button>
                     ))}
                   </div>

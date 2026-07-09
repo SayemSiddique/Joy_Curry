@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Users } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import { authState } from '@lib/core';
 import { addToCart, cartOpen, cartItems } from '@lib/core';
@@ -59,7 +60,7 @@ export default function GroupOrderBanner() {
     <div className="group-banner" role="region" aria-label="Group order">
       <div className="container group-banner__inner">
         <div className="group-banner__info">
-          <span className="group-banner__icon">👥</span>
+          <span className="group-banner__icon"><Users size={20} aria-hidden="true" /></span>
           <div>
             <strong>Group Order</strong> started by{' '}
             <strong>{session.hostName}</strong>

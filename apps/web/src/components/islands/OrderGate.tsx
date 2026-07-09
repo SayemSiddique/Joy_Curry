@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { ShoppingBag, Truck } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import { orderType, orderGateOpen, deliveryAddress, subtotalCents, setOrderType, setDeliveryRouting } from '@lib/core';
 import { distanceApi } from '@lib/core';
@@ -138,7 +139,7 @@ export default function OrderGate() {
           {step === 'choose' ? (
             <div className="order-gate__choices">
               <button type="button" className="order-gate__choice" onClick={choosePickup}>
-                <span className="order-gate__choice-icon" aria-hidden="true">🥡</span>
+                <span className="order-gate__choice-icon" aria-hidden="true"><ShoppingBag size={36} strokeWidth={1.5} /></span>
                 <span className="order-gate__choice-title">Secure Pickup</span>
                 <span className="order-gate__choice-sub">
                   Ready at 148 E 46th St — no delivery fee
@@ -146,7 +147,7 @@ export default function OrderGate() {
               </button>
 
               <button type="button" className="order-gate__choice" onClick={chooseDelivery}>
-                <span className="order-gate__choice-icon" aria-hidden="true">🛵</span>
+                <span className="order-gate__choice-icon" aria-hidden="true"><Truck size={36} strokeWidth={1.5} /></span>
                 <span className="order-gate__choice-title">Bespoke Delivery</span>
                 <span className="order-gate__choice-sub">
                   Brought to your door across Midtown

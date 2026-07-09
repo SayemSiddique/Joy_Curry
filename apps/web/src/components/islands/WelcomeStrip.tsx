@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Hand } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import { authState } from '@lib/core';
 import { addToCart, cartOpen } from '@lib/core';
@@ -98,7 +99,7 @@ export default function WelcomeStrip() {
     <div className="welcome-strip" role="region" aria-label="Personalized welcome">
       <div className="container welcome-strip__inner">
         <div className="welcome-strip__greeting">
-          <span className="welcome-strip__wave">👋</span>
+          <span className="welcome-strip__wave"><Hand size={20} aria-hidden="true" /></span>
           <span>Welcome back, <strong>{firstName}</strong>! Your favourites:</span>
         </div>
         <div className="welcome-strip__items">

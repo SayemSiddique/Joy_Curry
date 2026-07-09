@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { UtensilsCrossed, ClipboardList, BarChart2, Truck, ShoppingBag } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import { adminPanelOpen, authState } from '@lib/core';
 import { adminApi, type MenuItem, type AdminOrder, type DashboardStats } from '@lib/core';
@@ -314,7 +315,7 @@ export default function AdminPanel() {
                 className={`admin-tab${activeTab === tab ? ' admin-tab--active' : ''}`}
                 onClick={() => handleTabChange(tab)}
               >
-                {tab === 'menu' ? '🍽 Menu' : tab === 'orders' ? '📋 Orders' : '📊 Dashboard'}
+                {tab === 'menu' ? <><UtensilsCrossed size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />Menu</> : tab === 'orders' ? <><ClipboardList size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />Orders</> : <><BarChart2 size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />Dashboard</>}
               </button>
             ))}
           </div>
@@ -575,7 +576,7 @@ export default function AdminPanel() {
                         )}
                       </td>
                       <td style={{ fontSize: 'var(--text-xs)', textTransform: 'capitalize' }}>
-                        {order.delivery_type === 'delivery' ? '🛵' : '🥡'} {order.delivery_type}
+                        {order.delivery_type === 'delivery' ? <Truck size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> : <ShoppingBag size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />}{order.delivery_type}
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
                         {formatPrice(order.total_cents)}

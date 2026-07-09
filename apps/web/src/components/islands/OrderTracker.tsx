@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { ChefHat, Bell, Truck, ShoppingBag } from 'lucide-react';
 import type { Order } from '@lib/core';
 import { formatPrice } from '@lib/core';
 
@@ -7,19 +8,19 @@ type DeliveryType = 'delivery' | 'pickup';
 interface Stage {
   id: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   durationMs: number; // simulated time to stay on this stage
 }
 
 function getStages(deliveryType: DeliveryType): Stage[] {
   return [
     { id: 'placed',    label: 'Order Placed',   icon: '✓',  durationMs: 5_000   },
-    { id: 'kitchen',   label: 'In the Kitchen',  icon: '👨‍🍳', durationMs: 15_000  },
-    { id: 'ready',     label: 'Ready',           icon: '🔔', durationMs: 8_000   },
+    { id: 'kitchen',   label: 'In the Kitchen',  icon: <ChefHat size={28} strokeWidth={1.5} aria-hidden="true" />, durationMs: 15_000  },
+    { id: 'ready',     label: 'Ready',           icon: <Bell size={28} strokeWidth={1.5} aria-hidden="true" />, durationMs: 8_000   },
     {
       id:    'final',
       label: deliveryType === 'delivery' ? 'Out for Delivery' : 'Ready to Collect',
-      icon:  deliveryType === 'delivery' ? '🛵' : '🥡',
+      icon:  deliveryType === 'delivery' ? <Truck size={28} strokeWidth={1.5} aria-hidden="true" /> : <ShoppingBag size={28} strokeWidth={1.5} aria-hidden="true" />,
       durationMs: Infinity,
     },
   ];

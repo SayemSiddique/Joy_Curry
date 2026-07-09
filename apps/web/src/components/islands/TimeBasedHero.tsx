@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Moon, Truck, Leaf, Star } from 'lucide-react';
 
 type TimeWindow = 'lunch' | 'afternoon' | 'dinner' | 'default';
 
@@ -18,7 +19,7 @@ const HERO_OVERLAYS: Record<TimeWindow, string> = {
 };
 
 interface WindowConfig {
-  eyebrow: string;
+  eyebrow: React.ReactNode;
   title: string;
   titleEm: string;
   subtitle: string;
@@ -28,7 +29,7 @@ interface WindowConfig {
 
 const WINDOWS: Record<TimeWindow, WindowConfig> = {
   lunch: {
-    eyebrow: '⚡ Express Lunch · Midtown Manhattan · 100% Halal',
+    eyebrow: <><Star size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />Express Lunch · Midtown Manhattan · 100% Halal</>,
     title: 'The Mid-Day',
     titleEm: 'Matrix.',
     subtitle: 'Complex Indian flavors, engineered for the afternoon pace. Ready in minutes.',
@@ -36,7 +37,7 @@ const WINDOWS: Record<TimeWindow, WindowConfig> = {
     cta2: { text: 'View Full Menu', href: '/menu' },
   },
   afternoon: {
-    eyebrow: '☕ Afternoon Bites · Midtown Manhattan · 100% Halal',
+    eyebrow: <><Star size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />Afternoon Bites · Midtown Manhattan · 100% Halal</>,
     title: 'Afternoon',
     titleEm: 'Cravings?',
     subtitle: 'Fuel your mid-day slide with something satisfying from our clay tandoor.',
@@ -44,7 +45,7 @@ const WINDOWS: Record<TimeWindow, WindowConfig> = {
     cta2: { text: 'View Full Menu', href: '/menu' },
   },
   dinner: {
-    eyebrow: '🌙 Dinner Service · Open Until 11 PM · 100% Halal',
+    eyebrow: <><Moon size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />Dinner Service · Open Until 11 PM · 100% Halal</>,
     title: 'Hungry',
     titleEm: 'Tonight?',
     subtitle: 'The evening slow-braises are perfectly aged. Dinner is served.',
@@ -52,7 +53,7 @@ const WINDOWS: Record<TimeWindow, WindowConfig> = {
     cta2: { text: 'View Full Menu', href: '/menu' },
   },
   default: {
-    eyebrow: '🌙 100% Halal · Authentic Since 1994 · Midtown NYC',
+    eyebrow: <><Moon size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />100% Halal · Authentic Since 1994 · Midtown NYC</>,
     title: 'Flavours of',
     titleEm: 'India, Delivered',
     subtitle: 'From clay-oven tandoor to slow-simmered curries — every dish made fresh with halal ingredients at 148 East 46th Street.',
@@ -139,16 +140,16 @@ export default function TimeBasedHero() {
 
           <div className="hero__badge-row" aria-label="Restaurant highlights">
             <span className="hero__badge">
-              <span aria-hidden="true">✓</span> Halal Certified
+              <Star size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> Halal Certified
             </span>
             <span className="hero__badge">
-              <span aria-hidden="true">🛵</span> Fast Delivery
+              <Truck size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> Fast Delivery
             </span>
             <span className="hero__badge">
-              <span aria-hidden="true">🌱</span> Vegetarian Options
+              <Leaf size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> Vegetarian Options
             </span>
             <span className="hero__badge">
-              <span aria-hidden="true">⭐</span> 30+ Years Serving NYC
+              <Star size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> 30+ Years Serving NYC
             </span>
           </div>
         </div>

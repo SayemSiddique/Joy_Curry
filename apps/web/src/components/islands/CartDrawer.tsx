@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { ShoppingCart, CheckCircle2, Flame, Utensils, Truck, Gift, Users } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import {
   cartItems,
@@ -126,7 +127,7 @@ export default function CartDrawer() {
       const { reward } = await rewardsApi.redeem({ milestonePoints: milestone.points }, token);
       addToCart({
         itemId: reward.itemId,
-        name: `🎁 ${reward.itemName} (Reward)`,
+        name: `${reward.itemName} (Reward)`,
         basePriceCents: 0,
         qty: 1,
         lineTotalCents: 0,
@@ -232,7 +233,7 @@ export default function CartDrawer() {
           aria-label={`View cart — ${count} ${count === 1 ? 'item' : 'items'}, subtotal ${formatPrice(subtotal)}`}
         >
           <span className="cart-bar__left">
-            <span className="cart-bar__icon" aria-hidden="true">🛒</span>
+            <ShoppingCart size={18} className="cart-bar__icon" aria-hidden="true" />
             <span className="cart-bar__count">{count > 99 ? '99+' : count}</span>
             <span className="cart-bar__text">View Order</span>
           </span>
@@ -278,7 +279,7 @@ export default function CartDrawer() {
         <div className="cart-drawer__items">
           {items.length === 0 ? (
             <div className="cart-drawer__empty">
-              <span className="cart-drawer__empty-icon" aria-hidden="true">🛒</span>
+              <ShoppingCart size={48} className="cart-drawer__empty-icon" aria-hidden="true" />
               <p style={{ fontWeight: 700 }}>Your cart is empty</p>
               <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
                 Add something delicious from the menu!
@@ -350,7 +351,7 @@ export default function CartDrawer() {
               <p className="cart-upsells__heading">Pairs perfectly with your order</p>
               {upsells.map(u => (
                 <div key={u.itemId} className="cart-upsell-row">
-                  <span className="cart-upsell-row__emoji" aria-hidden="true">{u.emoji}</span>
+                  <Utensils size={16} className="cart-upsell-row__icon" aria-hidden="true" />
                   <div className="cart-upsell-row__info">
                     <span className="cart-upsell-row__name">{u.name}</span>
                     <span className="cart-upsell-row__reason">{u.reason}</span>
@@ -403,7 +404,7 @@ export default function CartDrawer() {
               <div className={`cart-nudge${freeMet ? ' cart-nudge--met' : ''}`}>
                 <p className="cart-nudge__label" role="status" aria-live="polite">
                   {freeMet ? (
-                    <>🎉 You've unlocked <strong>free delivery</strong>!</>
+                    <><CheckCircle2 size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> You've unlocked <strong>free delivery</strong>!</>
                   ) : (
                     <>
                       Add <strong>{formatPrice(remainingToFree)}</strong> more for{' '}
@@ -427,7 +428,7 @@ export default function CartDrawer() {
             {isDelivery && minMet && !inHouse && (
               <div className="cart-nudge cart-nudge--courier">
                 <p className="cart-nudge__label" role="status" aria-live="polite">
-                  🛵 You're {routing!.distanceMiles.toFixed(1)} mi away — delivered by our courier
+                  <Truck size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> You're {routing!.distanceMiles.toFixed(1)} mi away — delivered by our courier
                   partner{routing!.quoteCents > 0 ? <> · {formatPrice(routing!.quoteCents)} delivery</> : null}
                 </p>
               </div>
@@ -446,12 +447,12 @@ export default function CartDrawer() {
                   return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 })() && (
                   <div className="cart-vault__birthday">
-                    🎂 It's your birthday! Free dish unlocked
+                    <Gift size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> It's your birthday! Free dish unlocked
                   </div>
                 )}
                 {(rewards.streak ?? 0) >= 1 && (
                   <div className={`cart-vault__streak${(rewards.streak ?? 0) >= 2 ? ' cart-vault__streak--animated' : ''}`}>
-                    🔥 {rewards.streak}-week streak
+                    <Flame size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 3 }} /> {rewards.streak}-week streak
                   </div>
                 )}
                 {rewards.nextMilestone ? (
@@ -517,7 +518,7 @@ export default function CartDrawer() {
                 onClick={handleStartGroupOrder}
                 aria-label="Start a group order and share a link"
               >
-                👥 Start Group Order
+                <Users size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} /> Start Group Order
               </button>
             ) : (
               <div className="cart-group-active">

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Utensils, Star, Flame, Gem, Trophy, Crown, Lock } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import { authState, rewardsState, vaultOpen, loadRewards } from '@lib/core';
 import { addToCart, cartOpen } from '@lib/core';
@@ -9,7 +10,7 @@ import { showToast } from '@lib/toast';
 // P6-C: Badge definitions — derived purely from rewards data (no extra API calls)
 interface Badge {
   id: string;
-  emoji: string;
+  icon: React.ReactNode;
   label: string;
   desc: string;
   unlocked: boolean;
@@ -17,49 +18,48 @@ interface Badge {
 
 function computeBadges(rewards: RewardsSummary): Badge[] {
   const spendDollars = rewards.lifetimeCents / 100;
-  const totalOrders = Math.floor(rewards.balance / 100); // proxy: every $1 = 100 pts, so balance/100 ≈ order count
   const streak = rewards.streak ?? 0;
   const unlockedMilestones = rewards.unlocked?.length ?? 0;
 
   return [
     {
       id: 'first-bite',
-      emoji: '🍽️',
+      icon: <Utensils size={20} aria-hidden="true" />,
       label: 'First Bite',
       desc: 'Placed your first order',
       unlocked: rewards.balance > 0,
     },
     {
       id: 'loyal-regular',
-      emoji: '⭐',
+      icon: <Star size={20} aria-hidden="true" />,
       label: 'Loyal Regular',
       desc: '3-week ordering streak',
       unlocked: streak >= 3,
     },
     {
       id: 'hot-streak',
-      emoji: '🔥',
+      icon: <Flame size={20} aria-hidden="true" />,
       label: 'Hot Streak',
       desc: '5-week ordering streak',
       unlocked: streak >= 5,
     },
     {
       id: 'big-spender',
-      emoji: '💎',
+      icon: <Gem size={20} aria-hidden="true" />,
       label: 'Big Spender',
       desc: 'Over $100 lifetime spend',
       unlocked: spendDollars >= 100,
     },
     {
       id: 'vault-explorer',
-      emoji: '🏆',
+      icon: <Trophy size={20} aria-hidden="true" />,
       label: 'Vault Explorer',
       desc: 'Unlocked a rewards milestone',
       unlocked: unlockedMilestones >= 1,
     },
     {
       id: 'connoisseur',
-      emoji: '👑',
+      icon: <Crown size={20} aria-hidden="true" />,
       label: 'Curry Connoisseur',
       desc: 'Over $250 lifetime spend',
       unlocked: spendDollars >= 250,
@@ -98,7 +98,7 @@ export default function RewardsPanel() {
     let changed = false;
     for (const badge of badges) {
       if (badge.unlocked && !earnedSet.has(badge.id)) {
-        showToast(`🏅 Badge unlocked: ${badge.label}!`, 'success');
+        showToast(`Badge unlocked: ${badge.label}!`, 'success');
         earnedSet.add(badge.id);
         changed = true;
       }
@@ -118,7 +118,7 @@ export default function RewardsPanel() {
       const { reward } = await rewardsApi.redeem({ milestonePoints: milestone.points }, token);
       addToCart({
         itemId: reward.itemId,
-        name: `🎁 ${reward.itemName} (Reward)`,
+        name: `${reward.itemName} (Reward)`,
         basePriceCents: 0,
         qty: 1,
         lineTotalCents: 0,
@@ -206,7 +206,7 @@ export default function RewardsPanel() {
                           Redeem
                         </button>
                       ) : (
-                        <span className="vault-milestone__status" aria-hidden="true">🔒</span>
+                        <span className="vault-milestone__status" aria-hidden="true"><Lock size={14} /></span>
                       )}
                     </div>
                   );
@@ -225,7 +225,7 @@ export default function RewardsPanel() {
                       aria-label={`${badge.label}: ${badge.desc}${badge.unlocked ? ' (earned)' : ' (locked)'}`}
                     >
                       <span className="vault-badge__emoji" aria-hidden="true">
-                        {badge.unlocked ? badge.emoji : '🔒'}
+                        {badge.unlocked ? badge.icon : <Lock size={20} />}
                       </span>
                       <span className="vault-badge__label">{badge.label}</span>
                     </div>

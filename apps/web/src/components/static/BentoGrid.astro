@@ -1,5 +1,6 @@
 ---
 import { CATEGORIES } from '@lib/core';
+import { categoryIcon } from '@lib/icons';
 
 interface Props {
   activeCategories: string[];
@@ -63,7 +64,7 @@ const FEATURED_IDS = visibleCategories.slice(0, 2).map((c) => c.id);
           )}
           <div class="bento__tile-overlay" aria-hidden="true"></div>
           <div class="bento__tile-label">
-            <span class="bento__tile-emoji" aria-hidden="true">{cat.emoji}</span>
+            <span class="bento__tile-icon" aria-hidden="true"><Fragment set:html={categoryIcon(cat.id, 20)} /></span>
             <span class="bento__tile-name">{cat.label}</span>
           </div>
         </a>

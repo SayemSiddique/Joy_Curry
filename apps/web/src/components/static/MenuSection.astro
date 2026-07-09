@@ -1,11 +1,12 @@
 ---
 import type { MenuItem } from '@lib/core';
 import MenuCard from './MenuCard.astro';
+import { categoryIcon } from '@lib/icons';
 
 interface Props {
   category: string;
   label: string;
-  emoji: string;
+  emoji?: string;
   items: MenuItem[];
   galleryMode?: boolean;
   // Set on the first rendered section only: its first row of cards is the LCP,
@@ -13,7 +14,7 @@ interface Props {
   priority?: boolean;
 }
 
-const { category, label, emoji, items, galleryMode = false, priority = false } = Astro.props;
+const { category, label, items, galleryMode = false, priority = false } = Astro.props;
 
 // First 3 cards form the visible first row above the fold on the priority section.
 const ABOVE_FOLD_COUNT = 3;
@@ -27,7 +28,7 @@ const ABOVE_FOLD_COUNT = 3;
 >
   <div class="menu-section__header">
     <h2 class="menu-section__title" id={`section-title-${category}`}>
-      {emoji} {label}
+      <span class="menu-section__icon" aria-hidden="true"><Fragment set:html={categoryIcon(category, 22)} /></span>{label}
     </h2>
     <span class="menu-section__count">{items.length} item{items.length !== 1 ? 's' : ''}</span>
   </div>

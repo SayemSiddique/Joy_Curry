@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Utensils, Salad, Soup, Sprout, Leaf, Fish, Flame, Wheat, Clock, Croissant, Coffee, Cake, Droplets, Package2, Star, UtensilsCrossed } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import type { MenuItem } from '@lib/core';
 import {
@@ -18,26 +19,25 @@ function useNano<T>(store: ReadableAtom<T>): T {
   return val;
 }
 
-// Emoji fallback when an option has no imageUrl (mirrors MenuCard.astro).
-const CATEGORY_EMOJI: Record<string, string> = {
-  appetizer: '🥗',
-  salad: '🥗',
-  soup: '🍲',
-  'vegetable-entree': '🥦',
-  'vegan-entree': '🌱',
-  'chicken-entree': '🍗',
-  'meat-entree': '🥩',
-  'fish-shrimp': '🦐',
-  tandoori: '🔥',
-  'rice-biryani': '🍚',
-  'express-lunch': '⚡',
-  bread: '🫓',
-  side: '🍛',
-  condiment: '🧄',
-  dessert: '🍮',
-  beverage: '🥤',
-  'dinner-special': '🍽️',
-  combo: '🥘',
+const CATEGORY_ICON: Record<string, React.ReactNode> = {
+  appetizer: <Salad size={20} />,
+  salad: <Salad size={20} />,
+  soup: <Soup size={20} />,
+  'vegetable-entree': <Sprout size={20} />,
+  'vegan-entree': <Leaf size={20} />,
+  'chicken-entree': <Utensils size={20} />,
+  'meat-entree': <UtensilsCrossed size={20} />,
+  'fish-shrimp': <Fish size={20} />,
+  tandoori: <Flame size={20} />,
+  'rice-biryani': <Wheat size={20} />,
+  'express-lunch': <Clock size={20} />,
+  bread: <Croissant size={20} />,
+  side: <Utensils size={20} />,
+  condiment: <Droplets size={20} />,
+  dessert: <Cake size={20} />,
+  beverage: <Coffee size={20} />,
+  'dinner-special': <Star size={20} />,
+  combo: <Package2 size={20} />,
 };
 
 // Title-case a subcategory slug for use as a sub-group heading.
@@ -368,9 +368,9 @@ export default function BundleModal({ menuItems }: Props) {
   );
 }
 
-// Option thumbnail — falls back to the category emoji if the image is missing
+// Option thumbnail — falls back to the category icon if the image is missing
 // or fails to load (real photos aren't all in place yet).
-function OptionMedia({ imageUrl, emoji }: { imageUrl?: string; emoji: string }) {
+function OptionMedia({ imageUrl, icon }: { imageUrl?: string; icon: React.ReactNode }) {
   const [failed, setFailed] = useState(false);
   const showImg = imageUrl && !failed;
   return (
@@ -384,7 +384,7 @@ function OptionMedia({ imageUrl, emoji }: { imageUrl?: string; emoji: string }) 
           onError={() => setFailed(true)}
         />
       ) : (
-        <span className="bundle-option__emoji">{emoji}</span>
+        <span className="bundle-option__emoji">{icon}</span>
       )}
     </span>
   );
@@ -452,7 +452,7 @@ function SlotSection({ slot, selections, itemMap, invalid, onChange }: SlotSecti
               const name = item?.name ?? id;
               const checked = selections.includes(id);
               const atLimit = !isRadio && !checked && filled >= slot.choose;
-              const emoji = CATEGORY_EMOJI[item?.category ?? ''] ?? '🍽️';
+              const icon = CATEGORY_ICON[item?.category ?? ''] ?? <Utensils size={20} />;
 
               return (
                 <label
@@ -468,7 +468,7 @@ function SlotSection({ slot, selections, itemMap, invalid, onChange }: SlotSecti
                     onChange={(e) => onChange(id, e.target.checked)}
                     className="bundle-option__input"
                   />
-                  <OptionMedia imageUrl={item?.imageUrl} emoji={emoji} />
+                  <OptionMedia imageUrl={item?.imageUrl} icon={icon} />
                   <span className="bundle-option__name">{name}</span>
                   <span className="bundle-option__check" aria-hidden="true">✓</span>
                 </label>

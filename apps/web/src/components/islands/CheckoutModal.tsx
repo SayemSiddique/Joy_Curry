@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { MessageCircle, Gift, Copy, Share2, Lock, ShoppingBag, Truck } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import {
   cartItems,
@@ -486,7 +487,7 @@ export default function CheckoutModal() {
       .join('\n');
     const eta = order.estimatedWaitMin ? `ETA: ~${order.estimatedWaitMin} min` : '';
     const msg = [
-      `✅ Joy Curry & Tandoor — Order Confirmed!`,
+      `Joy Curry & Tandoor — Order Confirmed!`,
       `Order #${order.id}`,
       ``,
       itemLines,
@@ -561,12 +562,12 @@ export default function CheckoutModal() {
                   className="btn btn--whatsapp"
                   style={{ marginTop: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', justifyContent: 'center' }}
                 >
-                  <span aria-hidden="true">💬</span> Send to WhatsApp
+                  <MessageCircle size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> Send to WhatsApp
                 </a>
 
                 {/* P6-B: Referral share card */}
                 <div className="referral-card">
-                  <p className="referral-card__heading">Share & Earn 🎁</p>
+                  <p className="referral-card__heading">Share & Earn <Gift size={14} aria-hidden="true" style={{ verticalAlign: '-2px' }} /></p>
                   <p className="referral-card__sub">Give a friend their first order discount — you'll both earn bonus Vault points when they order.</p>
                   <div className="referral-card__code">{referralCode}</div>
                   <div className="referral-card__actions">
@@ -575,14 +576,14 @@ export default function CheckoutModal() {
                       className="referral-card__copy"
                       onClick={handleCopyReferral}
                     >
-                      {referralCopied ? '✓ Copied!' : '📋 Copy Link'}
+                      {referralCopied ? '✓ Copied!' : <><Copy size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Copy Link</>}
                     </button>
                     <button
                       type="button"
                       className="referral-card__share"
                       onClick={handleShareReferral}
                     >
-                      🔗 Share
+                      <Share2 size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> Share
                     </button>
                   </div>
                 </div>
@@ -652,7 +653,7 @@ export default function CheckoutModal() {
                 className="form-hint"
                 style={{ textAlign: 'center', marginTop: 'var(--space-2)' }}
               >
-                🔒 Payments are processed securely by Stripe.
+                <Lock size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} /> Payments are processed securely by Stripe.
               </p>
             </div>
           </>
@@ -689,7 +690,7 @@ export default function CheckoutModal() {
                     <span className="form-label">Order Type</span>
                     <div className="checkout-ordertype">
                       <span className="checkout-ordertype__value">
-                        {deliveryType === 'pickup' ? '🥡 Pickup' : '🛵 Delivery'}
+                        {deliveryType === 'pickup' ? <><ShoppingBag size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Pickup</> : <><Truck size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />Delivery</>}
                       </span>
                       <button
                         type="button"

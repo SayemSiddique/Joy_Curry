@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Camera } from 'lucide-react';
 import { authState } from '@lib/core';
 import { API_BASE_URL } from '@lib/core';
 import { showToast } from '@lib/toast';
@@ -126,7 +127,7 @@ export default function ReviewGallery({ itemId }: { itemId: string }) {
             onClick={() => setShowForm(v => !v)}
             type="button"
           >
-            {showForm ? 'Cancel' : '📷 Leave a review'}
+            {showForm ? 'Cancel' : <><Camera size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />Leave a review</>}
           </button>
 
           {showForm && (

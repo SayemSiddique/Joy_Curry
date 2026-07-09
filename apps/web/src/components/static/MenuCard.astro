@@ -1,6 +1,7 @@
 ---
 import type { MenuItem } from '@lib/core';
 import { formatPrice } from '@lib/core';
+import { categoryIcon, flameIcon, leafIcon, chefHatIcon, plusIcon } from '@lib/icons';
 
 interface Props {
   item: MenuItem;
@@ -32,31 +33,9 @@ const {
   category,
 } = item;
 
-// Emoji placeholder when no image
-const CATEGORY_EMOJI: Record<string, string> = {
-  'appetizer': '🥗',
-  'salad': '🥗',
-  'soup': '🍲',
-  'vegetable-entree': '🥦',
-  'vegan-entree': '🌱',
-  'chicken-entree': '🍗',
-  'meat-entree': '🥩',
-  'fish-shrimp': '🦐',
-  'tandoori': '🔥',
-  'rice-biryani': '🍚',
-  'express-lunch': '⚡',
-  'bread': '🫓',
-  'side': '🍛',
-  'condiment': '🧄',
-  'dessert': '🍮',
-  'beverage': '🥤',
-  'dinner-special': '🍽️',
-  'combo': '🥘',
-};
-
 const isBundle = category === 'dinner-special' || category === 'combo';
 
-const emoji = CATEGORY_EMOJI[category] ?? '🍽️';
+const placeholderIcon = categoryIcon(category, 40);
 
 // Serve next-gen formats + responsive sizes where the asset exists. The image
 // pipeline (scripts/optimize-images.mjs) emits per slug: {base}-400.{avif,webp,jpg}
@@ -99,7 +78,9 @@ const sizes = '(max-width: 640px) 45vw, 280px';
           width="400"
           height="267"
         />
-        <div class="menu-card__img-placeholder" style="display:none">{emoji}</div>
+        <div class="menu-card__img-placeholder" style="display:none" aria-hidden="true">
+          <Fragment set:html={placeholderIcon} />
+        </div>
       </>
     ) : imageUrl ? (
       <>
@@ -120,12 +101,14 @@ const sizes = '(max-width: 640px) 45vw, 280px';
             onerror="this.closest('picture').style.display='none';this.closest('picture').nextElementSibling.style.display='flex';"
           />
         </picture>
-        {/* Graceful fallback: if the asset 404s (slug has no photo yet), the
-            broken <img> is hidden and this emoji placeholder is revealed. */}
-        <div class="menu-card__img-placeholder" style="display:none">{emoji}</div>
+        <div class="menu-card__img-placeholder" style="display:none" aria-hidden="true">
+          <Fragment set:html={placeholderIcon} />
+        </div>
       </>
     ) : (
-      <div class="menu-card__img-placeholder">{emoji}</div>
+      <div class="menu-card__img-placeholder" aria-hidden="true">
+        <Fragment set:html={placeholderIcon} />
+      </div>
     )}
     {!galleryMode && (
       <span class="menu-card__price-badge">{formatPrice(basePriceCents)}</span>
@@ -142,16 +125,16 @@ const sizes = '(max-width: 640px) 45vw, 280px';
     )}
 
     <div class="menu-card__badges">
-      {isVegan && <span class="badge badge--vegan">🌱 Vegan</span>}
-      {!isVegan && isVegetarian && <span class="badge badge--veg">🟢 Veg</span>}
-      {!isVegan && !isVegetarian && <span class="badge badge--nonveg">🔴 Non-Veg</span>}
+      {isVegan && <span class="badge badge--vegan"><Fragment set:html={leafIcon(12)} /> Vegan</span>}
+      {!isVegan && isVegetarian && <span class="badge badge--veg"><span class="badge__dot badge__dot--veg" aria-hidden="true"></span> Veg</span>}
+      {!isVegan && !isVegetarian && <span class="badge badge--nonveg"><span class="badge__dot badge__dot--nonveg" aria-hidden="true"></span> Non-Veg</span>}
       {isGlutenFree && <span class="badge badge--gf">GF</span>}
       {isHalal && <span class="badge badge--halal">Halal</span>}
       {(item.tags ?? []).includes('popular') && (
-        <span class="badge badge--popular">🔥 Most Loved</span>
+        <span class="badge badge--popular"><Fragment set:html={flameIcon(12)} /> Most Loved</span>
       )}
       {(item.tags ?? []).includes('chefs-pick') && (
-        <span class="badge badge--chefs-pick">👨‍🍳 Chef's Pick</span>
+        <span class="badge badge--chefs-pick"><Fragment set:html={chefHatIcon(12)} /> Chef's Pick</span>
       )}
       {spiceLevel && spiceLevel !== 'Mild' && (
         <span class="spice-meter" aria-label={`Spice level: ${spiceLevel}`}>
@@ -159,9 +142,9 @@ const sizes = '(max-width: 640px) 45vw, 280px';
             const lvl = spiceLevel === 'Hot' ? 3 : spiceLevel === 'Medium' ? 2 : 1;
             return (
               <>
-                <span class="spice-meter__chilies">
+                <span class="spice-meter__dots" aria-hidden="true">
                   {[1,2,3].map(i => (
-                    <span class={`spice-meter__chili${i <= lvl ? ' spice-meter__chili--lit' : ''}`} aria-hidden="true">🌶</span>
+                    <span class={`spice-dot${i <= lvl ? ' spice-dot--lit' : ''}`}></span>
                   ))}
                 </span>
                 <span class="spice-meter__label">{spiceLevel}</span>
@@ -182,7 +165,7 @@ const sizes = '(max-width: 640px) 45vw, 280px';
           data-price-cents={basePriceCents}
           aria-label={inStock ? `Configure ${name}` : `${name} — sold out`}
         >
-          {inStock ? '⚙ Configure' : 'Sold Out'}
+          {inStock ? <><Fragment set:html={plusIcon(13)} /> Configure</> : 'Sold Out'}
         </button>
       ) : (
         <button
@@ -195,7 +178,7 @@ const sizes = '(max-width: 640px) 45vw, 280px';
             ? quickAdd ? `Quick add ${name} to cart` : `Add ${name} to cart`
             : `${name} — sold out`}
         >
-          {inStock ? (quickAdd ? '⚡ Quick Add' : '+ Add to Order') : 'Sold Out'}
+          {inStock ? (quickAdd ? <><Fragment set:html={plusIcon(13)} /> Quick Add</> : <><Fragment set:html={plusIcon(13)} /> Add to Order</>) : 'Sold Out'}
         </button>
       )
     )}

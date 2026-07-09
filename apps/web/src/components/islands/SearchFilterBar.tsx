@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Search, Utensils } from 'lucide-react';
 import type { MenuItem } from '@lib/core';
 import { CATEGORIES, DIETARY_FILTERS, SPICE_LEVELS } from '@lib/core';
 import { formatPrice } from '@lib/core';
@@ -136,7 +137,7 @@ export default function SearchFilterBar({ menuItems }: Props) {
           <div className="toolbar__inner">
             {/* Search */}
             <div className="toolbar__search">
-              <span className="toolbar__search-icon" aria-hidden="true">🔍</span>
+              <Search size={15} className="toolbar__search-icon" aria-hidden="true" />
               <input
                 ref={searchRef}
                 type="search"
@@ -260,7 +261,7 @@ export default function SearchFilterBar({ menuItems }: Props) {
       {isFiltered && visibleCount === 0 && (
         <div className="container">
           <div className="filter-no-results">
-            <span className="filter-no-results__icon">🍽️</span>
+            <Utensils size={40} className="filter-no-results__icon" aria-hidden="true" />
             <span className="filter-no-results__text">
               No dishes match your filters.
             </span>

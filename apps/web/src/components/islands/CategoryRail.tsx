@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Utensils, Salad, Soup, Sprout, Leaf, Fish, Flame, Wheat, Clock, Croissant, Coffee, Cake, Droplets, Package2, Star, UtensilsCrossed } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import {
   activeCategory,
@@ -15,10 +16,31 @@ function useNano<T>(store: ReadableAtom<T>): T {
   return val;
 }
 
+const CATEGORY_ICON: Record<string, React.ReactNode> = {
+  'appetizer':        <Utensils size={15} aria-hidden="true" />,
+  'salad':            <Salad size={15} aria-hidden="true" />,
+  'soup':             <Soup size={15} aria-hidden="true" />,
+  'vegetable-entree': <Sprout size={15} aria-hidden="true" />,
+  'vegan-entree':     <Leaf size={15} aria-hidden="true" />,
+  'chicken-entree':   <Utensils size={15} aria-hidden="true" />,
+  'meat-entree':      <UtensilsCrossed size={15} aria-hidden="true" />,
+  'fish-shrimp':      <Fish size={15} aria-hidden="true" />,
+  'tandoori':         <Flame size={15} aria-hidden="true" />,
+  'rice-biryani':     <Wheat size={15} aria-hidden="true" />,
+  'express-lunch':    <Clock size={15} aria-hidden="true" />,
+  'bread':            <Croissant size={15} aria-hidden="true" />,
+  'side':             <Soup size={15} aria-hidden="true" />,
+  'condiment':        <Droplets size={15} aria-hidden="true" />,
+  'dessert':          <Cake size={15} aria-hidden="true" />,
+  'beverage':         <Coffee size={15} aria-hidden="true" />,
+  'dinner-special':   <Star size={15} aria-hidden="true" />,
+  'combo':            <Package2 size={15} aria-hidden="true" />,
+};
+
 interface Category {
   id: string;
   label: string;
-  emoji: string;
+  emoji?: string;
 }
 
 interface Props {
@@ -117,7 +139,7 @@ export default function CategoryRail({ categories }: Props) {
                 aria-selected={isActive}
                 onClick={() => handleClick(cat.id)}
               >
-                <span aria-hidden="true">{cat.emoji}</span> {cat.label}
+                {CATEGORY_ICON[cat.id] ?? <Utensils size={15} aria-hidden="true" />} {cat.label}
               </button>
             );
           })}
