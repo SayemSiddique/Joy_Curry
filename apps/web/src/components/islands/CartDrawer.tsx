@@ -13,12 +13,12 @@ import {
   deliveryRouting,
   scheduledFor,
   addToCart,
-  removeFromCart,
   updateQty,
   type CartItem,
 } from '@lib/core';
 import { authState, rewardsState, loadRewards } from '@lib/core';
 import { rewardsApi, type RewardMilestone } from '@lib/core';
+import { menuApi } from '@lib/core';
 import { MIN_ORDER_CENTS, FREE_DELIVERY_THRESHOLD_CENTS } from '@lib/core';
 import { formatPrice, formatSlotTime } from '@lib/core';
 import { showToast } from '@lib/toast';
@@ -178,6 +178,12 @@ export default function CartDrawer() {
       const priceCents = parseInt(btn.dataset.priceCents ?? '0', 10);
       if (!itemId || !name) return;
 
+      let imageUrl: string | undefined;
+      const card = btn.closest('[data-item-json]') as HTMLElement | null;
+      if (card?.dataset.itemJson) {
+        try { imageUrl = JSON.parse(card.dataset.itemJson).imageUrl; } catch {}
+      }
+
       flyToCart(btn);
       addToCart({
         itemId,
@@ -185,9 +191,10 @@ export default function CartDrawer() {
         basePriceCents: priceCents,
         qty: 1,
         lineTotalCents: priceCents,
+        imageUrl,
         itemType: 'regular',
       });
-      cartOpen.set(true);
+      showToast('Added to your order', 'success');
     };
 
     document.addEventListener('click', handler);
@@ -198,6 +205,44 @@ export default function CartDrawer() {
   const handleCheckout = () => {
     cartOpen.set(false);
     checkoutOpen.set(true);
+  };
+
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+
+  const handleEditItem = async (item: CartItem) => {
+    if (item.itemType === 'bundle') {
+      cartOpen.set(false);
+      window.dispatchEvent(new CustomEvent('bundle:edit', {
+        detail: {
+          itemId: item.itemId,
+          itemName: item.name,
+          basePriceCents: item.basePriceCents,
+          imageUrl: item.imageUrl,
+          cartItemId: item.cartItemId,
+          qty: item.qty,
+          slotSelectionIds: item.slotSelectionIds,
+        },
+      }));
+      return;
+    }
+
+    setEditingItemId(item.cartItemId);
+    try {
+      const { data } = await menuApi.getById(item.itemId);
+      cartOpen.set(false);
+      window.dispatchEvent(new CustomEvent('dish:edit', {
+        detail: {
+          item: data,
+          cartItemId: item.cartItemId,
+          qty: item.qty,
+          modIds: (item.selectedOptions ?? []).map((o) => o.id),
+        },
+      }));
+    } catch {
+      showToast('This item is no longer available to edit.', 'error');
+    } finally {
+      setEditingItemId(null);
+    }
   };
 
   return (
@@ -245,10 +290,15 @@ export default function CartDrawer() {
               </p>
             </div>
           ) : (
-            items.map((item: CartItem) => (
+            items.map((item: CartItem) => {
+              const editable = item.itemType === 'bundle' || item.selectedOptions !== undefined;
+              return (
               <div key={item.cartItemId} className="cart-item">
                 <div className="cart-item__top">
-                  <div>
+                  {item.imageUrl && (
+                    <img className="cart-item__thumb" src={item.imageUrl} alt="" loading="lazy" />
+                  )}
+                  <div className="cart-item__info">
                     <div className="cart-item__name">{item.name}</div>
                     {item.selectedOptions && item.selectedOptions.length > 0 && (
                       <div className="cart-item__sub">
@@ -260,14 +310,18 @@ export default function CartDrawer() {
                         {Object.values(item.slotChoices).flat().join(', ')}
                       </div>
                     )}
+                    {editable && (
+                      <button
+                        type="button"
+                        className="cart-item__edit"
+                        onClick={() => handleEditItem(item)}
+                        disabled={editingItemId === item.cartItemId}
+                        aria-label={`Edit ${item.name}`}
+                      >
+                        {editingItemId === item.cartItemId ? 'Loading…' : 'Edit'}
+                      </button>
+                    )}
                   </div>
-                  <button
-                    className="cart-item__remove"
-                    onClick={() => removeFromCart(item.cartItemId)}
-                    aria-label={`Remove ${item.name}`}
-                  >
-                    Remove
-                  </button>
                 </div>
 
                 <div className="cart-item__bottom">
@@ -279,7 +333,7 @@ export default function CartDrawer() {
                     <button
                       className="cart-item__qty-btn"
                       onClick={() => updateQty(item.cartItemId, item.qty - 1)}
-                      aria-label="Decrease quantity"
+                      aria-label={item.qty <= 1 ? `Remove ${item.name}` : 'Decrease quantity'}
                     >
                       −
                     </button>
@@ -297,7 +351,8 @@ export default function CartDrawer() {
                   <span className="cart-item__price">{formatPrice(item.lineTotalCents)}</span>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -327,6 +382,7 @@ export default function CartDrawer() {
                         itemType: 'regular',
                       });
                       flyToCart(e.currentTarget);
+                      showToast('Added to your order', 'success');
                     }}
                     aria-label={`Add ${u.name} to cart`}
                   >

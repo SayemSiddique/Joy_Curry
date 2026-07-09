@@ -9,8 +9,10 @@ export interface CartItem {
   basePriceCents: number;
   qty: number;
   lineTotalCents: number;
-  selectedOptions?: { label: string; priceDeltaCents: number }[];
+  imageUrl?: string;
+  selectedOptions?: { id: string; label: string; priceDeltaCents: number }[];
   slotChoices?: Record<string, string[]>;
+  slotSelectionIds?: Record<string, string[]>;
   itemType: 'regular' | 'bundle';
 }
 
@@ -108,6 +110,14 @@ export const totalCents = computed(
 
 export function addToCart(item: Omit<CartItem, 'cartItemId'>): void {
   const next = [...cartItems.get(), { ...item, cartItemId: generateId() }];
+  cartItems.set(next);
+  saveToStorage(next);
+}
+
+export function updateCartItem(cartItemId: string, updates: Partial<Omit<CartItem, 'cartItemId'>>): void {
+  const next = cartItems.get().map((i) =>
+    i.cartItemId === cartItemId ? { ...i, ...updates } : i,
+  );
   cartItems.set(next);
   saveToStorage(next);
 }

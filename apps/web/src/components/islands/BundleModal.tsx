@@ -8,8 +8,10 @@ import {
   type BundleDefinition,
   type BundleSlot,
 } from '@lib/core';
-import { cartOpen, addToCart } from '@lib/core';
+import { cartOpen, addToCart, updateCartItem } from '@lib/core';
 import { formatPrice } from '@lib/core';
+import { flyToCart } from '@lib/cartAnimation';
+import { showToast } from '@lib/toast';
 
 // Same useNano pattern used by all other islands — avoids @nanostores/react
 // React 19 + Astro SSR compatibility issue.
@@ -52,7 +54,18 @@ interface ActiveBundle {
   itemId: string;
   itemName: string;
   basePriceCents: number;
+  imageUrl?: string;
   definition: BundleDefinition;
+}
+
+interface BundleEditDetail {
+  itemId: string;
+  itemName: string;
+  basePriceCents: number;
+  imageUrl?: string;
+  cartItemId: string;
+  qty: number;
+  slotSelectionIds?: Record<string, string[]>;
 }
 
 interface Props {
@@ -67,9 +80,11 @@ export default function BundleModal({ menuItems }: Props) {
   // Set true once the user tries to add — gates aria-invalid + inline errors so
   // a freshly-opened (valid-by-default) bundle isn't pre-littered with errors.
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
+  const addBtnRef = useRef<HTMLButtonElement>(null);
 
   // Full id→MenuItem lookup from the SSR list (image, name, subcategory…).
   const itemMap = useMemo(
@@ -98,23 +113,54 @@ export default function BundleModal({ menuItems }: Props) {
       if (!itemId || !definition) return;
 
       lastFocusedRef.current = btn;
-      setActiveBundle({ itemId, itemName, basePriceCents, definition });
+      setActiveBundle({ itemId, itemName, basePriceCents, imageUrl: itemMap.get(itemId)?.imageUrl, definition });
       setSlotSelections(buildDefaultSelections(definition)); // smart defaults
       setQty(1);
       setAttemptedSubmit(false);
+      setEditingCartItemId(null);
     };
 
     document.addEventListener('click', handler);
     return () => document.removeEventListener('click', handler);
+  }, [itemMap]);
+
+  // Listen for edit requests from the cart drawer — reopens pre-filled with
+  // the line item's current slot picks/qty instead of smart defaults.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<BundleEditDetail>).detail;
+      const definition = BUNDLE_MAP.get(detail.itemId);
+      if (!definition) {
+        showToast('This combo is no longer available to edit.', 'error');
+        return;
+      }
+      setActiveBundle({
+        itemId: detail.itemId,
+        itemName: detail.itemName,
+        basePriceCents: detail.basePriceCents,
+        imageUrl: detail.imageUrl,
+        definition,
+      });
+      setSlotSelections(detail.slotSelectionIds ?? buildDefaultSelections(definition));
+      setQty(detail.qty);
+      setAttemptedSubmit(false);
+      setEditingCartItemId(detail.cartItemId);
+    };
+
+    window.addEventListener('bundle:edit', handler);
+    return () => window.removeEventListener('bundle:edit', handler);
   }, []);
 
   const handleClose = useCallback(() => {
+    const wasEditing = editingCartItemId !== null;
     setActiveBundle(null);
     setAttemptedSubmit(false);
+    setEditingCartItemId(null);
     // Restore focus to the launcher that opened the modal.
     lastFocusedRef.current?.focus();
     lastFocusedRef.current = null;
-  }, []);
+    if (wasEditing) cartOpen.set(true);
+  }, [editingCartItemId]);
 
   // Escape to close + focus trap (Tab cycles within the modal).
   useEffect(() => {
@@ -205,7 +251,7 @@ export default function BundleModal({ menuItems }: Props) {
       return;
     }
 
-    const { definition: def, itemId, itemName, basePriceCents } = activeBundle;
+    const { definition: def, itemId, itemName, basePriceCents, imageUrl } = activeBundle;
 
     // Build slotChoices Record<slotLabel, itemName[]> for cart display.
     const slotChoices: Record<string, string[]> = {};
@@ -219,17 +265,27 @@ export default function BundleModal({ menuItems }: Props) {
 
     const lineTotalCents = basePriceCents * qty;
 
-    addToCart({
+    const payload = {
       itemId,
       name: itemName,
       basePriceCents,
       qty,
       lineTotalCents,
+      imageUrl,
       slotChoices,
-      itemType: 'bundle',
-    });
+      slotSelectionIds: { ...slotSelections },
+      itemType: 'bundle' as const,
+    };
 
-    cartOpen.set(true);
+    if (editingCartItemId) {
+      updateCartItem(editingCartItemId, payload);
+      handleClose();
+      return;
+    }
+
+    addToCart(payload);
+    if (addBtnRef.current) flyToCart(addBtnRef.current);
+    showToast('Added to your order', 'success');
     handleClose();
   };
 
@@ -354,12 +410,13 @@ export default function BundleModal({ menuItems }: Props) {
                 : `Select ${remainingChoices} more ${remainingChoices === 1 ? 'item' : 'items'} to continue`}
             </p>
             <button
+              ref={addBtnRef}
               className="bundle-modal__add-btn"
               onClick={handleSubmit}
               type="button"
               aria-disabled={!isValid}
             >
-              Add to Order — {formatPrice(priceCents)}
+              {editingCartItemId ? 'Save Changes' : 'Add to Order'} — {formatPrice(priceCents)}
             </button>
           </div>
         </div>

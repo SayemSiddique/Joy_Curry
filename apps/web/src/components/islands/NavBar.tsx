@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Menu, Bell, Clock, ShoppingBag, Home, UtensilsCrossed, User, X } from 'lucide-react';
+import { Menu, Bell, Clock, ShoppingBag, X } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import {
   cartCount,
@@ -207,39 +207,6 @@ export default function NavBar() {
           )}
         </nav>
       </div>
-
-      {/* Mobile bottom tab bar */}
-      <nav className="bottom-tab-bar" aria-label="Primary">
-        <a href="/" className={`bottom-tab-bar__tab${path === '/' ? ' bottom-tab-bar__tab--active' : ''}`}>
-          <Home size={22} strokeWidth={1.75} aria-hidden="true" />
-          <span>Home</span>
-        </a>
-        <a href="/menu" className={`bottom-tab-bar__tab${path === '/menu' ? ' bottom-tab-bar__tab--active' : ''}`}>
-          <UtensilsCrossed size={22} strokeWidth={1.75} aria-hidden="true" />
-          <span>Menu</span>
-        </a>
-        <button
-          type="button"
-          className="bottom-tab-bar__tab"
-          onClick={() => cartOpen.set(true)}
-          aria-label={`Bag${count > 0 ? `, ${count} items` : ''}`}
-        >
-          <span className="bottom-tab-bar__icon-wrap">
-            <ShoppingBag size={22} strokeWidth={1.75} aria-hidden="true" />
-            {count > 0 && <span className="bottom-tab-bar__badge">{count > 99 ? '99+' : count}</span>}
-          </span>
-          <span>Bag</span>
-        </button>
-        <button
-          type="button"
-          className="bottom-tab-bar__tab"
-          onClick={() => authOpen.set(true)}
-          aria-label={auth.user ? 'Account' : 'Sign in'}
-        >
-          <User size={22} strokeWidth={1.75} aria-hidden="true" />
-          <span>Account</span>
-        </button>
-      </nav>
     </>
   );
 }

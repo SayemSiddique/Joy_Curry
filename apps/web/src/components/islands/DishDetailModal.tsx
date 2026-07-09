@@ -2,9 +2,17 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Flame, Leaf, ChefHat } from 'lucide-react';
 import type { MenuItem } from '@lib/core';
 import { formatPrice } from '@lib/core';
-import { addToCart } from '@lib/core';
+import { addToCart, updateCartItem, cartOpen } from '@lib/core';
 import { flyToCart } from '@lib/cartAnimation';
+import { showToast } from '@lib/toast';
 import ReviewGallery from './ReviewGallery';
+
+interface DishEditDetail {
+  item: MenuItem;
+  cartItemId: string;
+  qty: number;
+  modIds: string[];
+}
 
 function SpiceMeter({ level }: { level?: string }) {
   if (!level || level === 'Mild') return null;
@@ -26,6 +34,7 @@ export default function DishDetailModal() {
   const [closing, setClosing] = useState(false);
   const [qty, setQty] = useState(1);
   const [selectedModIds, setSelectedModIds] = useState<string[]>([]);
+  const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
   const addBtnRef = useRef<HTMLButtonElement>(null);
 
   const open = useCallback((e: Event) => {
@@ -34,17 +43,37 @@ export default function DishDetailModal() {
     setItem(detail);
     setQty(1);
     setSelectedModIds([]);
+    setEditingCartItemId(null);
+  }, []);
+
+  const openEdit = useCallback((e: Event) => {
+    const detail = (e as CustomEvent<DishEditDetail>).detail;
+    setClosing(false);
+    setItem(detail.item);
+    setQty(detail.qty);
+    setSelectedModIds(detail.modIds);
+    setEditingCartItemId(detail.cartItemId);
   }, []);
 
   const close = useCallback(() => {
     setClosing(true);
-    setTimeout(() => { setItem(null); setClosing(false); }, 300);
-  }, []);
+    const wasEditing = editingCartItemId !== null;
+    setTimeout(() => {
+      setItem(null);
+      setClosing(false);
+      setEditingCartItemId(null);
+      if (wasEditing) cartOpen.set(true);
+    }, 300);
+  }, [editingCartItemId]);
 
   useEffect(() => {
     window.addEventListener('dish:open', open);
-    return () => window.removeEventListener('dish:open', open);
-  }, [open]);
+    window.addEventListener('dish:edit', openEdit);
+    return () => {
+      window.removeEventListener('dish:open', open);
+      window.removeEventListener('dish:edit', openEdit);
+    };
+  }, [open, openEdit]);
 
   useEffect(() => {
     if (!item) return;
@@ -71,18 +100,28 @@ export default function DishDetailModal() {
   };
 
   const handleAdd = () => {
-    addToCart({
+    const payload = {
       itemId: item.id,
       name: item.name,
       basePriceCents: item.basePriceCents,
       qty,
       lineTotalCents: totalCents,
-      itemType: 'regular',
-      ...(selectedMods.length > 0
-        ? { selectedOptions: selectedMods.map((m) => ({ label: m.label, priceDeltaCents: m.priceDeltaCents })) }
+      imageUrl: item.imageUrl,
+      itemType: 'regular' as const,
+      ...(modifiers.length > 0
+        ? { selectedOptions: selectedMods.map((m) => ({ id: m.id, label: m.label, priceDeltaCents: m.priceDeltaCents })) }
         : {}),
-    });
+    };
+
+    if (editingCartItemId) {
+      updateCartItem(editingCartItemId, payload);
+      close();
+      return;
+    }
+
+    addToCart(payload);
     if (addBtnRef.current) flyToCart(addBtnRef.current);
+    showToast('Added to your order', 'success');
     close();
   };
 
@@ -220,7 +259,9 @@ export default function DishDetailModal() {
               disabled={!item.inStock}
               onClick={handleAdd}
             >
-              {item.inStock ? `Add to Order · ${formatPrice(totalCents)}` : 'Sold Out'}
+              {item.inStock
+                ? `${editingCartItemId ? 'Save Changes' : 'Add to Order'} · ${formatPrice(totalCents)}`
+                : 'Sold Out'}
             </button>
           </div>
         </div>
