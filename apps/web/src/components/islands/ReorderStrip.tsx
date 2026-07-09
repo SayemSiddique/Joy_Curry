@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ShoppingBag, Bike } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import { authState } from '@lib/core';
 import { addToCart, cartOpen } from '@lib/core';
@@ -67,8 +68,10 @@ export default function ReorderStrip() {
               </div>
               <div className="reorder-card__meta">
                 <span className="reorder-card__total">{formatPrice(order.totalCents)}</span>
-                <span className="reorder-card__type">
-                  {order.deliveryType === 'pickup' ? '🥡 Pickup' : '🛵 Delivery'}
+                <span className="reorder-card__type reorder-card__type--icon">
+                  {order.deliveryType === 'pickup'
+                    ? (<><ShoppingBag size={13} strokeWidth={2} aria-hidden="true" /> Pickup</>)
+                    : (<><Bike size={13} strokeWidth={2} aria-hidden="true" /> Delivery</>)}
                 </span>
               </div>
               <button

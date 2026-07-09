@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ArrowLeft, MessageCircle, Gift, Copy, Share2, Lock,
-  ShoppingBag, Truck, MapPin, Tag, ChevronDown, X, Plus, Minus,
+  ShoppingBag, Truck, MapPin, Tag, ChevronDown, X, Plus, Minus, DoorOpen,
 } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import {
@@ -9,7 +9,7 @@ import {
   orderType, deliveryAddress, orderGateOpen, scheduledFor,
   clearCart, updateCartItem, type CartItem,
 } from '@lib/core';
-import { authState, authOpen } from '@lib/core';
+import { authState } from '@lib/core';
 import {
   ordersApi, slotsApi, paymentsApi, rewardsApi, menuApi,
   type Order, type Slot, type MenuItem,
@@ -276,8 +276,8 @@ export default function CartPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth.token) {
-      authOpen.set(true);
       showToast('Please sign in to complete your order — your cart is saved.', 'info');
+      window.location.href = '/signin?next=/cart';
       return;
     }
     const errs = validate();
@@ -857,7 +857,7 @@ export default function CartPage() {
               </div>
               {form.dropOffInstructions.trim() && (
                 <div className="payment-recap__dropoff">
-                  <span className="payment-recap__dropoff-label">🚪 Drop-off</span>
+                  <span className="payment-recap__dropoff-label"><DoorOpen size={15} strokeWidth={2} aria-hidden="true" /> Drop-off</span>
                   <span className="payment-recap__dropoff-value">{form.dropOffInstructions.trim()}</span>
                 </div>
               )}

@@ -159,7 +159,7 @@ export default function SearchFilterBar({ menuItems }: Props) {
               <option value="">All Categories</option>
               {CATEGORIES.map(cat => (
                 <option key={cat.id} value={cat.id}>
-                  {cat.emoji} {cat.label}
+                  {cat.label}
                 </option>
               ))}
             </select>

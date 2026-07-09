@@ -69,7 +69,7 @@ const sizes = '(max-width: 640px) 45vw, 280px';
       data-favorite-item-id={id}
       aria-label={`Save ${name} to favorites`}
       aria-pressed="false"
-    >♡</button>
+    ><Fragment set:html={heartIcon(18)} /></button>
     {videoUrl ? (
       <>
         <video

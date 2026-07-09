@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Receipt } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import { orderHistoryOpen } from '@lib/core';
 import { authState } from '@lib/core';
@@ -109,7 +110,7 @@ export default function OrderHistory() {
 
           {!loading && !error && orders.length === 0 && (
             <div className="order-history-drawer__empty">
-              <span className="order-history-drawer__empty-icon" aria-hidden="true">🧾</span>
+              <span className="order-history-drawer__empty-icon" aria-hidden="true"><Receipt size={36} strokeWidth={1.5} /></span>
               <p style={{ fontWeight: 700 }}>No orders yet</p>
               <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
                 Your order history will appear here after your first purchase.

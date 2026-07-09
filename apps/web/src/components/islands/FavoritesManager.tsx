@@ -72,7 +72,8 @@ function syncDOM(ids: Set<string>) {
     const active = ids.has(itemId);
     btn.setAttribute('aria-pressed', String(active));
     btn.setAttribute('aria-label', active ? btn.getAttribute('aria-label')?.replace('Save', 'Remove') ?? '' : btn.getAttribute('aria-label')?.replace('Remove', 'Save') ?? '');
+    // Active state is reflected by filling the Lucide heart SVG via CSS
+    // (.menu-card__heart--active) — do not overwrite the SVG with text.
     btn.classList.toggle('menu-card__heart--active', active);
-    btn.textContent = active ? '♥' : '♡';
   });
 }

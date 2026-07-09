@@ -1,5 +1,6 @@
 ---
 // Static footer — dark, address, hours, halal + allergen disclaimers.
+import { alertTriangleIcon, moonIcon, leafIcon, heartIcon } from '@lib/icons';
 ---
 
 <footer class="footer" aria-label="Site footer">
@@ -17,7 +18,7 @@
         </p>
 
         <div class="footer__allergen" role="note" aria-label="Allergen information">
-          <strong>⚠ Allergen Notice:</strong> Our kitchen handles nuts, dairy, gluten, and shellfish.
+          <strong class="footer__allergen-label"><Fragment set:html={alertTriangleIcon(15)} /> Allergen Notice:</strong> Our kitchen handles nuts, dairy, gluten, and shellfish.
           Please inform us of any dietary requirements when ordering. Not all items are gluten-free.
         </div>
       </div>
@@ -53,11 +54,11 @@
         <a href="#menu" class="footer__link">Vegetarian</a>
 
         <p class="footer__heading" style="margin-top: var(--space-6)">Info</p>
-        <span class="footer__link" style="cursor: default">
-          🌙 100% Halal Certified
+        <span class="footer__link footer__link--icon" style="cursor: default">
+          <Fragment set:html={moonIcon(15)} /> 100% Halal Certified
         </span>
-        <span class="footer__link" style="cursor: default">
-          🌱 Vegetarian &amp; Vegan Options
+        <span class="footer__link footer__link--icon" style="cursor: default">
+          <Fragment set:html={leafIcon(15)} /> Vegetarian &amp; Vegan Options
         </span>
       </div>
 
@@ -72,7 +73,7 @@
         <span aria-hidden="true"> · </span>
         <a href="/terms" class="footer__link">Terms of Service</a>
       </p>
-      <p>Made with ❤ in New York City</p>
+      <p class="footer__made">Made with <span class="footer__heart"><Fragment set:html={heartIcon(13)} /></span> in New York City</p>
     </div>
   </div>
 </footer>

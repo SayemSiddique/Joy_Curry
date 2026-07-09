@@ -113,6 +113,26 @@ export const authApi = {
   },
 };
 
+// ── Passwordless email OTP sign-in / sign-up ──
+export const otpApi = {
+  // Sends a 6-digit code to the email. `devCode` is only returned in local dev
+  // (no Resend key) so the flow stays testable without a live inbox.
+  request(email: string): Promise<{ sent: boolean; devCode?: string }> {
+    return apiFetch('/api/auth/otp/request', { method: 'POST', body: JSON.stringify({ email }) });
+  },
+  // Verifies the code. If the account exists you get a token + user; otherwise
+  // `exists: false` plus a short-lived ticket to finish creating the account.
+  verify(email: string, code: string): Promise<
+    | { exists: true; token: string; user: UserProfile }
+    | { exists: false; ticket: string }
+  > {
+    return apiFetch('/api/auth/otp/verify', { method: 'POST', body: JSON.stringify({ email, code }) });
+  },
+  register(body: { ticket: string; name: string; phone?: string }): Promise<{ token: string; user: UserProfile }> {
+    return apiFetch('/api/auth/otp/register', { method: 'POST', body: JSON.stringify(body) });
+  },
+};
+
 // Backend returns snake_case; normalize to camelCase for the frontend types.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeOrder(o: any): Order {

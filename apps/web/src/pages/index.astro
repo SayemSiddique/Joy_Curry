@@ -1,12 +1,12 @@
 ---
 import BaseLayout from '@layouts/BaseLayout.astro';
 import TimeBasedHero from '@components/islands/TimeBasedHero';
-import OrderTypeToggle from '@components/islands/OrderTypeToggle';
 import Footer from '@components/static/Footer.astro';
 import CategoryShowcase from '@components/static/CategoryShowcase.astro';
 import MenuCard from '@components/static/MenuCard.astro';
 import type { MenuItem } from '@lib/core';
 import { CATEGORIES, API_BASE_URL } from '@lib/core';
+import { moonIcon, leafIcon, flameIcon, mapPinIcon } from '@lib/icons';
 
 let menuItems: MenuItem[] = [];
 let fetchError: string | null = null;
@@ -50,7 +50,6 @@ const featuredItems = SIGNATURE_NAMES
 
 <BaseLayout>
   <TimeBasedHero client:load />
-  <OrderTypeToggle client:load />
 
   <main id="main-content">
 
@@ -98,10 +97,10 @@ const featuredItems = SIGNATURE_NAMES
             spices, every bread baked to order, every dish 100% Halal certified.
           </p>
           <div class="landing-story__badges">
-            <span class="landing-story__badge">🌙 100% Halal Certified</span>
-            <span class="landing-story__badge">🌱 Vegan & Veg Options</span>
-            <span class="landing-story__badge">🔥 Clay Tandoor Oven</span>
-            <span class="landing-story__badge">📍 148 E 46th St, NYC</span>
+            <span class="landing-story__badge"><Fragment set:html={moonIcon(15)} /> 100% Halal Certified</span>
+            <span class="landing-story__badge"><Fragment set:html={leafIcon(15)} /> Vegan & Veg Options</span>
+            <span class="landing-story__badge"><Fragment set:html={flameIcon(15)} /> Clay Tandoor Oven</span>
+            <span class="landing-story__badge"><Fragment set:html={mapPinIcon(15)} /> 148 E 46th St, NYC</span>
           </div>
           <a href="/menu" class="btn btn--outline btn--lg" style="color: var(--color-hero-text); border-color: rgba(253,246,239,0.35);">
             Explore Our Menu

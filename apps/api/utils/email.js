@@ -151,6 +151,49 @@ function buildHtml(order, lineItems) {
 </html>`;
 }
 
+function buildOtpHtml(code) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your Joy Curry sign-in code</title></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 0;">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:480px;">
+        <tr><td style="background:#541C0D;padding:24px 32px;text-align:center;">
+          <h1 style="margin:0;color:#F5EBDC;font-size:22px;letter-spacing:1px;">Joy Curry &amp; Tandoor</h1>
+        </td></tr>
+        <tr><td style="padding:32px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:16px;color:#222;">Your verification code</p>
+          <p style="margin:0 0 20px;font-size:13px;color:#777;">Enter this code to continue signing in. It expires in 10 minutes.</p>
+          <div style="font-size:38px;font-weight:800;letter-spacing:10px;color:#541C0D;padding:16px 0;">${esc(code)}</div>
+          <p style="margin:20px 0 0;font-size:12px;color:#999;">If you didn't request this, you can safely ignore this email.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendOtpEmail(email, code) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn(`[email] RESEND_API_KEY not set — OTP for ${email} is ${code} (dev only)`);
+    return;
+  }
+
+  const { error } = await getResend().emails.send({
+    from: FROM(),
+    to: [email],
+    subject: `Your Joy Curry verification code: ${code}`,
+    html: buildOtpHtml(code),
+  });
+
+  if (error) {
+    console.error('[email] Resend OTP delivery error:', error);
+    throw new Error('Could not send verification email.');
+  }
+}
+
 export async function sendOrderConfirmation(order, lineItems, userEmail) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('[email] RESEND_API_KEY not set — skipping confirmation email');

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ShoppingBag, Bike, Receipt } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import { authState, ordersApi, addToCart, cartOpen, formatPrice, formatDateTime } from '@lib/core';
 import type { Order } from '@lib/core';
@@ -76,8 +77,10 @@ function OrderCard({ order }: { order: Order }) {
       {/* Full detail when expanded */}
       {expanded && (
         <div id={`order-detail-${order.id}`} className="orders-card__detail">
-          <p className="orders-card__meta">
-            {order.deliveryType === 'pickup' ? '🥡 Pickup' : '🛵 Delivery'}
+          <p className="orders-card__meta orders-card__meta--icon">
+            {order.deliveryType === 'pickup'
+              ? (<><ShoppingBag size={14} strokeWidth={2} aria-hidden="true" /> Pickup</>)
+              : (<><Bike size={14} strokeWidth={2} aria-hidden="true" /> Delivery</>)}
             {' · '}
             {formatDateTime(order.createdAt)}
           </p>
@@ -172,7 +175,7 @@ export default function OrdersPage() {
 
         {!loading && !error && orders.length === 0 && (
           <div className="orders-page__empty">
-            <span className="orders-page__empty-icon" aria-hidden="true">🧾</span>
+            <span className="orders-page__empty-icon" aria-hidden="true"><Receipt size={40} strokeWidth={1.5} /></span>
             <p className="orders-page__empty-heading">No orders yet</p>
             <p className="orders-page__empty-sub">Your order history will appear here after your first purchase.</p>
             <a href="/order" className="orders-page__empty-cta">Browse the menu →</a>

@@ -439,6 +439,90 @@ input, textarea, select {
   color: var(--color-secondary);
 }
 
+/* ── MENU dropdown (desktop category quick-jump) ─────────────── */
+.navbar__menu-dd {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.navbar__menu-trigger {
+  gap: var(--space-1);
+}
+
+.navbar__menu-trigger svg {
+  transition: transform var(--ease-fast);
+}
+.navbar__menu-trigger--open svg {
+  transform: rotate(180deg);
+}
+
+.navbar__menu-panel {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: var(--space-3);
+  width: min(560px, 90vw);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-4);
+  z-index: var(--z-dropdown, 1200);
+  animation: navMenuIn var(--ease-fast);
+}
+
+@keyframes navMenuIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.navbar__menu-panel-all {
+  display: inline-block;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-primary);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+.navbar__menu-panel-all:hover { text-decoration: underline; }
+
+.navbar__menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px var(--space-4);
+}
+
+.navbar__menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: background var(--ease-fast), color var(--ease-fast);
+}
+.navbar__menu-item:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+.navbar__menu-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.navbar__auth-sep {
+  margin: 0 6px;
+  opacity: 0.4;
+  font-weight: 400;
+}
+
 /* ── Navbar Actions ──────────────────────────────────────────── */
 .navbar__actions {
   display: flex;
@@ -3047,71 +3131,155 @@ input, textarea, select {
   font-size: var(--text-sm);
 }
 
-/* ── Category Rail (M2) ──────────────────────────────────── */
-/* Sticky chip bar sits directly below the toolbar.
+/* ── Category Nav — sticky single-category dropdown header ──────
+   Replaces the old horizontal scrolling rail. Shows the current section
+   (icon + name + chevron); tapping opens a full-width dropdown of every
+   category. Scroll-spy keeps the header label in sync while scrolling.
    --toolbar-offset is set via JS (SearchFilterBar) on resize; falls back to
    the desktop-measured 65px so SSR renders correctly. */
 :root { --toolbar-offset: 65px; }
 
-.category-rail {
+.category-nav {
   position: sticky;
   top: calc(var(--navbar-height) + var(--toolbar-offset));
   z-index: calc(var(--z-sticky) - 11);
-  background: var(--color-bg-alt);
+  background: var(--color-bg);
   border-bottom: 1px solid var(--color-border-light);
 }
 
 /* On mobile the filter bar can wrap; use a generous fallback */
 @media (max-width: 767px) {
-  .category-rail {
+  .category-nav {
     top: calc(var(--navbar-height) + var(--toolbar-offset, 112px));
   }
 }
 
-.category-rail__track {
+/* The always-visible current-category header button */
+.category-nav__current {
   display: flex;
-  gap: var(--space-2);
-  padding-block: var(--space-3);
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--space-3) 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  text-align: left;
 }
-.category-rail__track::-webkit-scrollbar { display: none; }
 
-.category-chip {
+.category-nav__current-icon {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  height: 34px;
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-full);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  /* High-contrast token on antique-white — WCAG AA. */
+  justify-content: center;
   color: var(--color-primary);
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
-  white-space: nowrap;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: all var(--ease-fast);
 }
 
-.category-chip:hover {
-  border-color: var(--color-primary);
+.category-nav__current-label {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.category-nav__chevron {
+  color: var(--color-primary);
+  transition: transform var(--ease-fast);
+  flex-shrink: 0;
+}
+.category-nav__current--open .category-nav__chevron {
+  transform: rotate(180deg);
+}
+
+.category-nav__current:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-md);
+}
+
+/* The dropdown list — overlays the menu content below the header */
+.category-nav__dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  padding-block: var(--space-2);
+  animation: catNavIn var(--ease-fast);
+}
+
+@keyframes catNavIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.category-nav__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-3) 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-light);
+  transition: color var(--ease-fast), background var(--ease-fast);
+}
+.category-nav__dropdown .container > .category-nav__option:last-child {
+  border-bottom: none;
+}
+
+.category-nav__option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: color var(--ease-fast);
+}
+
+.category-nav__option-label {
+  flex: 1;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+}
+
+.category-nav__option-check {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.category-nav__option:hover {
+  color: var(--color-primary);
+}
+.category-nav__option:hover .category-nav__option-icon {
+  color: var(--color-primary);
+}
+.category-nav__option:focus-visible {
+  outline: none;
+  color: var(--color-primary);
   background: var(--color-primary-light);
 }
 
-.category-chip:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
+.category-nav__option--active {
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
 }
-
-.category-rail .category-chip--active,
-.category-rail .category-chip--active:hover {
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
+.category-nav__option--active .category-nav__option-icon,
+.category-nav__option--active .category-nav__option-label {
+  color: var(--color-primary);
+}
+.category-nav__option--active .category-nav__option-label {
+  font-weight: var(--weight-bold);
 }
 
 /* Anchor scroll fallback (native #cat-* deep links) clears the sticky stack. */
@@ -3293,6 +3461,147 @@ input, textarea, select {
   font-weight: 400;
   color: var(--color-text-muted);
   font-size: var(--text-xs);
+}
+
+/* ── Dedicated Sign-in / Sign-up page (OTP flow) ─────────────── */
+.auth-flow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - var(--navbar-height));
+  padding: var(--space-12) var(--space-4);
+  background: var(--color-bg-alt);
+}
+
+.auth-flow__card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-9) var(--space-8) var(--space-8);
+}
+
+.auth-flow__logo {
+  display: block;
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+  margin: 0 auto var(--space-6);
+}
+
+.auth-flow__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  text-align: center;
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-2);
+}
+
+.auth-flow__sub {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.auth-flow__submit {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.auth-flow__error {
+  margin-bottom: var(--space-3);
+}
+
+.auth-flow__legal {
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: var(--leading-normal);
+}
+.auth-flow__legal a { color: var(--color-primary); text-decoration: underline; }
+
+.auth-flow__email-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+}
+.auth-flow__email-value {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.auth-flow__edit {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.auth-flow__code-input {
+  text-align: center;
+  letter-spacing: 0.5em;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.auth-flow__resend {
+  margin-top: var(--space-4);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+.auth-flow__resend button {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.auth-flow__resend button:disabled { opacity: 0.5; cursor: default; }
+
+.auth-flow__optional {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.auth-flow__dev-hint {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: #fff8e1;
+  border: 1px dashed #e0c060;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: #7a5c00;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .auth-flow__card {
+    padding: var(--space-6) var(--space-5);
+    box-shadow: none;
+    border: none;
+    margin-top: 0;
+  }
+  .auth-flow { padding-top: var(--space-4); background: var(--color-bg); }
 }
 
 /* ── Reduced Motion ──────────────────────────────────────── */
@@ -4283,12 +4592,6 @@ input, textarea, select {
     height: 40px;
   }
 
-  /* Give category chips more breathing room on mobile */
-  .category-chip {
-    height: 38px;
-    padding: 0 var(--space-5);
-    font-size: var(--text-base);
-  }
 
   /* Larger form inputs on mobile to prevent zoom on iOS */
   .form-input,
@@ -7407,10 +7710,57 @@ input, textarea, select {
 .menu-card__heart--active {
   color: var(--color-primary);
 }
+.menu-card__heart svg {
+  display: block;
+}
+/* Filled heart when saved (Lucide heart is stroke-only by default) */
+.menu-card__heart--active svg {
+  fill: currentColor;
+}
 .menu-card__heart:hover {
   background: rgba(255,255,255,.95);
   color: var(--color-primary);
 }
+
+/* Lucide Star rating helpers (shared) — gold fill when filled, muted outline otherwise */
+.star--filled {
+  color: #E0A526;
+  fill: #E0A526;
+}
+.star--empty {
+  color: var(--color-border);
+  fill: none;
+}
+.review-gallery__stars,
+.review-card__stars,
+.star-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Inline icon + text labels (emoji → Lucide sweep): keep the glyph baseline-
+   aligned with its text and give it a small, consistent gap. */
+.account-section__heading--icon,
+.vault-panel__title--icon,
+.cart-vault__title--icon,
+.dish-modal__allergens-label,
+.payment-recap__dropoff-label,
+.orders-card__meta--icon,
+.reorder-card__type--icon,
+.footer__allergen-label,
+.footer__link--icon,
+.landing-story__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.footer__allergen-label { display: inline-flex; vertical-align: middle; }
+.footer__made { display: inline-flex; align-items: center; gap: 5px; }
+.footer__heart { display: inline-flex; color: #c0392b; }
+.footer__heart svg { fill: currentColor; }
+/* VAULT nav button: space the sparkle from the label */
+.navbar__nav-link svg { margin-right: 2px; vertical-align: middle; }
 
 /* ── Account Page ─────────────────────────────────────────── */
 .account-page {
@@ -7579,11 +7929,23 @@ input, textarea, select {
 
 /* Sign out */
 .account-page__signout {
-  margin-top: var(--space-4);
+  margin-top: var(--space-6);
   padding-bottom: var(--space-10);
 }
 .account-page__signout-btn {
   width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-color: #b3261e;
+  color: #b3261e;
+  font-weight: var(--weight-bold);
+}
+.account-page__signout-btn:hover {
+  background: #b3261e;
+  color: #fff;
+  border-color: #b3261e;
 }
 
 /* ── Site Footer ─────────────────────────────────────────────────────── */

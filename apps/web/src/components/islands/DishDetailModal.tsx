@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Flame, Leaf, ChefHat } from 'lucide-react';
+import { Flame, Leaf, ChefHat, AlertTriangle } from 'lucide-react';
 import type { MenuItem } from '@lib/core';
 import { formatPrice } from '@lib/core';
 import { addToCart, updateCartItem, cartOpen } from '@lib/core';
@@ -187,7 +187,7 @@ export default function DishDetailModal() {
             {/* Allergens */}
             {item.allergens?.length > 0 && (
               <div className="dish-modal__allergens">
-                <span className="dish-modal__allergens-label">⚠ Contains:</span>
+                <span className="dish-modal__allergens-label"><AlertTriangle size={14} strokeWidth={2} aria-hidden="true" /> Contains:</span>
                 {item.allergens.map(a => (
                   <span key={a} className="dish-modal__allergen-chip">{a}</span>
                 ))}

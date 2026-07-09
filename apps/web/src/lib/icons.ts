@@ -71,6 +71,18 @@ export const truckIcon = (size = 16) =>
     size
   );
 
+export const alertTriangleIcon = (size = 16) =>
+  icon(
+    `<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>`,
+    size
+  );
+
+export const mapPinIcon = (size = 16) =>
+  icon(
+    `<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>`,
+    size
+  );
+
 export const chevronLeftIcon = (size = 18) => icon(`<path d="m15 18-6-6 6-6"/>`, size);
 
 export const chevronRightIcon = (size = 18) => icon(`<path d="m9 18 6-6-6-6"/>`, size);

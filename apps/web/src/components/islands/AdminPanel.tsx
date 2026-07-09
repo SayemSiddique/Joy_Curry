@@ -439,7 +439,7 @@ export default function AdminPanel() {
                     >
                       <option value="">— Select —</option>
                       {CATEGORIES.map((c) => (
-                        <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+                        <option key={c.id} value={c.id}>{c.label}</option>
                       ))}
                     </select>
                   </div>

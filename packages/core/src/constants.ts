@@ -18,25 +18,27 @@ export const SPICE_LEVELS: Record<string, { label: string; icon: string }> = {
   Hot:    { label: 'Hot',    icon: '🌶🌶🌶' },
 };
 
-export const CATEGORIES: { id: string; label: string; emoji: string }[] = [
-  { id: 'appetizer',       label: 'Appetizers',         emoji: '🥗' },
-  { id: 'salad',           label: 'Salads',              emoji: '🥙' },
-  { id: 'soup',            label: 'Soups',               emoji: '🍲' },
-  { id: 'vegetable-entree', label: 'Vegetable Entrées',  emoji: '🥦' },
-  { id: 'vegan-entree',    label: 'Vegan Entrées',       emoji: '🌱' },
-  { id: 'chicken-entree',  label: 'Chicken Entrées',     emoji: '🍗' },
-  { id: 'meat-entree',     label: 'Meat Entrées',        emoji: '🥩' },
-  { id: 'fish-shrimp',     label: 'Fish & Shrimp',       emoji: '🦐' },
-  { id: 'tandoori',        label: 'Tandoori',            emoji: '🔥' },
-  { id: 'rice-biryani',    label: 'Rice & Biryani',      emoji: '🍚' },
-  { id: 'express-lunch',   label: 'Express Lunch',       emoji: '⚡' },
-  { id: 'bread',           label: 'Breads',              emoji: '🫓' },
-  { id: 'side',            label: 'Sides',               emoji: '🍛' },
-  { id: 'condiment',       label: 'Condiments',          emoji: '🧄' },
-  { id: 'dessert',         label: 'Desserts',            emoji: '🍮' },
-  { id: 'beverage',        label: 'Beverages',           emoji: '🥤' },
-  { id: 'dinner-special',  label: 'Dinner Specials',     emoji: '🍽️' },
-  { id: 'combo',           label: 'Joy Combos',          emoji: '🥘' },
+// Icons are rendered from Lucide (web: @lib/categoryIcons + @lib/icons) keyed
+// by category id — no emoji glyphs in the data.
+export const CATEGORIES: { id: string; label: string }[] = [
+  { id: 'appetizer',        label: 'Appetizers' },
+  { id: 'salad',            label: 'Salads' },
+  { id: 'soup',             label: 'Soups' },
+  { id: 'vegetable-entree', label: 'Vegetable Entrées' },
+  { id: 'vegan-entree',     label: 'Vegan Entrées' },
+  { id: 'chicken-entree',   label: 'Chicken Entrées' },
+  { id: 'meat-entree',      label: 'Meat Entrées' },
+  { id: 'fish-shrimp',      label: 'Fish & Shrimp' },
+  { id: 'tandoori',         label: 'Tandoori' },
+  { id: 'rice-biryani',     label: 'Rice & Biryani' },
+  { id: 'express-lunch',    label: 'Express Lunch' },
+  { id: 'bread',            label: 'Breads' },
+  { id: 'side',             label: 'Sides' },
+  { id: 'condiment',        label: 'Condiments' },
+  { id: 'dessert',          label: 'Desserts' },
+  { id: 'beverage',         label: 'Beverages' },
+  { id: 'dinner-special',   label: 'Dinner Specials' },
+  { id: 'combo',            label: 'Joy Combos' },
 ];
 
 export const DIETARY_FILTERS = [

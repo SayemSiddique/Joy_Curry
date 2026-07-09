@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Camera } from 'lucide-react';
+import { Camera, Star } from 'lucide-react';
 import { authState } from '@lib/core';
 import { API_BASE_URL } from '@lib/core';
 import { showToast } from '@lib/toast';
@@ -16,7 +16,14 @@ interface Review {
 function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
   return (
     <span className="review-gallery__stars" aria-label={`${rating} out of ${max} stars`}>
-      {Array.from({ length: max }, (_, i) => i < rating ? '★' : '☆').join('')}
+      {Array.from({ length: max }, (_, i) => (
+        <Star
+          key={i}
+          size={15}
+          aria-hidden="true"
+          className={i < rating ? 'star--filled' : 'star--empty'}
+        />
+      ))}
     </span>
   );
 }
@@ -37,7 +44,7 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
           aria-label={`${n} star${n > 1 ? 's' : ''}`}
           onKeyDown={e => e.key === 'Enter' && onChange(n)}
         >
-          ★
+          <Star size={22} aria-hidden="true" className={n <= (hover || value) ? 'star--filled' : 'star--empty'} />
         </span>
       ))}
     </div>
@@ -110,7 +117,9 @@ export default function ReviewGallery({ itemId }: { itemId: string }) {
                   <img className="review-card__photo" src={r.photoUrl} alt={`Review photo by ${r.userName}`} loading="lazy" />
                 )}
                 <div className="review-card__body">
-                  <div className="review-card__stars">{Array.from({ length: 5 }, (_, i) => i < r.rating ? '★' : '☆').join('')}</div>
+                  <div className="review-card__stars">{Array.from({ length: 5 }, (_, i) => (
+                    <Star key={i} size={14} aria-hidden="true" className={i < r.rating ? 'star--filled' : 'star--empty'} />
+                  ))}</div>
                   <p className="review-card__comment">{r.comment}</p>
                   <span className="review-card__user">{r.userName}</span>
                 </div>

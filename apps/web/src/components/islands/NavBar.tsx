@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
-import { Menu, Bell, Clock, ShoppingBag, X } from 'lucide-react';
+import { Menu, Bell, Clock, ShoppingBag, X, ChevronDown, Sparkles } from 'lucide-react';
+import { CategoryIcon } from '@lib/categoryIcons';
 import type { ReadableAtom } from 'nanostores';
 import {
   cartCount,
   cartOpen,
   authState,
-  authOpen,
 
   vaultOpen,
   adminPanelOpen,
   hasActiveOrder,
   mobileNavDrawerOpen,
+  CATEGORIES,
+  sectionId,
   type AuthState,
 } from '@lib/core';
 import { useFocusTrap } from '@lib/hooks';
@@ -39,6 +41,23 @@ export default function NavBar() {
   const drawerRef = useRef<HTMLDivElement>(null);
   useFocusTrap(drawerRef, drawerOpen);
 
+  // MENU dropdown (desktop) — category quick-jump panel
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
   const closeDrawer = () => mobileNavDrawerOpen.set(false);
 
   useEffect(() => {
@@ -66,13 +85,39 @@ export default function NavBar() {
 
           {/* Desktop-only nav links */}
           <nav className="navbar__nav navbar__nav--desktop" aria-label="Site sections">
-            <a
-              href="/menu"
-              className={`navbar__nav-link${path === '/menu' ? ' navbar__nav-link--active' : ''}`}
-              aria-current={path === '/menu' ? 'page' : undefined}
-            >MENU</a>
+            <div className="navbar__menu-dd" ref={menuRef}>
+              <button
+                type="button"
+                className={`navbar__nav-link navbar__menu-trigger${menuOpen ? ' navbar__menu-trigger--open' : ''}`}
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((o) => !o)}
+              >
+                MENU <ChevronDown size={16} strokeWidth={2.25} aria-hidden="true" />
+              </button>
+              {menuOpen && (
+                <div className="navbar__menu-panel" role="menu" aria-label="Menu categories">
+                  <a href="/order" className="navbar__menu-panel-all" role="menuitem" onClick={() => setMenuOpen(false)}>
+                    View full menu →
+                  </a>
+                  <div className="navbar__menu-grid">
+                    {CATEGORIES.map((c) => (
+                      <a
+                        key={c.id}
+                        href={`/order#${sectionId(c.id)}`}
+                        className="navbar__menu-item"
+                        role="menuitem"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="navbar__menu-item-icon" aria-hidden="true"><CategoryIcon id={c.id} size={16} /></span>
+                        {c.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <a href="/#story" className="navbar__nav-link">OUR STORY</a>
-            <a href="/#rewards" className="navbar__nav-link">REWARDS</a>
             {auth.user && (
               <a
                 className="navbar__nav-link"
@@ -85,7 +130,7 @@ export default function NavBar() {
                 className="navbar__nav-link"
                 aria-label="Artisan Vault rewards"
                 onClick={() => vaultOpen.set(true)}
-              >✦ VAULT</button>
+              ><Sparkles size={15} strokeWidth={2} aria-hidden="true" /> VAULT</button>
             )}
             {auth.user?.role === 'admin' && (
               <button
@@ -136,14 +181,13 @@ export default function NavBar() {
                 {auth.user.name.split(' ')[0]}
               </a>
             ) : (
-              <button
-                type="button"
+              <a
+                href="/signin"
                 className="navbar__btn navbar__btn--ghost navbar__auth-btn"
-                aria-label="Sign in to your account"
-                onClick={() => authOpen.set(true)}
+                aria-label="Sign in or create an account"
               >
-                Sign In
-              </button>
+                Sign In <span className="navbar__auth-sep" aria-hidden="true">|</span> Sign Up
+              </a>
             )}
 
             <button
@@ -190,21 +234,20 @@ export default function NavBar() {
         <nav className="nav-drawer__links" aria-label="Site sections">
           <a href="/menu" onClick={closeDrawer}>MENU</a>
           <a href="/#story" onClick={closeDrawer}>OUR STORY</a>
-          <a href="/#rewards" onClick={closeDrawer}>REWARDS</a>
         </nav>
         <div className="nav-drawer__divider" />
         <nav className="nav-drawer__links" aria-label="Account">
           {auth.user ? (
             <a href="/account" onClick={closeDrawer}>{auth.user.name.split(' ')[0]}</a>
           ) : (
-            <button type="button" onClick={() => { authOpen.set(true); closeDrawer(); }}>Sign In</button>
+            <a href="/signin" onClick={closeDrawer}>Sign In / Sign Up</a>
           )}
           {auth.user && (
             <a href="/orders">My Orders</a>
           )}
           {auth.user && (
             <button type="button" onClick={() => { vaultOpen.set(true); closeDrawer(); }}>
-              ✦ Vault
+              <Sparkles size={15} strokeWidth={2} aria-hidden="true" /> Vault
             </button>
           )}
           {auth.user?.role === 'admin' && (

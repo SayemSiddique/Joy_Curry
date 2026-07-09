@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Utensils, Star, Flame, Gem, Trophy, Crown, Lock } from 'lucide-react';
+import { Utensils, Star, Flame, Gem, Trophy, Crown, Lock, Sparkles } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import { authState, rewardsState, vaultOpen, loadRewards } from '@lib/core';
 import { addToCart, cartOpen } from '@lib/core';
@@ -148,7 +148,7 @@ export default function RewardsPanel() {
         aria-label="Artisan Vault rewards"
       >
         <div className="vault-panel__header">
-          <h2 className="vault-panel__title">✦ Artisan Vault</h2>
+          <h2 className="vault-panel__title vault-panel__title--icon"><Sparkles size={18} strokeWidth={2} aria-hidden="true" /> Artisan Vault</h2>
           <button
             className="vault-panel__close"
             onClick={handleClose}

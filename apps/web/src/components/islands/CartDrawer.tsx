@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, CheckCircle2, Flame, Utensils, Truck, Gift, Users } from 'lucide-react';
+import { ShoppingCart, CheckCircle2, Flame, Utensils, Truck, Gift, Users, Sparkles } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import {
   cartItems,
@@ -454,7 +454,7 @@ export default function CartDrawer() {
               <div className="cart-vault" style={{ position: 'relative' }}>
                 <Confetti active={showConfetti} />
                 <div className="cart-vault__header">
-                  <span className="cart-vault__title">✦ Artisan Vault</span>
+                  <span className="cart-vault__title cart-vault__title--icon"><Sparkles size={15} strokeWidth={2} aria-hidden="true" /> Artisan Vault</span>
                   <span className="cart-vault__balance">{rewards.balance.toLocaleString()} pts</span>
                 </div>
                 {auth.user.birthday && auth.user.birthday === (() => {

@@ -8,8 +8,8 @@
  * the customer's running balance reaches its point threshold.
  */
 export const MILESTONES = [
-  { points: 1000,  label: 'Infused Artisan Drink',   itemCategory: 'beverage' },
-  { points: 5000,  label: 'Small Batch Side Dish',   itemCategory: 'appetizer' },
+  { points: 1000,  label: 'House Drink',             itemCategory: 'beverage' },
+  { points: 5000,  label: 'Side Dish',               itemCategory: 'appetizer' },
   { points: 12000, label: 'Express Lunch Selection', itemCategory: 'combo' },
   { points: 15000, label: 'Full Estate Entrée',      itemCategory: 'chicken-entree' },
 ];

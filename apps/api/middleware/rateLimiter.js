@@ -37,3 +37,13 @@ export const registerLimiter = rateLimit({
   legacyHeaders: false,
   handler: rateLimitResponse,
 });
+
+// OTP requests trigger an outbound email each time — throttle harder to blunt
+// email-bombing / enumeration while leaving room for genuine retries.
+export const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitResponse,
+});

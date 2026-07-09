@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { LogOut, Sparkles } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import {
   authState,
@@ -216,7 +217,7 @@ export default function AccountPage() {
 
         {/* Artisan Vault */}
         <section className="account-section account-section--vault" aria-labelledby="vault-heading">
-          <h2 className="account-section__heading" id="vault-heading">✦ Artisan Vault</h2>
+          <h2 className="account-section__heading account-section__heading--icon" id="vault-heading"><Sparkles size={18} strokeWidth={2} aria-hidden="true" /> Artisan Vault</h2>
           {rewards ? (
             <div className="account-vault">
               <div className="account-vault__balance">
@@ -259,7 +260,7 @@ export default function AccountPage() {
         {/* Sign out */}
         <div className="account-page__signout">
           <button type="button" className="btn btn--outline account-page__signout-btn" onClick={handleSignOut}>
-            Sign Out
+            <LogOut size={18} strokeWidth={2} aria-hidden="true" /> Sign Out
           </button>
         </div>
       </div>
