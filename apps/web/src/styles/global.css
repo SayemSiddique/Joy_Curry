@@ -3,13 +3,85 @@
    Inspired by Shake Shack / Popeyes. Indian identity, premium feel.
    ============================================================ */
 
-/* ── Fertigo — self-hosted, single brand font ─────────────── */
+/* ── Rubik — self-hosted, single brand font ───────────────── */
 @font-face {
-  font-family: 'Fertigo';
-  src: url('/fonts/Fertigo_18.woff') format('woff'),
-       url('/fonts/Fertigo_18.otf') format('opentype');
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-Light.woff2') format('woff2'),
+       url('/fonts/rubik/Rubik-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-LightItalic.woff2') format('woff2'),
+       url('/fonts/rubik/Rubik-LightItalic.ttf') format('truetype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-Regular.woff2') format('woff2'),
+       url('/fonts/rubik/Rubik-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-Italic.woff2') format('woff2'),
+       url('/fonts/rubik/Rubik-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-Medium.woff2') format('woff2'),
+       url('/fonts/rubik/Rubik-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-MediumItalic.woff2') format('woff2'),
+       url('/fonts/rubik/Rubik-MediumItalic.ttf') format('truetype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-Bold.woff2') format('woff2'),
+       url('/fonts/rubik/Rubik-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-BoldItalic.woff2') format('woff2'),
+       url('/fonts/rubik/Rubik-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-Black.woff2') format('woff2'),
+       url('/fonts/rubik/Rubik-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Rubik';
+  src: url('/fonts/rubik/Rubik-BlackItalic.woff2') format('woff2'),
+       url('/fonts/rubik/Rubik-BlackItalic.ttf') format('truetype');
+  font-weight: 900;
+  font-style: italic;
   font-display: swap;
 }
 
@@ -71,9 +143,9 @@
   --color-halal:          #1565C0;
 
   /* ── Typography ─────────────────────────────────────────── */
-  --font-display:  'Fertigo', Georgia, serif;
-  --font-body:     'Fertigo', Georgia, serif;
-  --font-mono:     'Fertigo', 'Monaco', 'Courier New', monospace;
+  --font-display:  'Rubik', -apple-system, sans-serif;
+  --font-body:     'Rubik', -apple-system, sans-serif;
+  --font-mono:     'Rubik', -apple-system, sans-serif;
 
   --text-xs:   0.75rem;    /* 12px */
   --text-sm:   0.875rem;   /* 14px */
@@ -294,7 +366,7 @@ input, textarea, select {
 .navbar__logo-text {
   font-family: var(--font-display);
   font-size: var(--text-md);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-black);
   color: #fff;
   letter-spacing: -0.01em;
 }
@@ -524,7 +596,7 @@ input, textarea, select {
   font-weight: var(--weight-black);
   line-height: var(--leading-tight);
   color: var(--color-hero-text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   margin-bottom: var(--space-4);
 }
 
@@ -1026,6 +1098,7 @@ input, textarea, select {
   background: rgba(13, 9, 6, 0.82);
   color: #fff;
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   border-radius: var(--radius-full);
@@ -1691,6 +1764,7 @@ input, textarea, select {
 
 .cart-item__price {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--color-text-primary);
@@ -1980,6 +2054,7 @@ input, textarea, select {
 
 .order-summary__price {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-weight: var(--weight-medium);
 }
 
@@ -2015,6 +2090,7 @@ input, textarea, select {
 
 .confirmation__order-id {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-md);
   color: var(--color-primary);
   font-weight: var(--weight-medium);
@@ -2093,6 +2169,7 @@ input, textarea, select {
 
 .order-card__id {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--color-primary);
@@ -2118,6 +2195,7 @@ input, textarea, select {
 
 .order-card__total {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-md);
   font-weight: var(--weight-bold);
   color: var(--color-text-primary);
@@ -2907,6 +2985,7 @@ input, textarea, select {
 
 .toolbar__price-value {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   font-weight: var(--weight-medium);
@@ -3820,6 +3899,7 @@ input, textarea, select {
 /* ── Admin Orders Table ──────────────────────────────────── */
 .admin-order-id {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xs);
   color: var(--color-primary);
   letter-spacing: 0.04em;
@@ -3875,6 +3955,7 @@ input, textarea, select {
 
 .admin-stat-value {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-3xl);
   font-weight: 700;
   color: var(--color-primary);
@@ -4022,6 +4103,7 @@ input, textarea, select {
 
 .cart-vault__balance {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-sm);
   font-weight: var(--weight-bold);
   color: var(--color-cta);
@@ -4169,6 +4251,7 @@ input, textarea, select {
 
 .vault-balance__value {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 2.5rem;
   font-weight: var(--weight-bold);
   color: var(--color-cta);
@@ -4225,6 +4308,7 @@ input, textarea, select {
 
 .vault-milestone__pts {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
@@ -4263,6 +4347,7 @@ input, textarea, select {
 
 .vault-stat__value {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-lg);
   font-weight: var(--weight-bold);
   color: var(--color-text-primary);
