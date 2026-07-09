@@ -3,7 +3,6 @@ import { ShoppingCart, CheckCircle2, Flame, Utensils, Truck, Gift, Users } from 
 import type { ReadableAtom } from 'nanostores';
 import {
   cartItems,
-  cartCount,
   subtotalCents,
   taxCents,
   deliveryFeeCents,
@@ -55,7 +54,6 @@ function Confetti({ active }: { active: boolean }) {
 
 export default function CartDrawer() {
   const items = useNano(cartItems);
-  const count = useNano(cartCount);
   const subtotal = useNano(subtotalCents);
   const tax = useNano(taxCents);
   const fee = useNano(deliveryFeeCents);
@@ -169,14 +167,6 @@ export default function CartDrawer() {
     setGroupShareUrl(null);
   };
 
-  // Wire up the static Navbar cart button
-  useEffect(() => {
-    const btn = document.getElementById('navbar-cart-btn');
-    const handler = () => cartOpen.set(true);
-    btn?.addEventListener('click', handler);
-    return () => btn?.removeEventListener('click', handler);
-  }, []);
-
   // Wire up menu card "Add to Order" buttons via event delegation
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -204,18 +194,6 @@ export default function CartDrawer() {
     return () => document.removeEventListener('click', handler);
   }, []);
 
-  // Keep the Navbar cart count badge in sync
-  useEffect(() => {
-    const badge = document.getElementById('cart-count');
-    if (!badge) return;
-    if (count > 0) {
-      badge.textContent = count > 99 ? '99+' : String(count);
-      badge.style.display = '';
-    } else {
-      badge.style.display = 'none';
-    }
-  }, [count]);
-
   const handleClose = () => cartOpen.set(false);
   const handleCheckout = () => {
     cartOpen.set(false);
@@ -224,25 +202,6 @@ export default function CartDrawer() {
 
   return (
     <>
-      {/* Persistent mobile cart bar */}
-      {count > 0 && !open && (
-        <button
-          type="button"
-          className="cart-bar"
-          onClick={() => cartOpen.set(true)}
-          aria-label={`View cart — ${count} ${count === 1 ? 'item' : 'items'}, subtotal ${formatPrice(subtotal)}`}
-        >
-          <span className="cart-bar__left">
-            <ShoppingCart size={18} className="cart-bar__icon" aria-hidden="true" />
-            <span className="cart-bar__count">{count > 99 ? '99+' : count}</span>
-            <span className="cart-bar__text">View Order</span>
-          </span>
-          <span className="cart-bar__right" aria-hidden="true">
-            {formatPrice(subtotal)} <span className="cart-bar__chev">→</span>
-          </span>
-        </button>
-      )}
-
       {/* Backdrop */}
       <div
         className={`cart-overlay${open ? ' cart-overlay--visible' : ''}`}

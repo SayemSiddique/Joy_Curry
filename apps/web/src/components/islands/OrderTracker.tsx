@@ -1,7 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChefHat, Bell, Truck, ShoppingBag } from 'lucide-react';
+import type { ReadableAtom } from 'nanostores';
 import type { Order } from '@lib/core';
-import { formatPrice } from '@lib/core';
+import { formatPrice, activeOrder } from '@lib/core';
+
+function useNano<T>(store: ReadableAtom<T>): T {
+  const [val, setVal] = useState<T>(() => store.get());
+  useEffect(() => store.subscribe(setVal), [store]);
+  return val;
+}
 
 type DeliveryType = 'delivery' | 'pickup';
 
@@ -27,7 +34,7 @@ function getStages(deliveryType: DeliveryType): Stage[] {
 }
 
 export default function OrderTracker() {
-  const [order, setOrder] = useState<Order | null>(null);
+  const order = useNano(activeOrder);
   const [stageIdx, setStageIdx] = useState(0);
   const [secsLeft, setSecsLeft] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -37,7 +44,7 @@ export default function OrderTracker() {
   useEffect(() => {
     const handler = (e: Event) => {
       const confirmed = (e as CustomEvent<Order>).detail;
-      setOrder(confirmed);
+      activeOrder.set(confirmed);
       setStageIdx(0);
       setSecsLeft(confirmed.estimatedWaitMin ? confirmed.estimatedWaitMin * 60 : 25 * 60);
     };
@@ -68,7 +75,7 @@ export default function OrderTracker() {
   }, [order, stageIdx]);
 
   const close = () => {
-    setOrder(null);
+    activeOrder.set(null);
     if (timerRef.current) clearInterval(timerRef.current);
     if (stageTimerRef.current) clearTimeout(stageTimerRef.current);
   };

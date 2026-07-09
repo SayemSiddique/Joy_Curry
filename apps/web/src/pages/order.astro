@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '@layouts/BaseLayout.astro';
-import Navbar from '@components/static/Navbar.astro';
 import Footer from '@components/static/Footer.astro';
 import MenuSection from '@components/static/MenuSection.astro';
 import PopularStrip from '@components/static/PopularStrip.astro';
@@ -50,7 +49,6 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
   title="Order Online — Joy Curry & Tandoor | Halal Indian Cuisine, NYC"
   description="Order authentic halal Indian cuisine online for delivery or pickup. Browse our full menu, add to cart, and enjoy Chicken Tikka Masala, Goat Curry, Biryani and more."
 >
-  <Navbar />
   <SpecialsBanner client:idle />
 
   <!-- Order page header -->

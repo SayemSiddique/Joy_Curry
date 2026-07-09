@@ -3,9 +3,6 @@ import type { ReadableAtom } from 'nanostores';
 import {
   authState,
   authOpen,
-  orderHistoryOpen,
-  adminPanelOpen,
-  vaultOpen,
   loadRewards,
   setAuth,
   clearAuth,
@@ -58,57 +55,6 @@ export default function AuthModal() {
       })
       .catch(() => clearAuth());
   }, []);
-
-  // Wire static Navbar buttons → islands
-  useEffect(() => {
-    const signInBtn = document.getElementById('navbar-auth-btn');
-    const ordersBtn = document.getElementById('navbar-orders-btn');
-    const adminBtn = document.getElementById('navbar-admin-btn');
-    const vaultBtn = document.getElementById('navbar-vault-btn');
-
-    const openAuth = () => authOpen.set(true);
-    const openOrders = () => orderHistoryOpen.set(true);
-    const openAdmin = () => adminPanelOpen.set(true);
-    const openVault = () => vaultOpen.set(true);
-
-    signInBtn?.addEventListener('click', openAuth);
-    ordersBtn?.addEventListener('click', openOrders);
-    adminBtn?.addEventListener('click', openAdmin);
-    vaultBtn?.addEventListener('click', openVault);
-
-    return () => {
-      signInBtn?.removeEventListener('click', openAuth);
-      ordersBtn?.removeEventListener('click', openOrders);
-      adminBtn?.removeEventListener('click', openAdmin);
-      vaultBtn?.removeEventListener('click', openVault);
-    };
-  }, []);
-
-  // Sync Navbar button labels + visibility to auth state
-  useEffect(() => {
-    const signInBtn = document.getElementById('navbar-auth-btn');
-    const ordersBtn = document.getElementById('navbar-orders-btn');
-    const adminBtn = document.getElementById('navbar-admin-btn');
-    const vaultBtn = document.getElementById('navbar-vault-btn');
-
-    if (auth.user) {
-      if (signInBtn) {
-        signInBtn.textContent = auth.user.name.split(' ')[0];
-        signInBtn.setAttribute('aria-label', 'Account — click to sign out');
-      }
-      if (ordersBtn) ordersBtn.style.display = '';
-      if (vaultBtn) vaultBtn.style.display = '';
-      if (adminBtn) adminBtn.style.display = auth.user.role === 'admin' ? '' : 'none';
-    } else {
-      if (signInBtn) {
-        signInBtn.textContent = 'Sign In';
-        signInBtn.setAttribute('aria-label', 'Sign in to your account');
-      }
-      if (ordersBtn) ordersBtn.style.display = 'none';
-      if (vaultBtn) vaultBtn.style.display = 'none';
-      if (adminBtn) adminBtn.style.display = 'none';
-    }
-  }, [auth]);
 
   const handleClose = () => {
     authOpen.set(false);

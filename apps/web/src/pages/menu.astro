@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '@layouts/BaseLayout.astro';
-import Navbar from '@components/static/Navbar.astro';
 import Footer from '@components/static/Footer.astro';
 import MenuSection from '@components/static/MenuSection.astro';
 import type { MenuItem } from '@lib/core';
@@ -63,8 +62,6 @@ const restaurantSchema = {
     set:html={JSON.stringify(restaurantSchema)}
     slot="head"
   />
-
-  <Navbar />
 
   <div class="menu-gallery__header">
     <div class="container">

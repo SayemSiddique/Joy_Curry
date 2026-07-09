@@ -1,5 +1,6 @@
 ---
 import '@styles/global.css';
+import NavBar from '@components/islands/NavBar';
 import CartDrawer from '@components/islands/CartDrawer';
 import CheckoutModal from '@components/islands/CheckoutModal';
 import AuthModal from '@components/islands/AuthModal';
@@ -70,6 +71,7 @@ const {
   </head>
   <body>
     <a class="skip-nav" href="#main-content">Skip to main content</a>
+    <NavBar client:load />
     <slot />
     <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
     <CartDrawer client:idle />

@@ -7,3 +7,4 @@ export * from './upsells';
 export * from './stores/cart';
 export * from './stores/auth';
 export * from './stores/menuView';
+export * from './stores/nav';

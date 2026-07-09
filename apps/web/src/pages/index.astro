@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '@layouts/BaseLayout.astro';
-import Navbar from '@components/static/Navbar.astro';
 import TimeBasedHero from '@components/islands/TimeBasedHero';
 import Footer from '@components/static/Footer.astro';
 import BentoGrid from '@components/static/BentoGrid.astro';
@@ -37,7 +36,6 @@ const featuredItems = FEATURED_CATEGORIES
 ---
 
 <BaseLayout>
-  <Navbar />
   <TimeBasedHero client:load />
 
   <main id="main-content">
