@@ -37,6 +37,8 @@ export interface Order {
   status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
   paymentStatus?: 'unpaid' | 'paid' | 'failed' | 'refunded';
   estimatedWaitMin?: number;
+  notes?: string;
+  dropOffInstructions?: string;
   createdAt: string;
   lineItems: OrderLineItem[];
 }
@@ -80,15 +82,34 @@ export const menuApi = {
   },
 };
 
+export interface UserProfile {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string | null;
+  birthday?: string | null;
+  role: string;
+  dietaryPrefs: string[];
+  addresses: string[];
+  rewardsPoints: number;
+  rewardsLifetimeCents: number;
+}
+
 export const authApi = {
-  register(body: { name: string; email: string; password: string; phone?: string }): Promise<{ token: string; user: { id: number; name: string; email: string; role: string } }> {
+  register(body: { name: string; email: string; password: string; phone?: string }): Promise<{ token: string; user: UserProfile }> {
     return apiFetch('/api/users/register', { method: 'POST', body: JSON.stringify(body) });
   },
-  login(body: { email: string; password: string }): Promise<{ token: string; user: { id: number; name: string; email: string; role: string } }> {
+  login(body: { email: string; password: string }): Promise<{ token: string; user: UserProfile }> {
     return apiFetch('/api/users/login', { method: 'POST', body: JSON.stringify(body) });
   },
-  me(token: string): Promise<{ user: { id: number; name: string; email: string; role: string } }> {
+  me(token: string): Promise<{ user: UserProfile }> {
     return apiFetch('/api/users/me', {}, token);
+  },
+  updateMe(body: { name?: string; phone?: string; birthday?: string | null; dietaryPrefs?: string[]; addresses?: string[] }, token: string): Promise<{ user: UserProfile }> {
+    return apiFetch('/api/users/me', { method: 'PUT', body: JSON.stringify(body) }, token);
+  },
+  rewards(token: string): Promise<{ rewards: { points: number; tier: string; nextTierPoints: number; lifetimeCents: number } }> {
+    return apiFetch('/api/users/me/rewards', {}, token);
   },
 };
 
@@ -107,6 +128,8 @@ function normalizeOrder(o: any): Order {
     status: o.status,
     paymentStatus: o.payment_status ?? o.paymentStatus,
     estimatedWaitMin: o.estimated_wait_min ?? o.estimatedWaitMin,
+    notes: o.notes ?? undefined,
+    dropOffInstructions: o.drop_off_instructions ?? o.dropOffInstructions ?? undefined,
     createdAt: o.created_at ?? o.createdAt,
     lineItems: (o.lineItems ?? []).map((li: any): OrderLineItem => ({
       id: li.id,
@@ -277,5 +300,17 @@ export const adminApi = {
   },
   getDashboard(token: string): Promise<{ stats: DashboardStats }> {
     return apiFetch('/api/admin/dashboard', {}, token);
+  },
+};
+
+export const favoritesApi = {
+  getMyFavorites(token: string): Promise<{ itemIds: string[] }> {
+    return apiFetch('/api/favorites/me', {}, token);
+  },
+  addFavorite(itemId: string, token: string): Promise<{ ok: boolean }> {
+    return apiFetch(`/api/favorites/${itemId}`, { method: 'POST' }, token);
+  },
+  removeFavorite(itemId: string, token: string): Promise<{ ok: boolean }> {
+    return apiFetch(`/api/favorites/${itemId}`, { method: 'DELETE' }, token);
   },
 };

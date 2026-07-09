@@ -1,0 +1,13 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import OrderTrackPage from '@components/islands/OrderTrackPage';
+---
+
+<BaseLayout
+  title="Track Order — Joy Curry & Tandoor"
+  description="Live status of your Joy Curry order"
+>
+  <main id="main-content">
+    <OrderTrackPage client:load />
+  </main>
+</BaseLayout>

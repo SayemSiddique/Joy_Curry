@@ -22,6 +22,8 @@ import statusRoutes from './routes/status.js';
 import availabilityRoutes from './routes/availability.js';
 import specialsRoutes from './routes/specials.js';
 import reviewsRoutes from './routes/reviews.js';
+import favoritesRoutes from './routes/favorites.js';
+import contactRoutes from './routes/contact.js';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -94,6 +96,8 @@ app.use('/api/status', statusRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/specials', specialsRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/favorites', favoritesRoutes);
+app.use('/api/contact', contactRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found.' } });

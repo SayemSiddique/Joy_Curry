@@ -63,6 +63,13 @@ const sizes = '(max-width: 640px) 45vw, 280px';
   data-item-json={JSON.stringify(item)}
 >
   <div class="menu-card__img-wrap" data-open-dish="true" role="button" tabindex="0" aria-label={`View details for ${name}`}>
+    <button
+      class="menu-card__heart"
+      type="button"
+      data-favorite-item-id={id}
+      aria-label={`Save ${name} to favorites`}
+      aria-pressed="false"
+    >♡</button>
     {videoUrl ? (
       <>
         <video

@@ -93,8 +93,8 @@ router.get('/me/rewards', verifyToken, async (req, res, next) => {
 
 router.put('/me', verifyToken, async (req, res, next) => {
   try {
-    const { name, phone, dietaryPrefs, addresses } = req.body;
-    const user = await updateUser(req.user.sub, { name, phone, dietaryPrefs, addresses });
+    const { name, phone, birthday, dietaryPrefs, addresses } = req.body;
+    const user = await updateUser(req.user.sub, { name, phone, birthday, dietaryPrefs, addresses });
     if (!user) return next(createError('NOT_FOUND', 'User not found.'));
     res.json({ user });
   } catch (err) {

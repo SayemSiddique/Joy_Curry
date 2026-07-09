@@ -55,10 +55,10 @@ type DeliveryType = 'delivery' | 'pickup';
 
 interface Form {
   name: string; phone: string; email: string;
-  address: string; apt: string; specialInstructions: string;
+  address: string; apt: string; specialInstructions: string; dropOffInstructions: string;
 }
 interface Errors { name?: string; phone?: string; email?: string; address?: string; }
-const EMPTY_FORM: Form = { name: '', phone: '', email: '', address: '', apt: '', specialInstructions: '' };
+const EMPTY_FORM: Form = { name: '', phone: '', email: '', address: '', apt: '', specialInstructions: '', dropOffInstructions: '' };
 
 // ── Suggestion config ─────────────────────────────────────────────────────────
 
@@ -309,6 +309,7 @@ export default function CartPage() {
       customerEmail: form.email.trim(),
       ...(deliveryType === 'delivery' && { deliveryAddress: addressFull }),
       ...(form.specialInstructions.trim() && { specialInstructions: form.specialInstructions.trim() }),
+      ...(deliveryType === 'delivery' && form.dropOffInstructions.trim() && { dropOffInstructions: form.dropOffInstructions.trim() }),
       scheduledFor: slot, idempotencyKey: idempotencyKey.current, items: buildOrderItems(),
     };
     try {
@@ -760,6 +761,10 @@ export default function CartPage() {
                     <label htmlFor="cp-apt" className="form-label">Apt / Floor <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span></label>
                     <input id="cp-apt" type="text" className="form-input" value={form.apt} onChange={fieldChange('apt')} autoComplete="address-line2" placeholder="Apt 4B" />
                   </div>
+                  <div className="form-group">
+                    <label htmlFor="cp-dropoff" className="form-label">Drop-off Instructions <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span></label>
+                    <input id="cp-dropoff" type="text" className="form-input" value={form.dropOffInstructions} onChange={fieldChange('dropOffInstructions')} placeholder="Leave at door, ring buzzer 4B…" />
+                  </div>
                 </>
               )}
 
@@ -833,6 +838,12 @@ export default function CartPage() {
                   </div>
                 )}
               </div>
+              {form.dropOffInstructions.trim() && (
+                <div className="payment-recap__dropoff">
+                  <span className="payment-recap__dropoff-label">🚪 Drop-off</span>
+                  <span className="payment-recap__dropoff-value">{form.dropOffInstructions.trim()}</span>
+                </div>
+              )}
               <div className="payment-recap__total"><span>Total</span><span>{formatPrice(pendingOrder?.totalCents ?? total)}</span></div>
             </div>
 
@@ -885,7 +896,9 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <a href="/order" className="btn btn--primary" style={{ marginTop: 'var(--space-4)' }}>Back to Menu</a>
+              <a href={`/track?id=${confirmedOrder.id}`} className="btn btn--primary" style={{ marginTop: 'var(--space-4)', display: 'block', textAlign: 'center' }}>Track your order →</a>
+              <a href="/order" className="btn btn--secondary" style={{ marginTop: 'var(--space-3)', display: 'block', textAlign: 'center' }}>Back to Menu</a>
+              <a href="/help" className="confirmation__help-link">Need help with your order?</a>
             </div>
           </div>
         )}

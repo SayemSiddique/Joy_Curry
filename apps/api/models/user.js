@@ -7,6 +7,7 @@ function deserialize(row) {
     name:           row.name,
     email:          row.email,
     phone:          row.phone ?? null,
+    birthday:       row.birthday ?? null,
     role:           row.role,
     dietaryPrefs:        row.dietary_prefs ? JSON.parse(row.dietary_prefs) : [],
     addresses:           row.addresses     ? JSON.parse(row.addresses)      : [],
@@ -45,13 +46,14 @@ export async function getUserById(id) {
   return deserialize(row);
 }
 
-export async function updateUser(id, { name, phone, dietaryPrefs, addresses }) {
+export async function updateUser(id, { name, phone, birthday, dietaryPrefs, addresses }) {
   const fields = [];
   const values = [];
   let n = 1;
 
   if (name !== undefined)         { fields.push(`name = $${n++}`);          values.push(name); }
   if (phone !== undefined)        { fields.push(`phone = $${n++}`);         values.push(phone); }
+  if (birthday !== undefined)     { fields.push(`birthday = $${n++}`);      values.push(birthday); }
   if (dietaryPrefs !== undefined) { fields.push(`dietary_prefs = $${n++}`); values.push(JSON.stringify(dietaryPrefs)); }
   if (addresses !== undefined)    { fields.push(`addresses = $${n++}`);     values.push(JSON.stringify(addresses)); }
 

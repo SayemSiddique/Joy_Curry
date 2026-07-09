@@ -148,9 +148,10 @@ export default function OrderTracker() {
           )}
         </div>
 
-        <button className="order-tracker__done-btn" onClick={close}>
-          Back to Menu
-        </button>
+        <div className="order-tracker__footer">
+          <a href={`/track?id=${order.id}`} className="order-tracker__track-link">View details →</a>
+          <button className="order-tracker__done-btn" onClick={close}>Back to Menu</button>
+        </div>
       </div>
     </div>
   );

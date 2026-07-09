@@ -1,0 +1,13 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import HelpPage from '@components/islands/HelpPage';
+---
+
+<BaseLayout
+  title="Help & Contact — Joy Curry & Tandoor"
+  description="Get help with your order, view our FAQ, or contact Joy Curry & Tandoor directly."
+>
+  <main id="main-content">
+    <HelpPage client:load />
+  </main>
+</BaseLayout>

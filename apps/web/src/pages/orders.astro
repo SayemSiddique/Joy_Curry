@@ -1,0 +1,13 @@
+---
+import BaseLayout from '@layouts/BaseLayout.astro';
+import OrdersPage from '@components/islands/OrdersPage';
+---
+
+<BaseLayout
+  title="My Orders — Joy Curry & Tandoor"
+  description="Your Joy Curry order history"
+>
+  <main id="main-content">
+    <OrdersPage client:load />
+  </main>
+</BaseLayout>

@@ -13,7 +13,7 @@ router.use(verifyToken);
 router.post('/', validateOrder, async (req, res, next) => {
   try {
     const { deliveryType, deliveryAddress, items, idempotencyKey, scheduledFor,
-            customerName, customerPhone } = req.body;
+            customerName, customerPhone, specialInstructions, dropOffInstructions } = req.body;
 
     // Route the delivery via geocoding. Within radius → in-house. Beyond →
     // re-quote the cheapest courier partner server-side (authoritative price).
@@ -59,6 +59,8 @@ router.post('/', validateOrder, async (req, res, next) => {
       deliveryPartner,
       withinRadius,
       partnerQuoteCents,
+      notes: specialInstructions ?? null,
+      dropOffInstructions: dropOffInstructions ?? null,
     });
 
     // Auto-dispatch out-of-zone deliveries to the chosen courier (customer never

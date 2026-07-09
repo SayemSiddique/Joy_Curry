@@ -6,7 +6,7 @@ import {
   cartOpen,
   authState,
   authOpen,
-  orderHistoryOpen,
+
   vaultOpen,
   adminPanelOpen,
   hasActiveOrder,
@@ -74,12 +74,10 @@ export default function NavBar() {
             <a href="/#story" className="navbar__nav-link">OUR STORY</a>
             <a href="/#rewards" className="navbar__nav-link">REWARDS</a>
             {auth.user && (
-              <button
-                type="button"
+              <a
                 className="navbar__btn navbar__nav-link"
-                aria-label="My orders"
-                onClick={() => orderHistoryOpen.set(true)}
-              >MY ORDERS</button>
+                href="/orders"
+              >MY ORDERS</a>
             )}
             {auth.user && (
               <button
@@ -121,23 +119,32 @@ export default function NavBar() {
               {orderBadge && <span className="navbar__badge-dot" aria-hidden="true" />}
             </button>
 
-            <button
-              type="button"
+            <a
               className="navbar__btn navbar__btn--pill"
+              href="/orders"
               aria-label="Order history"
-              onClick={() => orderHistoryOpen.set(true)}
             >
               <Clock size={16} strokeWidth={1.75} aria-hidden="true" /> History
-            </button>
+            </a>
 
-            <button
-              type="button"
-              className="navbar__btn navbar__btn--ghost navbar__auth-btn"
-              aria-label={auth.user ? 'Account' : 'Sign in to your account'}
-              onClick={() => authOpen.set(true)}
-            >
-              {auth.user ? auth.user.name.split(' ')[0] : 'Sign In'}
-            </button>
+            {auth.user ? (
+              <a
+                href="/account"
+                className="navbar__btn navbar__btn--ghost navbar__auth-btn"
+                aria-label="My Account"
+              >
+                {auth.user.name.split(' ')[0]}
+              </a>
+            ) : (
+              <button
+                type="button"
+                className="navbar__btn navbar__btn--ghost navbar__auth-btn"
+                aria-label="Sign in to your account"
+                onClick={() => authOpen.set(true)}
+              >
+                Sign In
+              </button>
+            )}
 
             <button
               type="button"
@@ -187,13 +194,13 @@ export default function NavBar() {
         </nav>
         <div className="nav-drawer__divider" />
         <nav className="nav-drawer__links" aria-label="Account">
-          <button type="button" onClick={() => { authOpen.set(true); closeDrawer(); }}>
-            {auth.user ? auth.user.name.split(' ')[0] : 'Sign In'}
-          </button>
+          {auth.user ? (
+            <a href="/account" onClick={closeDrawer}>{auth.user.name.split(' ')[0]}</a>
+          ) : (
+            <button type="button" onClick={() => { authOpen.set(true); closeDrawer(); }}>Sign In</button>
+          )}
           {auth.user && (
-            <button type="button" onClick={() => { orderHistoryOpen.set(true); closeDrawer(); }}>
-              My Orders
-            </button>
+            <a href="/orders">My Orders</a>
           )}
           {auth.user && (
             <button type="button" onClick={() => { vaultOpen.set(true); closeDrawer(); }}>
