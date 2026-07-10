@@ -177,6 +177,14 @@ function buildOtpHtml(code) {
 
 export async function sendOtpEmail(email, code) {
   if (!process.env.RESEND_API_KEY) {
+    // In production a missing key means the code can never reach the user —
+    // fail loudly so the request returns an error instead of a false "sent"
+    // that strands the user on the code-entry screen with nothing in their
+    // inbox. In dev we surface the code in the log so the flow stays testable.
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[email] RESEND_API_KEY is not set — cannot send OTP email.');
+      throw new Error('Email service is not configured.');
+    }
     console.warn(`[email] RESEND_API_KEY not set — OTP for ${email} is ${code} (dev only)`);
     return;
   }

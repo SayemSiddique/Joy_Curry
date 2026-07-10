@@ -37,3 +37,12 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      # Resend (transactional email) — powers sign-in OTP codes and order
+      # confirmations. WITHOUT these the API cannot send sign-in codes, so
+      # OTP emails never arrive in production. Set both in the Render dashboard.
+      # RESEND_FROM_EMAIL must be an address on a Resend-verified domain
+      # (e.g. orders@joycurry.<verified-domain>).
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
