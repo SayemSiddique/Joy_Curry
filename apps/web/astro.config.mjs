@@ -7,6 +7,12 @@ export default defineConfig({
   output: 'server',
   integrations: [react()],
 
+  // The standalone /menu page was removed — the order page is now the single
+  // menu + ordering surface. Redirect old links/bookmarks so they don't 404.
+  redirects: {
+    '/menu': '/order',
+  },
+
   vite: {
     resolve: {
       dedupe: ['react', 'react-dom', 'react-dom/server', 'nanostores'],

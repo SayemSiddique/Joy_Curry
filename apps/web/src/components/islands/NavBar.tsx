@@ -232,7 +232,7 @@ export default function NavBar() {
           <X size={20} strokeWidth={1.75} aria-hidden="true" />
         </button>
         <nav className="nav-drawer__links" aria-label="Site sections">
-          <a href="/menu" onClick={closeDrawer}>MENU</a>
+          <a href="/order" onClick={closeDrawer}>MENU</a>
           <a href="/#story" onClick={closeDrawer}>OUR STORY</a>
         </nav>
         <div className="nav-drawer__divider" />

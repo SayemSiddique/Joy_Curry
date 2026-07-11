@@ -34,7 +34,7 @@ const WINDOWS: Record<TimeWindow, WindowConfig> = {
     titleEm: 'Matrix.',
     subtitle: 'Complex Indian flavors, engineered for the afternoon pace. Ready in minutes.',
     cta1: { text: 'Deploy Express Lunch', href: '/order?t=lunch' },
-    cta2: { text: 'View Full Menu', href: '/menu' },
+    cta2: { text: 'View Full Menu', href: '/order' },
   },
   afternoon: {
     eyebrow: <><Star size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />Afternoon Bites · Midtown Manhattan · 100% Halal</>,
@@ -42,7 +42,7 @@ const WINDOWS: Record<TimeWindow, WindowConfig> = {
     titleEm: 'Cravings?',
     subtitle: 'Fuel your mid-day slide with something satisfying from our clay tandoor.',
     cta1: { text: 'Snack Break', href: '/order?t=afternoon' },
-    cta2: { text: 'View Full Menu', href: '/menu' },
+    cta2: { text: 'View Full Menu', href: '/order' },
   },
   dinner: {
     eyebrow: <><Moon size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />Dinner Service · Open Until 11 PM · 100% Halal</>,
@@ -50,7 +50,7 @@ const WINDOWS: Record<TimeWindow, WindowConfig> = {
     titleEm: 'Tonight?',
     subtitle: 'The evening slow-braises are perfectly aged. Dinner is served.',
     cta1: { text: 'Begin Dinner Experience', href: '/order?t=dinner' },
-    cta2: { text: 'View Full Menu', href: '/menu' },
+    cta2: { text: 'View Full Menu', href: '/order' },
   },
   default: {
     eyebrow: <><Moon size={13} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} />100% Halal · Authentic Since 1994 · Midtown NYC</>,
@@ -58,7 +58,7 @@ const WINDOWS: Record<TimeWindow, WindowConfig> = {
     titleEm: 'India, Delivered',
     subtitle: 'From clay-oven tandoor to slow-simmered curries — every dish made fresh with halal ingredients at 148 East 46th Street.',
     cta1: { text: 'Order Now', href: '/order' },
-    cta2: { text: 'Explore Our Menu', href: '/menu' },
+    cta2: { text: 'Explore Our Menu', href: '/order' },
   },
 };
 
