@@ -1,5 +1,5 @@
 import { atom, computed } from 'nanostores';
-import type { Order } from '../api';
+import type { Order } from '../schemas';
 
 export const mobileNavDrawerOpen = atom<boolean>(false);
 

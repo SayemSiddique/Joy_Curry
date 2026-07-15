@@ -1,6 +1,7 @@
 export * from './config';
 export * from './constants';
 export * from './formatters';
+export * from './schemas';
 export * from './api';
 export * from './bundleData';
 export * from './upsells';

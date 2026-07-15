@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "nanostores": "^1.3.0"
+    "nanostores": "^1.3.0",
+    "zod": "^4.4.3"
   }
 }

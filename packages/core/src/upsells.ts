@@ -48,7 +48,7 @@ const REASON_MAP: Record<string, string> = {
   'mango-lassi':  'Refreshing with spicy food',
 };
 
-export function getUpsells(cartItems: CartItem[]): UpsellSuggestion[] {
+export function getUpsells(cartItems: readonly CartItem[]): UpsellSuggestion[] {
   if (cartItems.length === 0) return [];
 
   const cartItemIds = new Set(cartItems.map(i => i.itemId));

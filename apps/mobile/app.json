@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Joy Curry & Tandoor",
+    "slug": "joy-curry-tandoor",
+    "version": "0.1.0",
+    "scheme": "joycurry",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.joycurrytandoor.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.joycurrytandoor.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5EBDC",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "expo-image",
+      [
+        "expo-notifications",
+        {
+          "color": "#541C0D"
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "enableGooglePay": false
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "023dddc1-f02d-4438-9d72-da05337992df"
+      }
+    },
+    "owner": "sayem78"
+  }
+}

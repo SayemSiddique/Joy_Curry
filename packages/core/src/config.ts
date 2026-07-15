@@ -27,6 +27,7 @@ function createMemoryStorage(): KVStorage {
 
 let apiBaseUrl: string | null = null;
 let storage: KVStorage = createMemoryStorage();
+let validateResponses = false;
 let initialized = false;
 
 const initHooks: (() => void)[] = [];
@@ -45,11 +46,17 @@ export interface CoreConfig {
   apiBaseUrl: string;
   /** Platform storage; omit to keep the in-memory fallback (SSR). */
   storage?: KVStorage;
+  /** Opt in to runtime response validation against the zod schemas (schemas.ts).
+   *  Meant for dev/QA only — apps pass their own dev signal (web: import.meta.env.DEV
+   *  at the composition root; mobile: __DEV__). Defaults to false so production
+   *  pays zero parsing cost. */
+  validateResponses?: boolean;
 }
 
 export function initCore(config: CoreConfig): void {
   apiBaseUrl = config.apiBaseUrl;
   if (config.storage) storage = config.storage;
+  validateResponses = config.validateResponses ?? false;
   const firstInit = !initialized;
   initialized = true;
   if (firstInit) {
@@ -69,6 +76,12 @@ export function getApiBaseUrl(): string {
 
 export function getStorage(): KVStorage {
   return storage;
+}
+
+/** Whether the API client should validate responses against the zod schemas.
+ *  Off by default; enabled per-app via initCore({ validateResponses }). */
+export function shouldValidateResponses(): boolean {
+  return validateResponses;
 }
 
 /** UUID for cart line items. crypto.randomUUID is missing on older Hermes,

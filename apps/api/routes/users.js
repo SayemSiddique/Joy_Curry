@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { createUser, getUserByEmail, getUserById, updateUser } from '../models/user.js';
+import { registerDeviceToken, deleteDeviceToken } from '../models/deviceToken.js';
 import { verifyToken } from '../middleware/auth.js';
 import { validateRegister, validateLogin } from '../middleware/validate.js';
 import { createError } from '../middleware/errorHandler.js';
@@ -86,6 +87,39 @@ router.get('/me/rewards', verifyToken, async (req, res, next) => {
         lifetimeCents: user.rewardsLifetimeCents,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Push notification device tokens (mobile — Session 12) ──
+// The app registers its Expo push token on every launch and deletes it on
+// logout. Tokens are "ExponentPushToken[...]"; we reject anything else so a
+// malformed value never reaches Expo's push service.
+const EXPO_TOKEN_RE = /^Expo(nent)?PushToken\[[^\]]+\]$/;
+
+router.post('/me/device-token', verifyToken, async (req, res, next) => {
+  try {
+    const { token, platform } = req.body;
+    if (typeof token !== 'string' || !EXPO_TOKEN_RE.test(token)) {
+      return next(createError('VALIDATION_ERROR', 'A valid Expo push token is required.'));
+    }
+    const plat = platform === 'ios' || platform === 'android' ? platform : 'unknown';
+    await registerDeviceToken({ userId: req.user.sub, token, platform: plat });
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/me/device-token', verifyToken, async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (typeof token !== 'string' || !token) {
+      return next(createError('VALIDATION_ERROR', 'A token is required.'));
+    }
+    await deleteDeviceToken({ userId: req.user.sub, token });
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

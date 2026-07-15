@@ -14,7 +14,7 @@ interface DishEditDetail {
   modIds: string[];
 }
 
-function SpiceMeter({ level }: { level?: string }) {
+function SpiceMeter({ level }: { level?: string | null }) {
   if (!level || level === 'Mild') return null;
   const lvl = level === 'Hot' ? 3 : level === 'Medium' ? 2 : 1;
   return (

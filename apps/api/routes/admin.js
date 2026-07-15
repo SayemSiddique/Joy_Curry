@@ -11,6 +11,7 @@ import {
   updateOrderStatus,
   getDashboardStats,
 } from '../models/order.js';
+import { sendOrderStatusPush } from '../services/pushService.js';
 import { verifyToken, requireRole } from '../middleware/auth.js';
 import { requireBody, validateIdParam } from '../middleware/validate.js';
 import { createError } from '../middleware/errorHandler.js';
@@ -112,6 +113,10 @@ router.patch('/orders/:id/status', validateIdParam, async (req, res, next) => {
     }
     const order = await updateOrderStatus(req.params.id, status);
     if (!order) return next(createError('NOT_FOUND', `Order "${req.params.id}" not found.`));
+    // Notify the customer's mobile devices (fire-and-forget — a push failure
+    // must never fail the admin's status update). `order` is the raw DB row, so
+    // it carries user_id / delivery_type / status.
+    sendOrderStatusPush(order).catch(() => {});
     res.json({ order });
   } catch (err) {
     next(err);

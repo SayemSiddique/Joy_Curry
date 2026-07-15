@@ -1,60 +1,15 @@
 import { getApiBaseUrl } from './config';
+import {
+  MenuItemSchema,
+  OrderSchema,
+  UserProfileSchema,
+  parseInDev,
+} from './schemas';
 
-export interface MenuItem {
-  id: string;
-  name: string;
-  category: string;
-  subcategory?: string;
-  description?: string;
-  basePriceCents: number;
-  isVegan: boolean;
-  isVegetarian: boolean;
-  isGlutenFree: boolean;
-  isHalal: boolean;
-  spiceLevel?: string;
-  allergens: string[];
-  modifiers: { id: string; label: string; priceDeltaCents: number }[];
-  sizeOptions: { id: string; label: string; priceCents: number }[];
-  tags: string[];
-  imageUrl?: string;
-  videoUrl?: string;
-  inStock: boolean;
-  isActive: boolean;
-  servedWith?: string;
-  searchKeywords?: string[];
-  pieceCount?: number;
-}
-
-export interface Order {
-  id: string;
-  userId: number;
-  deliveryType: 'delivery' | 'pickup';
-  deliveryAddress?: string;
-  subtotalCents: number;
-  taxCents: number;
-  deliveryFeeCents: number;
-  totalCents: number;
-  status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
-  paymentStatus?: 'unpaid' | 'paid' | 'failed' | 'refunded';
-  estimatedWaitMin?: number;
-  notes?: string;
-  dropOffInstructions?: string;
-  createdAt: string;
-  lineItems: OrderLineItem[];
-}
-
-export interface OrderLineItem {
-  id: number;
-  orderId: string;
-  itemId: string;
-  itemName: string;
-  itemType: 'regular' | 'bundle';
-  basePriceCents: number;
-  qty: number;
-  lineTotalCents: number;
-  selectedOptions?: Record<string, unknown>;
-  slotChoices?: Record<string, unknown>;
-}
+// Types for these resources are now inferred from the zod schemas (schemas.ts).
+// The barrel (index.ts) re-exports them from schemas, so existing
+// `import { MenuItem, Order, ... } from '@joy-curry/core'` sites are unaffected.
+import type { MenuItem, Order, OrderLineItem, UserProfile } from './schemas';
 
 async function apiFetch<T>(
   path: string,
@@ -74,36 +29,28 @@ async function apiFetch<T>(
 }
 
 export const menuApi = {
-  getAll(): Promise<{ data: MenuItem[] }> {
-    return apiFetch('/api/menu');
+  async getAll(): Promise<{ data: MenuItem[] }> {
+    const res = await apiFetch<{ data: MenuItem[] }>('/api/menu');
+    return { data: parseInDev(MenuItemSchema.array(), res.data, 'menu.getAll') };
   },
-  getById(id: string): Promise<{ data: MenuItem }> {
-    return apiFetch(`/api/menu/${id}`);
+  async getById(id: string): Promise<{ data: MenuItem }> {
+    const res = await apiFetch<{ data: MenuItem }>(`/api/menu/${id}`);
+    return { data: parseInDev(MenuItemSchema, res.data, 'menu.getById') };
   },
 };
 
-export interface UserProfile {
-  id: number;
-  name: string;
-  email: string;
-  phone?: string | null;
-  birthday?: string | null;
-  role: string;
-  dietaryPrefs: string[];
-  addresses: string[];
-  rewardsPoints: number;
-  rewardsLifetimeCents: number;
-}
-
 export const authApi = {
-  register(body: { name: string; email: string; password: string; phone?: string }): Promise<{ token: string; user: UserProfile }> {
-    return apiFetch('/api/users/register', { method: 'POST', body: JSON.stringify(body) });
+  async register(body: { name: string; email: string; password: string; phone?: string }): Promise<{ token: string; user: UserProfile }> {
+    const res = await apiFetch<{ token: string; user: UserProfile }>('/api/users/register', { method: 'POST', body: JSON.stringify(body) });
+    return { ...res, user: parseInDev(UserProfileSchema, res.user, 'authApi.register') };
   },
-  login(body: { email: string; password: string }): Promise<{ token: string; user: UserProfile }> {
-    return apiFetch('/api/users/login', { method: 'POST', body: JSON.stringify(body) });
+  async login(body: { email: string; password: string }): Promise<{ token: string; user: UserProfile }> {
+    const res = await apiFetch<{ token: string; user: UserProfile }>('/api/users/login', { method: 'POST', body: JSON.stringify(body) });
+    return { ...res, user: parseInDev(UserProfileSchema, res.user, 'authApi.login') };
   },
-  me(token: string): Promise<{ user: UserProfile }> {
-    return apiFetch('/api/users/me', {}, token);
+  async me(token: string): Promise<{ user: UserProfile }> {
+    const res = await apiFetch<{ user: UserProfile }>('/api/users/me', {}, token);
+    return { user: parseInDev(UserProfileSchema, res.user, 'authApi.me') };
   },
   updateMe(body: { name?: string; phone?: string; birthday?: string | null; dietaryPrefs?: string[]; addresses?: string[] }, token: string): Promise<{ user: UserProfile }> {
     return apiFetch('/api/users/me', { method: 'PUT', body: JSON.stringify(body) }, token);
@@ -169,16 +116,16 @@ function normalizeOrder(o: any): Order {
 export const ordersApi = {
   async place(body: Record<string, unknown>, token: string): Promise<{ order: Order; lineItems: OrderLineItem[] }> {
     const res = await apiFetch<{ order: unknown; lineItems: unknown[] }>('/api/orders', { method: 'POST', body: JSON.stringify(body) }, token);
-    const normalized = normalizeOrder(res.order);
+    const normalized = parseInDev(OrderSchema, normalizeOrder(res.order), 'ordersApi.place');
     return { order: normalized, lineItems: normalized.lineItems };
   },
   async myOrders(token: string): Promise<{ orders: Order[] }> {
     const res = await apiFetch<{ orders: unknown[] }>('/api/orders/me', {}, token);
-    return { orders: (res.orders ?? []).map(normalizeOrder) };
+    return { orders: parseInDev(OrderSchema.array(), (res.orders ?? []).map(normalizeOrder), 'ordersApi.myOrders') };
   },
   async getById(id: string, token: string): Promise<{ order: Order }> {
     const res = await apiFetch<{ order: unknown }>(`/api/orders/${id}`, {}, token);
-    return { order: normalizeOrder(res.order) };
+    return { order: parseInDev(OrderSchema, normalizeOrder(res.order), 'ordersApi.getById') };
   },
 };
 
@@ -320,6 +267,18 @@ export const adminApi = {
   },
   getDashboard(token: string): Promise<{ stats: DashboardStats }> {
     return apiFetch('/api/admin/dashboard', {}, token);
+  },
+};
+
+// ── Push notification device tokens (mobile — Session 12) ──
+// The mobile app registers its Expo push token after the first order (and on
+// every launch thereafter) and deletes it on logout. Web never calls these.
+export const deviceTokenApi = {
+  register(token: string, platform: 'ios' | 'android' | 'unknown', authToken: string): Promise<{ ok: boolean }> {
+    return apiFetch('/api/users/me/device-token', { method: 'POST', body: JSON.stringify({ token, platform }) }, authToken);
+  },
+  remove(token: string, authToken: string): Promise<{ ok: boolean }> {
+    return apiFetch('/api/users/me/device-token', { method: 'DELETE', body: JSON.stringify({ token }) }, authToken);
   },
 };
 

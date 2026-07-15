@@ -17,6 +17,9 @@ initCore({
   // window.localStorage satisfies KVStorage directly; during SSR core keeps
   // its in-memory fallback (stores render empty server-side, same as before).
   storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+  // Runtime-validate API responses against the zod schemas in dev only; prod
+  // pays zero parsing cost (see schemas.ts parseInDev).
+  validateResponses: import.meta.env.DEV,
 });
 
 export * from '@joy-curry/core';

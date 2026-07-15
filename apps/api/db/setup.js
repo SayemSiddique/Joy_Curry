@@ -10,6 +10,7 @@ import { up as addOrderNotes } from './migrations/007_add_order_notes.js';
 import { up as addFavorites } from './migrations/008_add_favorites.js';
 import { up as addBirthday } from './migrations/009_add_birthday.js';
 import { up as addOtp } from './migrations/010_add_otp.js';
+import { up as addDeviceTokens } from './migrations/011_add_device_tokens.js';
 
 export async function initializeSchema() {
   await db.run(`
@@ -87,6 +88,7 @@ export async function initializeSchema() {
   await addFavorites();
   await addBirthday();
   await addOtp();
+  await addDeviceTokens();
 
   logger.info('Database schema ready.');
 }
