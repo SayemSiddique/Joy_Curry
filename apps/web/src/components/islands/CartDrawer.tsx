@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, CheckCircle2, Flame, Utensils, Truck, Gift, Users, Sparkles } from 'lucide-react';
+import { ShoppingCart, CheckCircle2, Flame, Truck, Gift, Users, Sparkles, Trash2, Plus, Minus, X } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import {
   cartItems,
@@ -23,7 +23,6 @@ import { MIN_ORDER_CENTS, FREE_DELIVERY_THRESHOLD_CENTS } from '@lib/core';
 import { formatPrice, formatSlotTime } from '@lib/core';
 import { showToast } from '@lib/toast';
 import { flyToCart } from '@lib/cartAnimation';
-import { getUpsells } from '@lib/core';
 import { startGroupOrder, mergeGroupItems, getGroupSession, listenGroupUpdates } from '@lib/groupOrder';
 
 function useNano<T>(store: ReadableAtom<T>): T {
@@ -75,6 +74,9 @@ export default function CartDrawer() {
   const [showConfetti, setShowConfetti] = useState(false);
   const prevProjectedPts = useRef<number>(0);
 
+  // Total units in the cart — shown in the header so the drawer reads as a summary
+  const itemCount = items.reduce((n: number, i: CartItem) => n + i.qty, 0);
+
   // ── Delivery nudges ─────────────────────────────────────────
   const isDelivery = oType !== 'pickup';
   const inHouse = !routing || routing.withinRadius;
@@ -89,6 +91,22 @@ export default function CartDrawer() {
   useEffect(() => {
     if (open && auth.token) loadRewards();
   }, [open, auth.token]);
+
+  // Lock the page behind the drawer so scrolling stays inside the item list,
+  // and let Escape close it.
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') cartOpen.set(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
 
   // Points this order will earn ($1 spent = 100 pts on the grand total)
   const pointsPreview = Math.floor(total / 100) * 100;
@@ -262,8 +280,13 @@ export default function CartDrawer() {
         aria-label="Your order"
       >
         <div className="cart-drawer__header">
-          <div>
+          <div className="cart-drawer__heading">
             <h2 className="cart-drawer__title">Your Order</h2>
+            {itemCount > 0 && (
+              <span className="cart-drawer__count" aria-live="polite">
+                {itemCount} {itemCount === 1 ? 'item' : 'items'}
+              </span>
+            )}
             {/* P5-D: scheduled time badge */}
             {scheduled && (
               <p className="cart-drawer__scheduled" aria-live="polite">
@@ -276,7 +299,7 @@ export default function CartDrawer() {
             onClick={handleClose}
             aria-label="Close cart"
           >
-            ✕
+            <X size={18} strokeWidth={2.5} aria-hidden="true" />
           </button>
         </div>
 
@@ -295,8 +318,12 @@ export default function CartDrawer() {
               return (
               <div key={item.cartItemId} className="cart-item">
                 <div className="cart-item__top">
-                  {item.imageUrl && (
+                  {item.imageUrl ? (
                     <img className="cart-item__thumb" src={item.imageUrl} alt="" loading="lazy" />
+                  ) : (
+                    <div className="cart-item__thumb cart-item__thumb--fallback" aria-hidden="true">
+                      {item.name.charAt(0)}
+                    </div>
                   )}
                   <div className="cart-item__info">
                     <div className="cart-item__name">{item.name}</div>
@@ -335,7 +362,9 @@ export default function CartDrawer() {
                       onClick={() => updateQty(item.cartItemId, item.qty - 1)}
                       aria-label={item.qty <= 1 ? `Remove ${item.name}` : 'Decrease quantity'}
                     >
-                      −
+                      {item.qty <= 1
+                        ? <Trash2 size={14} aria-hidden="true" />
+                        : <Minus size={14} aria-hidden="true" />}
                     </button>
                     <span className="cart-item__qty-value" aria-live="polite">
                       {item.qty}
@@ -345,7 +374,7 @@ export default function CartDrawer() {
                       onClick={() => updateQty(item.cartItemId, item.qty + 1)}
                       aria-label="Increase quantity"
                     >
-                      +
+                      <Plus size={14} aria-hidden="true" />
                     </button>
                   </div>
                   <span className="cart-item__price">{formatPrice(item.lineTotalCents)}</span>
@@ -355,44 +384,6 @@ export default function CartDrawer() {
             })
           )}
         </div>
-
-        {/* Smart upsells */}
-        {items.length > 0 && (() => {
-          const upsells = getUpsells(items);
-          if (upsells.length === 0) return null;
-          return (
-            <div className="cart-upsells">
-              <p className="cart-upsells__heading">Pairs perfectly with your order</p>
-              {upsells.map(u => (
-                <div key={u.itemId} className="cart-upsell-row">
-                  <Utensils size={16} className="cart-upsell-row__icon" aria-hidden="true" />
-                  <div className="cart-upsell-row__info">
-                    <span className="cart-upsell-row__name">{u.name}</span>
-                    <span className="cart-upsell-row__reason">{u.reason}</span>
-                  </div>
-                  <button
-                    className="cart-upsell-row__add"
-                    onClick={e => {
-                      addToCart({
-                        itemId: u.itemId,
-                        name: u.name,
-                        basePriceCents: u.priceCents,
-                        qty: 1,
-                        lineTotalCents: u.priceCents,
-                        itemType: 'regular',
-                      });
-                      flyToCart(e.currentTarget);
-                      showToast('Added to your order', 'success');
-                    }}
-                    aria-label={`Add ${u.name} to cart`}
-                  >
-                    + Add
-                  </button>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
 
         {items.length > 0 ? (
           <div className="cart-drawer__footer">
@@ -529,7 +520,7 @@ export default function CartDrawer() {
             {!groupUuid ? (
               <button
                 type="button"
-                className="cart-group-btn"
+                className="cart-group-btn cart-group-btn--compact"
                 onClick={handleStartGroupOrder}
                 aria-label="Start a group order and share a link"
               >
@@ -573,19 +564,27 @@ export default function CartDrawer() {
             <button
               className="cart-drawer__checkout-btn"
               onClick={handleCheckout}
-              aria-label="Proceed to checkout"
+              aria-label={`Proceed to checkout, total ${formatPrice(total)}`}
             >
-              Proceed to Checkout →
+              <span>Proceed to Checkout</span>
+              <span className="cart-drawer__checkout-total">{formatPrice(total)}</span>
+            </button>
+
+            <button
+              type="button"
+              className="cart-drawer__keep-shopping"
+              onClick={handleClose}
+            >
+              Keep shopping
             </button>
           </div>
         ) : (
           <div className="cart-drawer__footer">
             <button
               className="cart-drawer__checkout-btn"
-              disabled
-              aria-label="Cart is empty"
+              onClick={handleClose}
             >
-              Proceed to Checkout →
+              Browse the Menu
             </button>
           </div>
         )}
