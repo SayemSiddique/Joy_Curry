@@ -40,7 +40,7 @@ export default function OrderTracker() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Listen for the custom event fired by CheckoutModal on success
+  // Listen for the custom event fired by CartPage on checkout success
   useEffect(() => {
     const handler = (e: Event) => {
       const confirmed = (e as CustomEvent<Order>).detail;

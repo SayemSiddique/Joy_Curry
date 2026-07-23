@@ -1,4 +1,4 @@
-// Shared Stripe.js singleton — used by CheckoutModal (Payment Element) and
+// Shared Stripe.js singleton — used by CartPage (Payment Element) and
 // PaymentRequestButton (Apple Pay / Google Pay). The publishable key is safe
 // to expose; card data goes straight from the browser to Stripe (SAQ A).
 import type { Stripe } from '@stripe/stripe-js';
