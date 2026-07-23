@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Dialog } from '@joy-curry/ui';
 import { Utensils, Salad, Soup, Sprout, Leaf, Fish, Flame, Wheat, Clock, Croissant, Coffee, Cake, Droplets, Package2, Star, UtensilsCrossed } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import type { MenuItem } from '@lib/core';
@@ -162,48 +163,10 @@ export default function BundleModal({ menuItems }: Props) {
     if (wasEditing) cartOpen.set(true);
   }, [editingCartItemId]);
 
-  // Escape to close + focus trap (Tab cycles within the modal).
-  useEffect(() => {
-    if (!open) return;
-
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
-        return;
-      }
-      if (e.key !== 'Tab') return;
-
-      const root = modalRef.current;
-      if (!root) return;
-      const focusables = root.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-      if (focusables.length === 0) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      const activeEl = document.activeElement as HTMLElement | null;
-
-      if (e.shiftKey && activeEl === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && activeEl === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open, handleClose]);
-
-  // Move focus into the modal on open.
-  useEffect(() => {
-    if (!open) return;
-    const root = modalRef.current;
-    if (!root) return;
-    const target = root.querySelector<HTMLElement>('.modal__close');
-    target?.focus();
-  }, [open]);
+  // Escape-to-close, the Tab focus trap, and initial focus are all now handled
+  // by Base UI's Dialog (see the render below), replacing ~45 lines of hand-rolled
+  // keydown/focus code. `modalRef` is still used to scroll incomplete slots into
+  // view on a failed submit, so it stays on the popup.
 
   const handleSlotChange = (
     slotId: string,
@@ -298,33 +261,32 @@ export default function BundleModal({ menuItems }: Props) {
     0,
   );
 
+  // Base UI Dialog provides focus trap, ESC, scroll-lock, and ARIA wiring.
   return (
-    <div
-      className={`modal-overlay${open ? ' modal-overlay--visible' : ''}`}
-      onClick={handleClose}
-      role="presentation"
-    >
-      <div
-        ref={modalRef}
-        className={`modal modal--wide bundle-modal${open ? ' bundle-modal--open' : ''}`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="bundle-modal-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal__header">
-          <h2 className="modal__title" id="bundle-modal-title">
-            {itemName}
-          </h2>
-          <button
-            className="modal__close"
-            onClick={handleClose}
-            aria-label="Close bundle options"
-            type="button"
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) handleClose(); }}>
+      <Dialog.Portal>
+        {/* Backdrop = dim + fade; Base UI closes on backdrop press. */}
+        <Dialog.Backdrop unstyled className="modal-overlay modal-overlay--bui" />
+        {/* Positioner flex-centers the popup (Backdrop is a separate layer). */}
+        <div className="modal-bui-positioner">
+          <Dialog.Popup
+            ref={modalRef}
+            unstyled
+            className="modal modal--wide bundle-modal bundle-modal--open"
           >
-            ✕
-          </button>
-        </div>
+            <div className="modal__header">
+              <Dialog.Title unstyled className="modal__title" id="bundle-modal-title">
+                {itemName}
+              </Dialog.Title>
+              <Dialog.Close
+                unstyled
+                className="modal__close"
+                aria-label="Close bundle options"
+                type="button"
+              >
+                ✕
+              </Dialog.Close>
+            </div>
 
         <div className="modal__body bundle-modal__body">
           {/* Always-included items */}
@@ -420,8 +382,10 @@ export default function BundleModal({ menuItems }: Props) {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+          </Dialog.Popup>
+        </div>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 

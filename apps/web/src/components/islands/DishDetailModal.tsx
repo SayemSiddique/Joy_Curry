@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Dialog } from '@joy-curry/ui';
 import { Flame, Leaf, ChefHat, AlertTriangle } from 'lucide-react';
 import type { MenuItem } from '@lib/core';
 import { formatPrice } from '@lib/core';
@@ -31,66 +32,52 @@ function SpiceMeter({ level }: { level?: string | null }) {
 
 export default function DishDetailModal() {
   const [item, setItem] = useState<MenuItem | null>(null);
-  const [closing, setClosing] = useState(false);
+  const [open, setOpen] = useState(false);
   const [qty, setQty] = useState(1);
   const [selectedModIds, setSelectedModIds] = useState<string[]>([]);
   const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
   const addBtnRef = useRef<HTMLButtonElement>(null);
 
-  const open = useCallback((e: Event) => {
+  const open_ = useCallback((e: Event) => {
     const detail = (e as CustomEvent<MenuItem>).detail;
-    setClosing(false);
     setItem(detail);
     setQty(1);
     setSelectedModIds([]);
     setEditingCartItemId(null);
+    setOpen(true);
   }, []);
 
   const openEdit = useCallback((e: Event) => {
     const detail = (e as CustomEvent<DishEditDetail>).detail;
-    setClosing(false);
     setItem(detail.item);
     setQty(detail.qty);
     setSelectedModIds(detail.modIds);
     setEditingCartItemId(detail.cartItemId);
+    setOpen(true);
   }, []);
 
-  const close = useCallback(() => {
-    setClosing(true);
-    const wasEditing = editingCartItemId !== null;
-    setTimeout(() => {
-      setItem(null);
-      setClosing(false);
-      setEditingCartItemId(null);
-      if (wasEditing) cartOpen.set(true);
-    }, 300);
+  // Single close path: Base UI drives it (ESC / backdrop / close button) via
+  // onOpenChange, and handleAdd calls it directly. Reopening the cart when we
+  // were editing a line item is preserved here so every close route behaves the
+  // same. Base UI keeps the popup mounted through its exit animation, so we no
+  // longer null `item` on a timer — leftover state is overwritten on next open.
+  const closeModal = useCallback(() => {
+    if (editingCartItemId !== null) cartOpen.set(true);
+    setOpen(false);
   }, [editingCartItemId]);
 
   useEffect(() => {
-    window.addEventListener('dish:open', open);
+    window.addEventListener('dish:open', open_);
     window.addEventListener('dish:edit', openEdit);
     return () => {
-      window.removeEventListener('dish:open', open);
+      window.removeEventListener('dish:open', open_);
       window.removeEventListener('dish:edit', openEdit);
     };
-  }, [open, openEdit]);
+  }, [open_, openEdit]);
 
-  useEffect(() => {
-    if (!item) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
-  }, [item, close]);
-
-  if (!item) return null;
-
-  const modifiers = item.modifiers ?? [];
+  const modifiers = item?.modifiers ?? [];
   const selectedMods = modifiers.filter((m) => selectedModIds.includes(m.id));
-  const unitPriceCents = item.basePriceCents + selectedMods.reduce((sum, m) => sum + m.priceDeltaCents, 0);
+  const unitPriceCents = (item?.basePriceCents ?? 0) + selectedMods.reduce((sum, m) => sum + m.priceDeltaCents, 0);
   const totalCents = unitPriceCents * qty;
 
   const toggleModifier = (id: string) => {
@@ -100,6 +87,7 @@ export default function DishDetailModal() {
   };
 
   const handleAdd = () => {
+    if (!item) return;
     const payload = {
       itemId: item.id,
       name: item.name,
@@ -115,157 +103,158 @@ export default function DishDetailModal() {
 
     if (editingCartItemId) {
       updateCartItem(editingCartItemId, payload);
-      close();
+      closeModal();
       return;
     }
 
     addToCart(payload);
     if (addBtnRef.current) flyToCart(addBtnRef.current);
     showToast('Added to your order', 'success');
-    close();
+    closeModal();
   };
 
-  const isVeg = item.isVegan || item.isVegetarian;
+  const isVeg = item ? (item.isVegan || item.isVegetarian) : false;
 
   return (
-    <div
-      className={`dish-modal-overlay${closing ? ' dish-modal-overlay--closing' : ''}`}
-      onClick={e => { if (e.target === e.currentTarget) close(); }}
-      role="dialog"
-      aria-modal="true"
-      aria-label={item.name}
-    >
-      <div className={`dish-modal${closing ? ' dish-modal--closing' : ''}`}>
-        {/* Close button */}
-        <button className="dish-modal__close" onClick={close} aria-label="Close dish detail">✕</button>
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) closeModal(); }}>
+      {item && (
+        <Dialog.Portal>
+          <Dialog.Backdrop unstyled className="dish-modal__backdrop" />
+          <div className="dish-modal__positioner">
+            <Dialog.Popup unstyled className="dish-modal">
+              {/* Close button */}
+              <Dialog.Close className="dish-modal__close" aria-label="Close dish detail">✕</Dialog.Close>
 
-        {/* Hero image — 60% left on desktop */}
-        <div className="dish-modal__image-col">
-          {item.imageUrl ? (
-            <img
-              className="dish-modal__img"
-              src={item.imageUrl}
-              alt={item.name}
-              loading="eager"
-            />
-          ) : (
-            <div className="dish-modal__img-placeholder" aria-hidden="true"><Flame size={48} strokeWidth={1.5} /></div>
-          )}
-        </div>
-
-        {/* Right detail panel */}
-        <div className="dish-modal__detail-col">
-          <div className="dish-modal__scroll">
-            <h2 className="dish-modal__name">{item.name}</h2>
-            <p className="dish-modal__price">{formatPrice(item.basePriceCents)}</p>
-
-            {item.description && (
-              <p className="dish-modal__desc">{item.description}</p>
-            )}
-
-            {/* Spice meter */}
-            <SpiceMeter level={item.spiceLevel} />
-
-            {/* Badges */}
-            <div className="dish-modal__badges">
-              {item.isVegan && <span className="badge badge--vegan"><Leaf size={12} aria-hidden="true" /> Vegan</span>}
-              {!item.isVegan && item.isVegetarian && <span className="badge badge--veg"><span className="badge__dot badge__dot--veg" aria-hidden="true" /> Vegetarian</span>}
-              {!isVeg && <span className="badge badge--nonveg"><span className="badge__dot badge__dot--nonveg" aria-hidden="true" /> Non-Veg</span>}
-              {item.isGlutenFree && <span className="badge badge--gf">GF</span>}
-              {item.isHalal && <span className="badge badge--halal">Halal</span>}
-              {(item.tags ?? []).includes('popular') && <span className="badge badge--popular"><Flame size={12} aria-hidden="true" /> Most Loved</span>}
-              {(item.tags ?? []).includes('chefs-pick') && <span className="badge badge--chefs-pick"><ChefHat size={12} aria-hidden="true" /> Chef's Pick</span>}
-            </div>
-
-            {/* Served with */}
-            {item.servedWith && (
-              <p className="dish-modal__served-with">
-                <strong>Served with:</strong> {item.servedWith}
-              </p>
-            )}
-
-            {/* Allergens */}
-            {item.allergens?.length > 0 && (
-              <div className="dish-modal__allergens">
-                <span className="dish-modal__allergens-label"><AlertTriangle size={14} strokeWidth={2} aria-hidden="true" /> Contains:</span>
-                {item.allergens.map(a => (
-                  <span key={a} className="dish-modal__allergen-chip">{a}</span>
-                ))}
+              {/* Hero image — 60% left on desktop */}
+              <div className="dish-modal__image-col">
+                {item.imageUrl ? (
+                  <img
+                    className="dish-modal__img"
+                    src={item.imageUrl}
+                    alt={item.name}
+                    loading="eager"
+                  />
+                ) : (
+                  <div className="dish-modal__img-placeholder" aria-hidden="true"><Flame size={48} strokeWidth={1.5} /></div>
+                )}
               </div>
-            )}
 
-            {/* Modifiers */}
-            {modifiers.length > 0 && (
-              <fieldset className="dish-modal__modifiers">
-                <legend className="dish-modal__modifiers-label">Customise:</legend>
-                <div className="dish-modal__modifier-list">
-                  {modifiers.map(m => {
-                    const checked = selectedModIds.includes(m.id);
-                    return (
-                      <label
-                        key={m.id}
-                        className={`dish-modal__modifier-option${checked ? ' dish-modal__modifier-option--selected' : ''}`}
+              {/* Right detail panel */}
+              <div className="dish-modal__detail-col">
+                <div className="dish-modal__scroll">
+                  <Dialog.Title unstyled className="dish-modal__name">{item.name}</Dialog.Title>
+                  <p className="dish-modal__price">{formatPrice(item.basePriceCents)}</p>
+
+                  {item.description && (
+                    <Dialog.Description unstyled className="dish-modal__desc">{item.description}</Dialog.Description>
+                  )}
+
+                  {/* Spice meter */}
+                  <SpiceMeter level={item.spiceLevel} />
+
+                  {/* Badges */}
+                  <div className="dish-modal__badges">
+                    {item.isVegan && <span className="badge badge--vegan"><Leaf size={12} aria-hidden="true" /> Vegan</span>}
+                    {!item.isVegan && item.isVegetarian && <span className="badge badge--veg"><span className="badge__dot badge__dot--veg" aria-hidden="true" /> Vegetarian</span>}
+                    {!isVeg && <span className="badge badge--nonveg"><span className="badge__dot badge__dot--nonveg" aria-hidden="true" /> Non-Veg</span>}
+                    {item.isGlutenFree && <span className="badge badge--gf">GF</span>}
+                    {item.isHalal && <span className="badge badge--halal">Halal</span>}
+                    {(item.tags ?? []).includes('popular') && <span className="badge badge--popular"><Flame size={12} aria-hidden="true" /> Most Loved</span>}
+                    {(item.tags ?? []).includes('chefs-pick') && <span className="badge badge--chefs-pick"><ChefHat size={12} aria-hidden="true" /> Chef's Pick</span>}
+                  </div>
+
+                  {/* Served with */}
+                  {item.servedWith && (
+                    <p className="dish-modal__served-with">
+                      <strong>Served with:</strong> {item.servedWith}
+                    </p>
+                  )}
+
+                  {/* Allergens */}
+                  {item.allergens?.length > 0 && (
+                    <div className="dish-modal__allergens">
+                      <span className="dish-modal__allergens-label"><AlertTriangle size={14} strokeWidth={2} aria-hidden="true" /> Contains:</span>
+                      {item.allergens.map(a => (
+                        <span key={a} className="dish-modal__allergen-chip">{a}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Modifiers */}
+                  {modifiers.length > 0 && (
+                    <fieldset className="dish-modal__modifiers">
+                      <legend className="dish-modal__modifiers-label">Customise:</legend>
+                      <div className="dish-modal__modifier-list">
+                        {modifiers.map(m => {
+                          const checked = selectedModIds.includes(m.id);
+                          return (
+                            <label
+                              key={m.id}
+                              className={`dish-modal__modifier-option${checked ? ' dish-modal__modifier-option--selected' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                className="dish-modal__modifier-input"
+                                checked={checked}
+                                onChange={() => toggleModifier(m.id)}
+                              />
+                              <span className="dish-modal__modifier-name">{m.label}</span>
+                              {m.priceDeltaCents !== 0 && (
+                                <span className="dish-modal__modifier-price">
+                                  {m.priceDeltaCents > 0 ? '+' : ''}{formatPrice(m.priceDeltaCents)}
+                                </span>
+                              )}
+                              <span className="dish-modal__modifier-check" aria-hidden="true">✓</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                  )}
+
+                  <ReviewGallery itemId={item.id} />
+
+                  {/* Quantity */}
+                  <div className="bundle-modal__qty-row">
+                    <span className="bundle-modal__qty-label">Qty</span>
+                    <div className="cart-item__qty" role="group" aria-label="Quantity">
+                      <button
+                        className="cart-item__qty-btn"
+                        onClick={() => setQty(q => Math.max(1, q - 1))}
+                        aria-label="Decrease quantity"
+                        type="button"
                       >
-                        <input
-                          type="checkbox"
-                          className="dish-modal__modifier-input"
-                          checked={checked}
-                          onChange={() => toggleModifier(m.id)}
-                        />
-                        <span className="dish-modal__modifier-name">{m.label}</span>
-                        {m.priceDeltaCents !== 0 && (
-                          <span className="dish-modal__modifier-price">
-                            {m.priceDeltaCents > 0 ? '+' : ''}{formatPrice(m.priceDeltaCents)}
-                          </span>
-                        )}
-                        <span className="dish-modal__modifier-check" aria-hidden="true">✓</span>
-                      </label>
-                    );
-                  })}
+                        −
+                      </button>
+                      <span className="cart-item__qty-value" aria-live="polite">{qty}</span>
+                      <button
+                        className="cart-item__qty-btn"
+                        onClick={() => setQty(q => Math.min(10, q + 1))}
+                        aria-label="Increase quantity"
+                        type="button"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Add to Order */}
+                  <button
+                    ref={addBtnRef}
+                    className="dish-modal__add-btn"
+                    disabled={!item.inStock}
+                    onClick={handleAdd}
+                  >
+                    {item.inStock
+                      ? `${editingCartItemId ? 'Save Changes' : 'Add to Order'} · ${formatPrice(totalCents)}`
+                      : 'Sold Out'}
+                  </button>
                 </div>
-              </fieldset>
-            )}
-
-            <ReviewGallery itemId={item.id} />
-
-            {/* Quantity */}
-            <div className="bundle-modal__qty-row">
-              <span className="bundle-modal__qty-label">Qty</span>
-              <div className="cart-item__qty" role="group" aria-label="Quantity">
-                <button
-                  className="cart-item__qty-btn"
-                  onClick={() => setQty(q => Math.max(1, q - 1))}
-                  aria-label="Decrease quantity"
-                  type="button"
-                >
-                  −
-                </button>
-                <span className="cart-item__qty-value" aria-live="polite">{qty}</span>
-                <button
-                  className="cart-item__qty-btn"
-                  onClick={() => setQty(q => Math.min(10, q + 1))}
-                  aria-label="Increase quantity"
-                  type="button"
-                >
-                  +
-                </button>
               </div>
-            </div>
-
-            {/* Add to Order */}
-            <button
-              ref={addBtnRef}
-              className="dish-modal__add-btn"
-              disabled={!item.inStock}
-              onClick={handleAdd}
-            >
-              {item.inStock
-                ? `${editingCartItemId ? 'Save Changes' : 'Add to Order'} · ${formatPrice(totalCents)}`
-                : 'Sold Out'}
-            </button>
+            </Dialog.Popup>
           </div>
-        </div>
-      </div>
-    </div>
+        </Dialog.Portal>
+      )}
+    </Dialog.Root>
   );
 }

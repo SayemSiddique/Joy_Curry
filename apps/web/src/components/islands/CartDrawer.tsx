@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Dialog } from '@joy-curry/ui';
 import { ShoppingCart, CheckCircle2, Flame, Truck, Gift, Users, Sparkles, Trash2, Plus, Minus, X } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
 import {
@@ -8,7 +9,6 @@ import {
   deliveryFeeCents,
   totalCents,
   cartOpen,
-  checkoutOpen,
   orderType,
   deliveryRouting,
   scheduledFor,
@@ -93,20 +93,9 @@ export default function CartDrawer() {
   }, [open, auth.token]);
 
   // Lock the page behind the drawer so scrolling stays inside the item list,
-  // and let Escape close it.
-  useEffect(() => {
-    if (!open) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') cartOpen.set(false);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  // Scroll-lock, Escape-to-close, focus trap, and focus return are all handled
+  // by Base UI's Dialog (see the render below) now that the drawer is a
+  // Dialog-as-right-sheet — replacing the manual body-overflow + keydown effect.
 
   // Points this order will earn ($1 spent = 100 pts on the grand total)
   const pointsPreview = Math.floor(total / 100) * 100;
@@ -264,24 +253,21 @@ export default function CartDrawer() {
   };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className={`cart-overlay${open ? ' cart-overlay--visible' : ''}`}
-        onClick={handleClose}
-        aria-hidden="true"
-      />
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) cartOpen.set(false); }}>
+      <Dialog.Portal>
+        {/* Backdrop = dim + fade; Base UI closes on backdrop press. */}
+        <Dialog.Backdrop unstyled className="cart-overlay cart-overlay--bui" />
 
-      {/* Drawer */}
-      <div
-        className={`cart-drawer${open ? ' cart-drawer--open' : ''}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Your order"
-      >
+        {/* Right-side sheet (bottom sheet on mobile). The .cart-drawer CSS
+            positions it; Base UI supplies role=dialog, focus trap, ESC,
+            scroll-lock, and aria-labelledby (via Dialog.Title). */}
+        <Dialog.Popup
+          unstyled
+          className="cart-drawer cart-drawer--open"
+        >
         <div className="cart-drawer__header">
           <div className="cart-drawer__heading">
-            <h2 className="cart-drawer__title">Your Order</h2>
+            <Dialog.Title unstyled className="cart-drawer__title">Your Order</Dialog.Title>
             {itemCount > 0 && (
               <span className="cart-drawer__count" aria-live="polite">
                 {itemCount} {itemCount === 1 ? 'item' : 'items'}
@@ -294,13 +280,13 @@ export default function CartDrawer() {
               </p>
             )}
           </div>
-          <button
+          <Dialog.Close
+            unstyled
             className="cart-drawer__close"
-            onClick={handleClose}
             aria-label="Close cart"
           >
             <X size={18} strokeWidth={2.5} aria-hidden="true" />
-          </button>
+          </Dialog.Close>
         </div>
 
         <div className="cart-drawer__items">
@@ -588,7 +574,8 @@ export default function CartDrawer() {
             </button>
           </div>
         )}
-      </div>
-    </>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
