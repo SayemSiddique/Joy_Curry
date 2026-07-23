@@ -1,0 +1,21 @@
+{
+  "name": "@joy-curry/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared web UI component layer for Joy Curry & Tandoor. Thin wrappers over Base UI (@base-ui/react) that supply behavior + accessibility only; every pixel is styled from the global.css design tokens. Web-only (React islands). Islands import from here, never from @base-ui/react directly, so a future library swap touches only this package.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.6.0"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3"
+  }
+}

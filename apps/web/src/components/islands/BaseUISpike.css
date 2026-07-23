@@ -1,0 +1,126 @@
+/* SPIKE styles — Base UI parts are unstyled; every value below comes from the
+   existing global.css design tokens. This is the whole point of the spike:
+   headless primitive + your brand system, zero Tailwind. */
+
+.spike {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  max-width: 480px;
+  margin: var(--space-16) auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-body);
+}
+
+.spike__label {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* Base UI Trigger/Close render as real <button>s — we just add classes. */
+.spike__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.spike__btn--primary {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+.spike__btn--primary:hover { background: var(--color-primary-hover); }
+
+.spike__btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+.spike__btn--ghost:hover { background: var(--color-bg-alt); }
+
+/* Base UI sets [data-*] state attrs; focus-visible ring proves keyboard a11y. */
+.spike__btn:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+.spike__backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+.spike__backdrop[data-starting-style],
+.spike__backdrop[data-ending-style] { opacity: 0; }
+
+.spike__popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 440px);
+  padding: var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 24px 60px var(--color-overlay);
+  font-family: var(--font-body);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.spike__popup[data-starting-style],
+.spike__popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -46%);
+}
+
+.spike__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.spike__desc {
+  margin: 0 0 var(--space-6);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+}
+.spike__desc code {
+  font-family: var(--font-mono);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+.spike__confirmed {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-success);
+  background: var(--color-success-light);
+  border-radius: var(--radius-md);
+}
+
+.spike__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}

@@ -1,0 +1,66 @@
+/* Dialog — Base UI parts are unstyled; every value here comes from the global.css
+   design tokens (--color-*, --space-*, --radius-*, --shadow-*, --z-*, --ease-*).
+   Promoted to production from the original BaseUISpike.css. No Tailwind. */
+
+.jc-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: var(--color-overlay);
+  opacity: 1;
+  transition: opacity var(--ease-normal);
+}
+.jc-dialog__backdrop[data-starting-style],
+.jc-dialog__backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.jc-dialog__popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-modal);
+  width: min(92vw, 480px);
+  max-height: min(88vh, 900px);
+  overflow-y: auto;
+  padding: var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  font-family: var(--font-body);
+  transition: opacity var(--ease-normal), transform var(--ease-normal);
+}
+.jc-dialog__popup[data-starting-style],
+.jc-dialog__popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -46%);
+}
+
+/* Respect reduced-motion — kill the slide, keep an instant fade. */
+@media (prefers-reduced-motion: reduce) {
+  .jc-dialog__backdrop,
+  .jc-dialog__popup {
+    transition-duration: 1ms;
+  }
+  .jc-dialog__popup[data-starting-style],
+  .jc-dialog__popup[data-ending-style] {
+    transform: translate(-50%, -50%);
+  }
+}
+
+.jc-dialog__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  color: var(--color-text-primary);
+}
+
+.jc-dialog__desc {
+  margin: 0 0 var(--space-6);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+}

@@ -24,10 +24,11 @@ export default defineConfig({
         '@layouts': new URL('./src/layouts', import.meta.url).pathname,
       },
     },
-    // @joy-curry/core ships raw TypeScript source; bundle it in SSR instead of
-    // letting Node try to import .ts files at runtime.
+    // @joy-curry/core and @joy-curry/ui ship raw TypeScript/TSX source; bundle
+    // them in SSR (and let Vite process their CSS imports) instead of letting
+    // Node try to import .ts/.tsx files at runtime.
     ssr: {
-      noExternal: ['@joy-curry/core'],
+      noExternal: ['@joy-curry/core', '@joy-curry/ui'],
     },
   },
 

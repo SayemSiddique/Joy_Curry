@@ -1,0 +1,12 @@
+---
+// SPIKE (throwaway) — isolated page to evaluate Base UI in one Astro island.
+// Visit /spike. Delete this file + BaseUISpike.tsx + BaseUISpike.css to remove.
+import BaseLayout from '@layouts/BaseLayout.astro';
+import BaseUISpike from '@components/islands/BaseUISpike';
+---
+
+<BaseLayout title="Base UI Spike">
+  <main style="min-height: 70vh;">
+    <BaseUISpike client:load />
+  </main>
+</BaseLayout>
