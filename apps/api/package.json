@@ -10,7 +10,9 @@
   "scripts": {
     "start": "node --import ./instrument.js server.js",
     "dev": "nodemon server.js",
-    "seed": "node db/seed.js"
+    "seed": "node db/seed.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "Sam Siddique",
@@ -32,6 +34,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "eslint": "^9.39.4",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "vitest": "^3.2.4"
   }
 }
