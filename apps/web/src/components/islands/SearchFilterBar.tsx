@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Utensils } from 'lucide-react';
+import { Select, ToggleGroup, Toggle } from '@joy-curry/ui';
+import { CategoryIcon } from '@lib/categoryIcons';
 import type { MenuItem } from '@lib/core';
 import { CATEGORIES, DIETARY_FILTERS, SPICE_LEVELS } from '@lib/core';
 import { formatPrice } from '@lib/core';
@@ -72,21 +74,6 @@ export default function SearchFilterBar({ menuItems }: Props) {
   });
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
-
-  // Keep --toolbar-offset in sync with the actual rendered toolbar height so
-  // the category rail's sticky top is always exactly right, even on mobile where
-  // the toolbar wraps to multiple lines.
-  useEffect(() => {
-    const update = () => {
-      const h = toolbarRef.current?.offsetHeight ?? 65;
-      document.documentElement.style.setProperty('--toolbar-offset', `${h}px`);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    if (toolbarRef.current) ro.observe(toolbarRef.current);
-    return () => ro.disconnect();
-  }, []);
 
   useEffect(() => {
     const count = applyFiltersToDOM(filters);
@@ -108,15 +95,6 @@ export default function SearchFilterBar({ menuItems }: Props) {
     }, 300);
   };
 
-  const toggleDietary = (id: string) => {
-    setFilters(f => ({
-      ...f,
-      dietary: f.dietary.includes(id)
-        ? f.dietary.filter(d => d !== id)
-        : [...f.dietary, id],
-    }));
-  };
-
   const reset = () => {
     if (searchRef.current) searchRef.current.value = '';
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -132,7 +110,7 @@ export default function SearchFilterBar({ menuItems }: Props) {
 
   return (
     <>
-      <div ref={toolbarRef} className="toolbar" role="search" aria-label="Filter menu items">
+      <div className="toolbar" role="search" aria-label="Filter menu items">
         <div className="container">
           <div className="toolbar__inner">
             {/* Search */}
@@ -150,51 +128,93 @@ export default function SearchFilterBar({ menuItems }: Props) {
             <div className="toolbar__divider" aria-hidden="true" />
 
             {/* Category */}
-            <select
-              className="toolbar__select"
+            <Select.Root
               value={filters.category}
-              onChange={e => setFilters(f => ({ ...f, category: e.target.value }))}
-              aria-label="Filter by category"
+              onValueChange={v => setFilters(f => ({ ...f, category: v as string }))}
             >
-              <option value="">All Categories</option>
-              {CATEGORIES.map(cat => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
+              <Select.Trigger className="toolbar__select toolbar__select--icon" aria-label="Filter by category">
+                <Select.Value>
+                  {(val: string) => {
+                    const cat = val ? CATEGORIES.find(c => c.id === val) : null;
+                    return (
+                      <span className="toolbar__select-value">
+                        {cat && <CategoryIcon id={cat.id} size={15} />}
+                        {cat ? cat.label : 'All Categories'}
+                      </span>
+                    );
+                  }}
+                </Select.Value>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Positioner align="start" sideOffset={6}>
+                  <Select.Popup>
+                    <Select.Item value="">
+                      <Select.ItemText>All Categories</Select.ItemText>
+                    </Select.Item>
+                    {CATEGORIES.map(cat => (
+                      <Select.Item key={cat.id} value={cat.id}>
+                        <span className="jc-select__item-icon"><CategoryIcon id={cat.id} size={16} /></span>
+                        <Select.ItemText>{cat.label}</Select.ItemText>
+                      </Select.Item>
+                    ))}
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
 
             <div className="toolbar__divider" aria-hidden="true" />
 
             {/* Dietary toggles */}
-            {DIETARY_FILTERS.map(d => (
-              <button
-                key={d.id}
-                type="button"
-                className={`toolbar__filter-btn${filters.dietary.includes(d.id) ? ' toolbar__filter-btn--active' : ''}`}
-                onClick={() => toggleDietary(d.id)}
-                aria-pressed={filters.dietary.includes(d.id)}
-              >
-                {d.label}
-              </button>
-            ))}
+            <ToggleGroup
+              unstyled
+              className="toolbar__dietary"
+              value={filters.dietary}
+              onValueChange={v => setFilters(f => ({ ...f, dietary: v as string[] }))}
+              multiple
+              aria-label="Dietary filters"
+            >
+              {DIETARY_FILTERS.map(d => (
+                <Toggle
+                  key={d.id}
+                  value={d.id}
+                  unstyled
+                  className={`toolbar__filter-btn${filters.dietary.includes(d.id) ? ' toolbar__filter-btn--active' : ''}`}
+                >
+                  {d.label}
+                </Toggle>
+              ))}
+            </ToggleGroup>
 
             <div className="toolbar__divider" aria-hidden="true" />
 
             {/* Spice level */}
-            <select
-              className="toolbar__select"
+            <Select.Root
               value={filters.spiceLevel}
-              onChange={e => setFilters(f => ({ ...f, spiceLevel: e.target.value }))}
-              aria-label="Filter by spice level"
+              onValueChange={v => setFilters(f => ({ ...f, spiceLevel: v as string }))}
             >
-              <option value="">Any Spice</option>
-              {Object.entries(SPICE_LEVELS).map(([key, { label, icon }]) => (
-                <option key={key} value={key}>
-                  {icon} {label}
-                </option>
-              ))}
-            </select>
+              <Select.Trigger className="toolbar__select" aria-label="Filter by spice level">
+                <Select.Value>
+                  {(val: string) => {
+                    const lvl = val ? SPICE_LEVELS[val as keyof typeof SPICE_LEVELS] : null;
+                    return lvl ? `${lvl.icon} ${lvl.label}` : 'Any Spice';
+                  }}
+                </Select.Value>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Positioner align="start" sideOffset={6}>
+                  <Select.Popup>
+                    <Select.Item value="">
+                      <Select.ItemText>Any Spice</Select.ItemText>
+                    </Select.Item>
+                    {Object.entries(SPICE_LEVELS).map(([key, { label, icon }]) => (
+                      <Select.Item key={key} value={key}>
+                        <Select.ItemText>{icon} {label}</Select.ItemText>
+                      </Select.Item>
+                    ))}
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
 
             {/* Max price slider */}
             <div className="toolbar__price">

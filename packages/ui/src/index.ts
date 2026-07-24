@@ -13,3 +13,8 @@ export { cx } from './utils/cx';
 
 // Phase 0 — foundation
 export { Dialog } from './Dialog/Dialog';
+
+// Phase 3 — menu browsing & filtering
+export { Select } from './Select/Select';
+export { ToggleGroup, Toggle } from './ToggleGroup/ToggleGroup';
+export { NavigationMenu } from './NavigationMenu/NavigationMenu';

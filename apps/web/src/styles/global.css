@@ -440,8 +440,20 @@ input, textarea, select {
 }
 
 /* ── MENU dropdown (desktop category quick-jump) ─────────────── */
+/* NavigationMenu.Root/List/Item wrappers — collapse the extra DOM so the
+   trigger stays a plain flex child of .navbar__nav, sized like a nav link. */
 .navbar__menu-dd {
-  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.navbar__menu-list {
+  display: flex;
+  align-items: stretch;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.navbar__menu-item-root {
   display: flex;
   align-items: stretch;
 }
@@ -450,30 +462,41 @@ input, textarea, select {
   gap: var(--space-1);
 }
 
-.navbar__menu-trigger svg {
-  transition: transform var(--ease-fast);
-}
-.navbar__menu-trigger--open svg {
-  transform: rotate(180deg);
+/* Base UI teleports Content into the portaled Viewport; the panel card + fade
+   live on the popup, position on the positioner, padding + width on the
+   content (which Base UI measures to size the popup). */
+.navbar__menu-positioner {
+  z-index: var(--z-dropdown, 1200);
+  outline: none;
 }
 
 .navbar__menu-panel {
-  position: absolute;
-  top: calc(100% - 1px);
-  left: var(--space-3);
-  width: min(560px, 90vw);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  padding: var(--space-4);
-  z-index: var(--z-dropdown, 1200);
-  animation: navMenuIn var(--ease-fast);
+  overflow: hidden;
+  transition: opacity var(--ease-fast), transform var(--ease-fast);
+}
+.navbar__menu-panel[data-starting-style],
+.navbar__menu-panel[data-ending-style] {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
-@keyframes navMenuIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
+.navbar__menu-panel-content {
+  width: min(560px, 90vw);
+  padding: var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar__menu-panel {
+    transition-duration: 1ms;
+  }
+  .navbar__menu-panel[data-starting-style],
+  .navbar__menu-panel[data-ending-style] {
+    transform: none;
+  }
 }
 
 .navbar__menu-panel-all {
@@ -708,11 +731,6 @@ input, textarea, select {
   transition: opacity var(--ease-normal);
 }
 
-.nav-drawer-overlay--visible {
-  opacity: 1;
-  pointer-events: all;
-}
-
 .nav-drawer {
   position: fixed;
   top: 0;
@@ -732,6 +750,26 @@ input, textarea, select {
 
 .nav-drawer--open {
   transform: translateX(0);
+}
+
+/* ── Base UI-managed nav drawer ───────────────────────────────
+   Dialog-as-left-sheet (mobile). Base UI conditionally mounts the drawer, so the
+   settled slide-in state stays on .nav-drawer--open and enter/exit run off
+   [data-starting-style]/[data-ending-style] (translateX off-screen). The backdrop
+   fades via the scoped --bui modifier. Attribute selectors out-specify --open
+   during the transition. */
+.nav-drawer-overlay--bui {
+  opacity: 1;
+  pointer-events: all;
+}
+.nav-drawer-overlay--bui[data-starting-style],
+.nav-drawer-overlay--bui[data-ending-style] {
+  opacity: 0;
+}
+
+.nav-drawer[data-starting-style],
+.nav-drawer[data-ending-style] {
+  transform: translateX(-100%);
 }
 
 .nav-drawer__close {
@@ -1267,6 +1305,14 @@ input, textarea, select {
   flex-shrink: 0;
 }
 
+/* Base UI ToggleGroup wrapper for the dietary filters — display:contents so the
+   toggles remain direct flex children of .toolbar__inner (identical --space-3
+   gaps + divider spacing), while the group still owns roving-tabindex + arrow-key
+   navigation. */
+.toolbar__dietary {
+  display: contents;
+}
+
 .toolbar__filter-btn {
   display: inline-flex;
   align-items: center;
@@ -1324,6 +1370,30 @@ input, textarea, select {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: var(--shadow-focus);
+}
+
+/* Category trigger carries a leading category glyph — lay the button out as a
+   flex row so the icon + label sit inline (the chevron stays a background img). */
+.toolbar__select--icon {
+  display: inline-flex;
+  align-items: center;
+}
+.toolbar__select-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-primary);
+}
+/* Leading glyph on each category option in the dropdown (Base UI Select.Item is
+   already a flex row via .jc-select__item). */
+.jc-select__item-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-muted);
+}
+.jc-select__item[data-highlighted] .jc-select__item-icon,
+.jc-select__item[data-selected] .jc-select__item-icon {
+  color: var(--color-primary);
 }
 
 /* ── Menu Sections ───────────────────────────────────────── */
@@ -3287,157 +3357,6 @@ input, textarea, select {
 .order-page__sub {
   color: var(--color-hero-subtext);
   font-size: var(--text-sm);
-}
-
-/* ── Category Nav — sticky single-category dropdown header ──────
-   Replaces the old horizontal scrolling rail. Shows the current section
-   (icon + name + chevron); tapping opens a full-width dropdown of every
-   category. Scroll-spy keeps the header label in sync while scrolling.
-   --toolbar-offset is set via JS (SearchFilterBar) on resize; falls back to
-   the desktop-measured 65px so SSR renders correctly. */
-:root { --toolbar-offset: 65px; }
-
-.category-nav {
-  position: sticky;
-  top: calc(var(--navbar-height) + var(--toolbar-offset));
-  z-index: calc(var(--z-sticky) - 11);
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-/* On mobile the filter bar can wrap; use a generous fallback */
-@media (max-width: 767px) {
-  .category-nav {
-    top: calc(var(--navbar-height) + var(--toolbar-offset, 112px));
-  }
-}
-
-/* The always-visible current-category header button */
-.category-nav__current {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  min-height: 52px;
-  padding: var(--space-3) 0;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text-primary);
-  text-align: left;
-}
-
-.category-nav__current-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-primary);
-}
-
-.category-nav__current-label {
-  flex: 1;
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
-  color: var(--color-text-primary);
-  letter-spacing: -0.01em;
-}
-
-.category-nav__chevron {
-  color: var(--color-primary);
-  transition: transform var(--ease-fast);
-  flex-shrink: 0;
-}
-.category-nav__current--open .category-nav__chevron {
-  transform: rotate(180deg);
-}
-
-.category-nav__current:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-  border-radius: var(--radius-md);
-}
-
-/* The dropdown list — overlays the menu content below the header */
-.category-nav__dropdown {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-lg);
-  max-height: min(70vh, 520px);
-  overflow-y: auto;
-  padding-block: var(--space-2);
-  animation: catNavIn var(--ease-fast);
-}
-
-@keyframes catNavIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.category-nav__option {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  min-height: 48px;
-  padding: var(--space-3) 0;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  color: var(--color-text-secondary);
-  border-bottom: 1px solid var(--color-border-light);
-  transition: color var(--ease-fast), background var(--ease-fast);
-}
-.category-nav__dropdown .container > .category-nav__option:last-child {
-  border-bottom: none;
-}
-
-.category-nav__option-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-muted);
-  transition: color var(--ease-fast);
-}
-
-.category-nav__option-label {
-  flex: 1;
-  font-size: var(--text-md);
-  font-weight: var(--weight-medium);
-}
-
-.category-nav__option-check {
-  color: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.category-nav__option:hover {
-  color: var(--color-primary);
-}
-.category-nav__option:hover .category-nav__option-icon {
-  color: var(--color-primary);
-}
-.category-nav__option:focus-visible {
-  outline: none;
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-}
-
-.category-nav__option--active {
-  color: var(--color-primary);
-  font-weight: var(--weight-bold);
-}
-.category-nav__option--active .category-nav__option-icon,
-.category-nav__option--active .category-nav__option-label {
-  color: var(--color-primary);
-}
-.category-nav__option--active .category-nav__option-label {
-  font-weight: var(--weight-bold);
 }
 
 /* Anchor scroll fallback (native #cat-* deep links) clears the sticky stack. */

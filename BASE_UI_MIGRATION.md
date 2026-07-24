@@ -82,10 +82,48 @@ README documents the "add a component" convention.
 
 **✅ CheckoutModal resolved (see Phase 2 entry above):** shell migrated mechanically, payment logic untouched, browser-verified on `/spike`. During verification it turned out the modal is **no longer wired into the app** — the live checkout is now the full-page `CartPage.tsx` at `/cart`. So the end-to-end Stripe QA the original risk note called for is moot for this file; it applies to `CartPage` instead. Left the migration in place (harmless, revival-ready) and flagged the drift for the owner.
 
-## Phase 3 — Menu browsing & filtering ⬜ TODO
-- [ ] `SearchFilterBar` → `Select` + `ToggleGroup`.
-- [ ] `CategoryRail` → `Tabs` / `ToggleGroup`.
-- [ ] `NavBar` → `NavigationMenu` / `Collapsible`.
+## Phase 3 — Menu browsing & filtering ✅ DONE
+- [x] **Wrappers added (Phase-0 style):** `Select` (`select`), `ToggleGroup`/`Toggle`
+  (`toggle-group`/`toggle`), `NavigationMenu` (`navigation-menu`) — each a `styled()` part
+  factory + brand-token CSS + reduced-motion guard + side-effect CSS import, exported from
+  `src/index.ts`. No `Tabs`/`Collapsible` wrappers were needed (see the two dropped targets).
+- [x] **`SearchFilterBar` → `Select` + `ToggleGroup`** ✅ Category + spice dropdowns → `Select`
+  (Base UI listbox roles, typeahead, keyboard nav, focus return; brand `.toolbar__select`
+  trigger + `.jc-select__*` popup). Dietary filters → `ToggleGroup`/`Toggle` passed `unstyled`
+  so the toolbar keeps `.toolbar__filter-btn`; the group is `display:contents` so toggles stay
+  direct flex children of `.toolbar__inner` while gaining roving-tabindex + arrow-key nav +
+  `aria-pressed`. **Verified in browser**: 2 Selects open as `role=listbox` (19 options,
+  `role=option`, `aria-expanded` toggles), dietary group `role=group` with 3 toggles,
+  DOM-filtering still applies, zero console errors.
+- [x] ~~`CategoryRail` → `Tabs`/`ToggleGroup`~~ **DROPPED — island deleted.** The modal→page
+  redesign already retired the sticky category rail (its mount + island + the entire
+  `.category-nav*` CSS block are gone from `order.astro`/`global.css`). Nothing to migrate;
+  not resurrected. Grep-confirmed zero `CategoryRail` references remain in `apps/web`.
+- [x] **`NavBar` → `NavigationMenu` (desktop dropdown) + `Dialog` (mobile drawer)** ✅
+  - Desktop **MENU dropdown** → `NavigationMenu` (owner chose to accept hover+focus+click open
+    over the old click-only). Base UI supplies the trigger ARIA, open intent, ESC +
+    outside-pointer dismiss, focus management, and the anchored portaled panel; parts pass
+    `unstyled` so the panel keeps `.navbar__menu-*`. The panel moved from an absolute-positioned
+    in-navbar card to the portaled Positioner→Popup→Viewport: position→`.navbar__menu-positioner`,
+    card chrome + fade→`.navbar__menu-panel` (popup), width+padding→`.navbar__menu-panel-content`
+    (Base UI measures it to size the popup). Chevron rotation now rides `.jc-navmenu__icon[data-popup-open]`.
+    Removed the manual `menuOpen` state + outside-click/ESC effect, the `.navbar__menu-trigger--open`
+    class + its svg rule, and `@keyframes navMenuIn`. **Verified**: opens on click, panel flush under
+    trigger (top −1px, left-aligned), 560px content, 18 category anchors, icon rotates 180° via
+    `data-popup-open`, **ESC closes** (panel unmounts).
+  - Mobile **nav-drawer** → `Dialog` as a left side-sheet (plan said "Collapsible", but the drawer
+    is a *modal* — overlay + focus trap — so `Dialog` is the correct primitive; owner confirmed).
+    Mirrors the `CartDrawer` migration: `Dialog.Backdrop`(`.nav-drawer-overlay--bui`) +
+    `Dialog.Popup`(`.nav-drawer`) with a `sr-only` `Dialog.Title` "Menu" for the accessible name and
+    `Dialog.Close` for the X. Added the `--bui` fade + `[data-starting-style]/[data-ending-style]`
+    translateX(-100%) slide; deleted the now-dead `.nav-drawer-overlay--visible` class. **Removed
+    `useFocusTrap(drawerRef,…)` + the manual drawer ESC effect + `drawerRef`/`useRef` import** — Base
+    UI now owns focus trap/return, ESC, backdrop-press close, scroll-lock, inert background.
+    **Verified**: `role=dialog`, `aria-labelledby`→sr-only title, width 319 (=85vw), settled slide-in,
+    **focus trapped inside**, real order-button opens it, **ESC + backdrop both close and sync the
+    `mobileNavDrawerOpen` store**, no `unstyled` DOM leaks, zero console errors.
+  - **`useFocusTrap` KEPT** — `OrderGate.tsx` is still a live caller (grep-confirmed). NavBar no
+    longer references it. Delete the hook only once OrderGate migrates (Phase 4/later).
 
 ## Phase 4 — Auth & account ⬜ TODO
 - [ ] `AuthFlow` (sign in/up, OTP) → `Field` + `Form` (+ `otp-field`).
@@ -140,9 +178,9 @@ lives in the shared `@joy-curry/core` package (mobile may reference it), and thi
 | CartPage (live checkout, `/cart`) | full page — `field`/`form` (Phase 4), NOT `dialog` |
 | CartDrawer | `drawer` (side dialog) |
 | AuthFlow | `field`, `form`, `otp-field` |
-| SearchFilterBar | `select`, `toggle-group` |
-| CategoryRail | `tabs` / `toggle-group` |
-| NavBar | `navigation-menu`, `collapsible` |
+| SearchFilterBar ✅ | `select`, `toggle-group` |
+| ~~CategoryRail~~ | **DROPPED — island deleted in the modal→page redesign** |
+| NavBar ✅ | `navigation-menu` (desktop dropdown) + `dialog` (mobile drawer, not `collapsible` — it's modal) |
 | StockNotifier, confirmations | `toast` |
 | dietary badges, upsells | `tooltip` |
 | OrderTracker | `progress` |
@@ -159,28 +197,27 @@ from `@joy-curry/tokens` (already architected). Web `<Dialog>` ↔ RN modal shar
 - 2026-07-23 (same session, autonomous run): **Completed Phase 0** (`packages/ui` seam: `cx`, `styled()` factory with `unstyled` hatch, `Dialog` wrapper + CSS, wired into web, README), **Phase 1** (`DishDetailModal`), and **Phase 2 partial** (`BundleModal` + `CartDrawer`). All browser-verified. Fixed the `unstyled`-leak bug.
 - 2026-07-23 (continuation run): **Completed Phase 2** — migrated `CheckoutModal` shell to `Dialog` (payment logic untouched), added `.checkout-modal--bui` CSS, browser-verified on a temp `/spike` mount (reverted after). **Discovered `CheckoutModal` is dead code** — superseded by the full-page `CartPage.tsx` (`/cart`), which is the live Stripe checkout now. Updated the primitive map + Phase 2 notes accordingly. Nothing committed — all staged for owner review. App compiles and dev SSR renders all pages.
 - 2026-07-23 (Phase-3 session, step 1 — cleanup): Ran the **debt-deletion sweep** (see the ✅ SWEPT section above). Deleted `CheckoutModal.tsx` + its mount + orphaned CSS (`checkout-modal--bui`, `checkout-steps`, `vault-section`, `promo-section`); kept everything CartPage/RewardsPanel/OrderGate still reference (grep-verified). Kept `useFocusTrap` (2 live callers). Flagged the orphaned `checkoutOpen` core atom for the owner. **Browser-verified** `/order` + `/cart` render with zero console/SSR errors after the sweep. Staged in 3 stages (A: `packages/ui` seam + wiring; B: modal migrations + shell CSS; C: dead-code removal) — nothing committed/pushed; handed the owner a message per stage. Phase 3 migration NOT started yet (awaiting owner push).
+- 2026-07-23 (Phase-3 migration): **Completed Phase 3.** Re-verified targets first: `SearchFilterBar` live on `/order` (already migrated to `Select`+`ToggleGroup`); `CategoryRail` **gone** — dropped from scope (island + mount + `.category-nav*` CSS all deleted in the earlier redesign); `NavBar` live. Added the `Select`/`ToggleGroup`/`NavigationMenu` wrappers. Migrated **`NavBar`**: desktop MENU dropdown → `NavigationMenu` (owner accepted hover+focus+click open; panel restructured into the portaled Positioner→Popup→Viewport, brand CSS preserved), mobile drawer → `Dialog` left side-sheet (owner picked `Dialog` over the plan's "Collapsible" since the drawer is modal). Removed NavBar's `useFocusTrap` call + manual outside-click/ESC/keydown effects + `.navbar__menu-trigger--open`/`navMenuIn`/`.nav-drawer-overlay--visible` dead CSS. `useFocusTrap` **kept** (OrderGate still calls it). **Browser-verified** both islands across desktop + mobile: correct roles/ARIA, pixel-identical look (screenshots), ESC + backdrop dismiss, focus trap, store sync, no `unstyled` leaks, zero console/dev-server errors. Static typecheck note: no standalone `tsc` in the workspace and `astro check` needs an interactive install — relied on the dev-server transform (islands executed live) per the established Phase-2 convention. Staged in 3 stages (A: wrappers; B: NavBar migration + `global.css`; C: SearchFilterBar migration + CategoryRail deletion + `order.astro` + `.category-nav` CSS removal) — nothing committed/pushed.
 
-## Next session — start here (STRICT ORDER)
-**Phase 2 is done. Phases 0–2 are uncommitted.** Follow the workflow rules above:
+## Next session — start here (STRICT ORDER) → Phase 4: Auth & account
+**Phase 3 is done. Phases 0–3 are uncommitted (staged, awaiting owner push).** Follow the workflow rules above:
 
 0. Read this whole file top-to-bottom.
-1. **Cleanup FIRST — no new-feature code.** Work the "Pending debt-deletion" checklist above:
-   grep-verify each item is unused, then delete it. This is the only code touched before the push.
-2. **Stage commits, stage-by-stage.** Group the work into logical stages (suggested):
-   - Stage A: `packages/ui` seam (Phase 0).
-   - Stage B: modal migrations (`DishDetailModal`, `BundleModal`, `CartDrawer`, `CheckoutModal`) +
-     their `global.css` Base-UI shell CSS (Phases 1–2).
-   - Stage C: debt-deletion sweep from step 1.
-   `git add` each stage's files and hand the owner a commit message per stage. **Do NOT commit or
-   push.**
-3. **Owner pushes to GitHub**, stage by stage. Wait for confirmation before starting Phase 3.
-4. **Then Phase 3 — Menu browsing** (`SearchFilterBar` → `Select`+`ToggleGroup`,
-   `CategoryRail` → `Tabs`/`ToggleGroup`, `NavBar` → `NavigationMenu`/`Collapsible`). ⚠️ Re-verify
-   these targets still exist/are live first — the app had a modal→page redesign since this plan was
-   written. (`SearchFilterBar` + `NavBar` confirmed live on `/order`; `CategoryRail` was NOT in the
-   `/order` island list — confirm before scheduling.) Add the new `packages/ui` wrappers
-   (`Select`, `ToggleGroup`, `Tabs`, …) Phase-0 style first, then migrate + verify + delete debt.
-5. **End the session with a handoff prompt** for Phase 4.
+1. **Cleanup FIRST — no new-feature code.** Phase 3 deleted its own debt inline (dead nav CSS + `CategoryRail`), so there is no Phase-3 leftover to sweep. Just re-grep the "Out-of-scope debt flagged" items below and confirm nothing new dangles before Phase 4 migration.
+2. **Owner pushes the Phase-3 stages to GitHub** (A → B → C) if not already done. Wait for confirmation before starting Phase 4.
+3. **Then Phase 4 — Auth & account:**
+   - `AuthFlow` (sign in/up + OTP) → `Field` + `Form` (+ `otp-field`). Add those `packages/ui`
+     wrappers Phase-0 style first. ⚠️ **Also re-scope `CartPage.tsx`** (`/cart`, the live Stripe
+     checkout) here — it's a full page whose form-field a11y belongs to `Field`/`Form`, not `Dialog`
+     (flagged since Phase 2). Confirm it's still the live checkout before touching payment logic.
+   - `AccountPage`, `OrdersPage` → `Tabs` / `Menu`. **`OrderGate.tsx` is the last `useFocusTrap`
+     caller** — if it migrates to a Base UI primitive this phase, delete `useFocusTrap` from
+     `@lib/hooks` (grep first).
+   - Migrate → verify in browser → delete the debt each migration makes dead. Stage stage-by-stage;
+     owner pushes.
+4. **End the session with a Phase 5 handoff prompt** (Feedback & status: `StockNotifier`/confirmations
+   → `Toast`; dietary badges/upsells → `Tooltip`; `OrderTracker` → `Progress`; `MealConcierge` →
+   `Combobox`/`Accordion`).
 
 **Reference — CartPage:** the live checkout is `CartPage.tsx` (`/cart`), a full page; its `Field`/`Form`
 a11y is Phase-4-shaped, not a `Dialog`. Re-map when Phase 4 is scoped.

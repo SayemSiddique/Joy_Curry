@@ -1,0 +1,55 @@
+/* ToggleGroup — Base UI parts are unstyled; every value comes from global.css
+   design tokens. Islands that own their button CSS pass `unstyled`; this is the
+   brand default a *new* toggle group gets for free. Mirrors `.toolbar__filter-btn`.
+   No Tailwind. */
+
+.jc-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.jc-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 36px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--ease-fast);
+}
+
+.jc-toggle:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.jc-toggle[data-pressed] {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.jc-toggle[data-pressed]:hover {
+  background: var(--color-primary-hover);
+  color: #fff;
+  border-color: var(--color-primary-hover);
+}
+
+.jc-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jc-toggle {
+    transition-duration: 1ms;
+  }
+}

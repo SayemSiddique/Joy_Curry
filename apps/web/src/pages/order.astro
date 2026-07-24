@@ -3,7 +3,6 @@ import BaseLayout from '@layouts/BaseLayout.astro';
 import Footer from '@components/static/Footer.astro';
 import MenuSection from '@components/static/MenuSection.astro';
 import PopularStrip from '@components/static/PopularStrip.astro';
-import CategoryRail from '@components/islands/CategoryRail';
 import SearchFilterBar from '@components/islands/SearchFilterBar';
 import BundleModal from '@components/islands/BundleModal';
 import OrderGate from '@components/islands/OrderGate';
@@ -65,8 +64,6 @@ const activeCategories = CATEGORIES.filter((c) => (byCategory.get(c.id)?.length 
   <GroupOrderBanner client:idle />
   <KitchenTicker client:idle />
   <SearchFilterBar client:idle menuItems={menuItems} />
-
-  {!fetchError && <CategoryRail client:idle categories={activeCategories} />}
 
   <main id="main-content">
     <ReorderStrip client:idle />

@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, Bell, Clock, ShoppingBag, X, ChevronDown, Sparkles } from 'lucide-react';
+import { NavigationMenu, Dialog } from '@joy-curry/ui';
 import { CategoryIcon } from '@lib/categoryIcons';
 import type { ReadableAtom } from 'nanostores';
 import {
@@ -15,7 +16,6 @@ import {
   sectionId,
   type AuthState,
 } from '@lib/core';
-import { useFocusTrap } from '@lib/hooks';
 
 function useNano<T>(store: ReadableAtom<T>): T {
   const [val, setVal] = useState<T>(() => store.get());
@@ -38,36 +38,12 @@ export default function NavBar() {
   const drawerOpen = useNano(mobileNavDrawerOpen);
   const path = usePathname();
 
-  const drawerRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(drawerRef, drawerOpen);
-
-  // MENU dropdown (desktop) — category quick-jump panel
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [menuOpen]);
+  // Desktop MENU dropdown + mobile drawer now run on Base UI (NavigationMenu +
+  // Dialog): open/close intent, ESC, outside-pointer dismiss, focus trap, and
+  // focus return are all handled by the primitives — replacing the manual
+  // outside-click/ESC effects, the drawer keydown effect, and useFocusTrap.
 
   const closeDrawer = () => mobileNavDrawerOpen.set(false);
-
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeDrawer();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [drawerOpen]);
 
   const handleBellClick = () => {
     document
@@ -85,38 +61,57 @@ export default function NavBar() {
 
           {/* Desktop-only nav links */}
           <nav className="navbar__nav navbar__nav--desktop" aria-label="Site sections">
-            <div className="navbar__menu-dd" ref={menuRef}>
-              <button
-                type="button"
-                className={`navbar__nav-link navbar__menu-trigger${menuOpen ? ' navbar__menu-trigger--open' : ''}`}
-                aria-haspopup="true"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((o) => !o)}
-              >
-                MENU <ChevronDown size={16} strokeWidth={2.25} aria-hidden="true" />
-              </button>
-              {menuOpen && (
-                <div className="navbar__menu-panel" role="menu" aria-label="Menu categories">
-                  <a href="/order" className="navbar__menu-panel-all" role="menuitem" onClick={() => setMenuOpen(false)}>
-                    View full menu →
-                  </a>
-                  <div className="navbar__menu-grid">
-                    {CATEGORIES.map((c) => (
-                      <a
-                        key={c.id}
-                        href={`/order#${sectionId(c.id)}`}
-                        className="navbar__menu-item"
-                        role="menuitem"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        <span className="navbar__menu-item-icon" aria-hidden="true"><CategoryIcon id={c.id} size={16} /></span>
-                        {c.label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* MENU dropdown — Base UI NavigationMenu supplies the trigger ARIA,
+                keyboard/hover/focus intent, ESC + outside-pointer dismiss, focus
+                management, and the anchored portaled panel. Parts pass `unstyled`
+                so the panel keeps its own brand CSS (.navbar__menu-*). */}
+            <NavigationMenu.Root className="navbar__menu-dd">
+              <NavigationMenu.List className="navbar__menu-list">
+                <NavigationMenu.Item className="navbar__menu-item-root">
+                  <NavigationMenu.Trigger className="navbar__nav-link navbar__menu-trigger">
+                    MENU
+                    <NavigationMenu.Icon>
+                      <ChevronDown size={16} strokeWidth={2.25} aria-hidden="true" />
+                    </NavigationMenu.Icon>
+                  </NavigationMenu.Trigger>
+                  <NavigationMenu.Content unstyled className="navbar__menu-panel-content">
+                    <NavigationMenu.Link
+                      render={<a />}
+                      href="/order"
+                      className="navbar__menu-panel-all"
+                    >
+                      View full menu →
+                    </NavigationMenu.Link>
+                    <div className="navbar__menu-grid">
+                      {CATEGORIES.map((c) => (
+                        <NavigationMenu.Link
+                          key={c.id}
+                          render={<a />}
+                          href={`/order#${sectionId(c.id)}`}
+                          className="navbar__menu-item"
+                        >
+                          <span className="navbar__menu-item-icon" aria-hidden="true"><CategoryIcon id={c.id} size={16} /></span>
+                          {c.label}
+                        </NavigationMenu.Link>
+                      ))}
+                    </div>
+                  </NavigationMenu.Content>
+                </NavigationMenu.Item>
+              </NavigationMenu.List>
+              <NavigationMenu.Portal>
+                <NavigationMenu.Positioner
+                  unstyled
+                  className="navbar__menu-positioner"
+                  side="bottom"
+                  align="start"
+                  sideOffset={-1}
+                >
+                  <NavigationMenu.Popup unstyled className="navbar__menu-panel">
+                    <NavigationMenu.Viewport />
+                  </NavigationMenu.Popup>
+                </NavigationMenu.Positioner>
+              </NavigationMenu.Portal>
+            </NavigationMenu.Root>
             <a href="/#story" className="navbar__nav-link">OUR STORY</a>
             {auth.user && (
               <a
@@ -215,48 +210,47 @@ export default function NavBar() {
         </div>
       </nav>
 
-      {/* Mobile order drawer */}
-      <div
-        className={`nav-drawer-overlay${drawerOpen ? ' nav-drawer-overlay--visible' : ''}`}
-        onClick={closeDrawer}
-        aria-hidden="true"
-      />
-      <div
-        ref={drawerRef}
-        className={`nav-drawer${drawerOpen ? ' nav-drawer--open' : ''}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Menu"
-      >
-        <button type="button" className="nav-drawer__close" onClick={closeDrawer} aria-label="Close menu">
-          <X size={20} strokeWidth={1.75} aria-hidden="true" />
-        </button>
-        <nav className="nav-drawer__links" aria-label="Site sections">
-          <a href="/order" onClick={closeDrawer}>MENU</a>
-          <a href="/#story" onClick={closeDrawer}>OUR STORY</a>
-        </nav>
-        <div className="nav-drawer__divider" />
-        <nav className="nav-drawer__links" aria-label="Account">
-          {auth.user ? (
-            <a href="/account" onClick={closeDrawer}>{auth.user.name.split(' ')[0]}</a>
-          ) : (
-            <a href="/signin" onClick={closeDrawer}>Sign In / Sign Up</a>
-          )}
-          {auth.user && (
-            <a href="/orders">My Orders</a>
-          )}
-          {auth.user && (
-            <button type="button" onClick={() => { vaultOpen.set(true); closeDrawer(); }}>
-              <Sparkles size={15} strokeWidth={2} aria-hidden="true" /> Vault
-            </button>
-          )}
-          {auth.user?.role === 'admin' && (
-            <button type="button" onClick={() => { adminPanelOpen.set(true); closeDrawer(); }}>
-              Admin
-            </button>
-          )}
-        </nav>
-      </div>
+      {/* Mobile order drawer — Base UI Dialog as a left-side sheet. Base UI
+          supplies role=dialog, focus trap + return, ESC, backdrop-press close,
+          scroll-lock, and inert background (replacing useFocusTrap + the manual
+          ESC/overlay-click handlers). Parts pass `unstyled` to keep the drawer's
+          own .nav-drawer CSS. */}
+      <Dialog.Root open={drawerOpen} onOpenChange={(o) => { if (!o) closeDrawer(); }}>
+        <Dialog.Portal>
+          <Dialog.Backdrop unstyled className="nav-drawer-overlay nav-drawer-overlay--bui" />
+          <Dialog.Popup unstyled className="nav-drawer nav-drawer--open">
+            <Dialog.Title unstyled className="sr-only">Menu</Dialog.Title>
+            <Dialog.Close unstyled className="nav-drawer__close" aria-label="Close menu">
+              <X size={20} strokeWidth={1.75} aria-hidden="true" />
+            </Dialog.Close>
+            <nav className="nav-drawer__links" aria-label="Site sections">
+              <a href="/order" onClick={closeDrawer}>MENU</a>
+              <a href="/#story" onClick={closeDrawer}>OUR STORY</a>
+            </nav>
+            <div className="nav-drawer__divider" />
+            <nav className="nav-drawer__links" aria-label="Account">
+              {auth.user ? (
+                <a href="/account" onClick={closeDrawer}>{auth.user.name.split(' ')[0]}</a>
+              ) : (
+                <a href="/signin" onClick={closeDrawer}>Sign In / Sign Up</a>
+              )}
+              {auth.user && (
+                <a href="/orders">My Orders</a>
+              )}
+              {auth.user && (
+                <button type="button" onClick={() => { vaultOpen.set(true); closeDrawer(); }}>
+                  <Sparkles size={15} strokeWidth={2} aria-hidden="true" /> Vault
+                </button>
+              )}
+              {auth.user?.role === 'admin' && (
+                <button type="button" onClick={() => { adminPanelOpen.set(true); closeDrawer(); }}>
+                  Admin
+                </button>
+              )}
+            </nav>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
     </>
   );
 }
