@@ -28,10 +28,12 @@ success = "looks identical, but now traps focus / handles keyboard / passes a sc
 4. **Push before the next phase.** A phase's work must be pushed (by the owner) before the next
    phase begins. New-session order is therefore: (a) dead-code cleanup → (b) Claude stages
    commits + messages → (c) **owner pushes** → (d) then start the phase's migration.
-5. **End every session with a handoff prompt.** The last thing Claude does each session is emit a
-   copy-paste "next session" prompt that lets a fresh Claude Code session resume from the next
-   phase with full context (what's done, what's staged, what to delete, what to build). See
-   [[feedback-session-handoffs]].
+5. **End every session with a handoff prompt — inline, in the SAME closing turn.** Do NOT stop
+   after staging + handing over the commit messages. In that same final turn, Claude ALSO emits a
+   copy-paste "next session" prompt (as **text in the chat**, never a separate file) that lets a
+   fresh session resume from the next phase with full context (what's done, what's staged, what to
+   delete, what to build). Staging, the per-stage commit messages, and the handoff prompt all land
+   together in one closing turn. See [[feedback-session-handoffs]].
 
 **How to resume in a new session:** read this file top-to-bottom. Each phase below has a
 status. Start at the first `⬜ TODO`. The `@joy-curry/ui` package is the foundation; its
@@ -125,9 +127,46 @@ README documents the "add a component" convention.
   - **`useFocusTrap` KEPT** — `OrderGate.tsx` is still a live caller (grep-confirmed). NavBar no
     longer references it. Delete the hook only once OrderGate migrates (Phase 4/later).
 
-## Phase 4 — Auth & account ⬜ TODO
-- [ ] `AuthFlow` (sign in/up, OTP) → `Field` + `Form` (+ `otp-field`).
-- [ ] `AccountPage`, `OrdersPage` → `Tabs` / `Menu`.
+## Phase 4 — Auth & account ✅ DONE
+- [x] **Wrappers added (Phase-0 style):** `Field` (`field`), `Form` (`form`), `OtpField`
+  (`otp-field`), `Tabs` (`tabs`) — each a `styled()` part factory + brand-token CSS +
+  reduced-motion guard + side-effect CSS import, exported from `src/index.ts`. `Field`/`Form`
+  default to `unstyled` in the validation-bearing islands (they keep the brand `.form-*` look);
+  `OtpField`/`Tabs` ship a real brand default (used visibly).
+- [x] **`AuthFlow` → `Field` + `Form` + `OtpField`** ✅ All 3 forms (email/code/details) wrapped
+  in `Form` + `Field` (a11y only — label↔control↔error wiring, `aria-invalid`). **Every validation
+  rule + message + submit path preserved byte-for-byte** (`EMAIL_RE`, `/^\d{6}$/`, name ≥2). OTP
+  step → **segmented 6-box `OtpField`** (owner approved the visual change over the old single masked
+  input; brand-styled, numeric, paste/auto-advance). Removed the two focus refs (`codeRef`/`nameRef`)
+  + the `useEffect` focus block (autofocus now on the mounted first slot / name control).
+- [x] **`CartPage` → `Field` + `Form`** ✅ Contact/address fields (name/phone/email/address/apt/
+  drop-off/notes-textarea) wrapped for a11y. **Stripe/payment logic untouched** — the `PaymentElement`
+  step is separate. `validate()` + `errors` map + `handleSubmit`/`handlePaymentRequest` unchanged
+  (`fieldChange` switched from an event handler to a value handler for `onValueChange`). **QA'd
+  end-to-end**: field binding, per-field validation, happy-path submit → `ordersApi.place` (mock token
+  rejected as expected), pixel-identical brand look, zero console errors.
+- [x] **`AccountPage` → `Tabs` (richer redesign)** ✅ Owner opted into a modern redesign (not a11y-only):
+  new account hero (initials avatar + name + email) + **Base UI `Tabs`** (Profile / Preferences /
+  Rewards) with a sliding indicator. Profile form → `Field`/`Form`. All save paths + dietary toggles +
+  vault rendering preserved.
+- [x] **`OrdersPage` → `Tabs` (richer redesign)** ✅ Owner opted into a modern redesign: **`Tabs`**
+  (Active / Completed / All) with a count badge on Active; status-filtered `OrderCard` lists. Card
+  expand/reorder/track behavior preserved.
+- **`useFocusTrap` KEPT** — `OrderGate.tsx` is still its sole live caller (NavBar's two hits are
+  explanatory comments, not calls). OrderGate did **not** migrate this phase, so the hook stays.
+
+### ⚠️ Base UI `Form`/`Field` gotcha (learned this phase — read before Phase 5+ forms)
+Base UI `Form` runs its **own** field validation on submit and **swallows the island's `onSubmit`**
+if any field is natively invalid (`required` empty → `valueMissing`; `type="email"` malformed →
+`typeMismatch`). To keep the islands' custom `validate()`/messages authoritative:
+1. **Drop native `required`** → use `aria-required="true"` (keeps a11y, avoids `valueMissing` blocking).
+2. **Email fields:** `type="text"` + `inputMode="email"` (not `type="email"`), so a malformed value
+   never triggers `typeMismatch` blocking — the island's `EMAIL_RE` check + message stay in control.
+3. **Controlled inputs MUST use Base UI's controlled API** — `value` + **`onValueChange`** on
+   `Field.Control` (NOT `value` + `onChange`; the plain `onChange` is swallowed by Field's internal
+   handler and the input silently stops updating React state — a checkout-breaking bug). For a
+   `<textarea>`, add `render={<textarea/>}` for the element type but keep `value`/`onValueChange` on
+   `Field.Control`. Verified: no controlled/uncontrolled React warnings with this pattern.
 
 ## Phase 5 — Feedback & status ⬜ TODO
 - [ ] `StockNotifier` / order confirmations → `Toast`.
@@ -175,12 +214,14 @@ lives in the shared `@joy-curry/core` package (mobile may reference it), and thi
 | Island | Base UI primitive(s) |
 |---|---|
 | DishDetailModal, CheckoutModal (dormant), BundleModal | `dialog` |
-| CartPage (live checkout, `/cart`) | full page — `field`/`form` (Phase 4), NOT `dialog` |
+| CartPage ✅ (live checkout, `/cart`) | full page — `field`/`form` (contact/address a11y; Stripe untouched), NOT `dialog` |
 | CartDrawer | `drawer` (side dialog) |
-| AuthFlow | `field`, `form`, `otp-field` |
+| AuthFlow ✅ | `field`, `form`, `otp-field` (segmented 6-box) |
 | SearchFilterBar ✅ | `select`, `toggle-group` |
 | ~~CategoryRail~~ | **DROPPED — island deleted in the modal→page redesign** |
 | NavBar ✅ | `navigation-menu` (desktop dropdown) + `dialog` (mobile drawer, not `collapsible` — it's modal) |
+| AccountPage ✅ | `tabs` (Profile/Preferences/Rewards) + `field`/`form` (profile) |
+| OrdersPage ✅ | `tabs` (Active/Completed/All) |
 | StockNotifier, confirmations | `toast` |
 | dietary badges, upsells | `tooltip` |
 | OrderTracker | `progress` |
@@ -197,35 +238,61 @@ from `@joy-curry/tokens` (already architected). Web `<Dialog>` ↔ RN modal shar
 - 2026-07-23 (same session, autonomous run): **Completed Phase 0** (`packages/ui` seam: `cx`, `styled()` factory with `unstyled` hatch, `Dialog` wrapper + CSS, wired into web, README), **Phase 1** (`DishDetailModal`), and **Phase 2 partial** (`BundleModal` + `CartDrawer`). All browser-verified. Fixed the `unstyled`-leak bug.
 - 2026-07-23 (continuation run): **Completed Phase 2** — migrated `CheckoutModal` shell to `Dialog` (payment logic untouched), added `.checkout-modal--bui` CSS, browser-verified on a temp `/spike` mount (reverted after). **Discovered `CheckoutModal` is dead code** — superseded by the full-page `CartPage.tsx` (`/cart`), which is the live Stripe checkout now. Updated the primitive map + Phase 2 notes accordingly. Nothing committed — all staged for owner review. App compiles and dev SSR renders all pages.
 - 2026-07-23 (Phase-3 session, step 1 — cleanup): Ran the **debt-deletion sweep** (see the ✅ SWEPT section above). Deleted `CheckoutModal.tsx` + its mount + orphaned CSS (`checkout-modal--bui`, `checkout-steps`, `vault-section`, `promo-section`); kept everything CartPage/RewardsPanel/OrderGate still reference (grep-verified). Kept `useFocusTrap` (2 live callers). Flagged the orphaned `checkoutOpen` core atom for the owner. **Browser-verified** `/order` + `/cart` render with zero console/SSR errors after the sweep. Staged in 3 stages (A: `packages/ui` seam + wiring; B: modal migrations + shell CSS; C: dead-code removal) — nothing committed/pushed; handed the owner a message per stage. Phase 3 migration NOT started yet (awaiting owner push).
+- 2026-07-24 (Phase-4 session): **Completed Phase 4 — Auth & account.** Re-verified targets first
+  (AuthFlow `/signin`, CartPage `/cart` = live Stripe checkout, AccountPage `/account`, OrdersPage
+  `/orders` — all live; Account/Orders were flattened by the redesign, no Tabs/Menu existed). Two owner
+  decisions: (1) OTP → **segmented 6-box `otp-field`** (accept the visual change), (2) **Account +
+  Orders → a richer modern `Tabs` redesign** (opt out of "no visual change" for these two pages).
+  Added `Field`/`Form`/`OtpField`/`Tabs` wrappers (Stage A). Migrated **AuthFlow** (Field/Form/OtpField,
+  every validation rule/message/submit path preserved) and **CartPage** (Field/Form on contact/address,
+  Stripe untouched); redesigned **AccountPage** (hero + Profile/Preferences/Rewards tabs) and
+  **OrdersPage** (Active/Completed/All tabs + count badge). Hit + solved the Base UI `Form`/`Field`
+  gotcha (see the ⚠️ box in Phase 4): `Form` swallows `onSubmit` on native-invalid fields, and
+  `Field.Control` needs `value`+`onValueChange` (plain `onChange` is dropped → silently breaks binding).
+  **Browser-verified all four** with a real API (started `apps/api`) + a `window.fetch` shim for the
+  auth-gated Account/Orders data: custom validation messages fire (empty + malformed), field binding
+  works, tabs switch with sliding indicator, card expand/reorder/track intact, pixel-identical brand
+  look on Auth/Cart, zero console errors (on fresh tabs — the shared console buffer replays stale
+  warnings, per the tooling note). Debt deleted inline (folded into Stage B): orphaned
+  `.auth-flow__code-input` (single-input class, OTP is now segmented) and the unused `.account-section`
+  base card rule (`.account-panel` replaced it; the `__heading`/`__hint`/`__save-btn`/`__error`
+  sub-classes are still used and kept). `useFocusTrap` **kept** (OrderGate still calls it). Staged in
+  3 stages (A: wrappers; B: island migrations + global.css incl. inline debt deletion; C: this tracker)
+  — nothing committed/pushed.
 - 2026-07-23 (Phase-3 migration): **Completed Phase 3.** Re-verified targets first: `SearchFilterBar` live on `/order` (already migrated to `Select`+`ToggleGroup`); `CategoryRail` **gone** — dropped from scope (island + mount + `.category-nav*` CSS all deleted in the earlier redesign); `NavBar` live. Added the `Select`/`ToggleGroup`/`NavigationMenu` wrappers. Migrated **`NavBar`**: desktop MENU dropdown → `NavigationMenu` (owner accepted hover+focus+click open; panel restructured into the portaled Positioner→Popup→Viewport, brand CSS preserved), mobile drawer → `Dialog` left side-sheet (owner picked `Dialog` over the plan's "Collapsible" since the drawer is modal). Removed NavBar's `useFocusTrap` call + manual outside-click/ESC/keydown effects + `.navbar__menu-trigger--open`/`navMenuIn`/`.nav-drawer-overlay--visible` dead CSS. `useFocusTrap` **kept** (OrderGate still calls it). **Browser-verified** both islands across desktop + mobile: correct roles/ARIA, pixel-identical look (screenshots), ESC + backdrop dismiss, focus trap, store sync, no `unstyled` leaks, zero console/dev-server errors. Static typecheck note: no standalone `tsc` in the workspace and `astro check` needs an interactive install — relied on the dev-server transform (islands executed live) per the established Phase-2 convention. Staged in 3 stages (A: wrappers; B: NavBar migration + `global.css`; C: SearchFilterBar migration + CategoryRail deletion + `order.astro` + `.category-nav` CSS removal) — nothing committed/pushed.
 
-## Next session — start here (STRICT ORDER) → Phase 4: Auth & account
-**Phase 3 is done. Phases 0–3 are uncommitted (staged, awaiting owner push).** Follow the workflow rules above:
+## Next session — start here (STRICT ORDER) → Phase 5: Feedback & status
+**Phase 4 is done. Phases 0–4 are uncommitted (Phase 4 staged, awaiting owner push).** Follow the workflow rules above:
 
-0. Read this whole file top-to-bottom.
-1. **Cleanup FIRST — no new-feature code.** Phase 3 deleted its own debt inline (dead nav CSS + `CategoryRail`), so there is no Phase-3 leftover to sweep. Just re-grep the "Out-of-scope debt flagged" items below and confirm nothing new dangles before Phase 4 migration.
-2. **Owner pushes the Phase-3 stages to GitHub** (A → B → C) if not already done. Wait for confirmation before starting Phase 4.
-3. **Then Phase 4 — Auth & account:**
-   - `AuthFlow` (sign in/up + OTP) → `Field` + `Form` (+ `otp-field`). Add those `packages/ui`
-     wrappers Phase-0 style first. ⚠️ **Also re-scope `CartPage.tsx`** (`/cart`, the live Stripe
-     checkout) here — it's a full page whose form-field a11y belongs to `Field`/`Form`, not `Dialog`
-     (flagged since Phase 2). Confirm it's still the live checkout before touching payment logic.
-   - `AccountPage`, `OrdersPage` → `Tabs` / `Menu`. **`OrderGate.tsx` is the last `useFocusTrap`
-     caller** — if it migrates to a Base UI primitive this phase, delete `useFocusTrap` from
-     `@lib/hooks` (grep first).
-   - Migrate → verify in browser → delete the debt each migration makes dead. Stage stage-by-stage;
-     owner pushes.
-4. **End the session with a Phase 5 handoff prompt** (Feedback & status: `StockNotifier`/confirmations
-   → `Toast`; dietary badges/upsells → `Tooltip`; `OrderTracker` → `Progress`; `MealConcierge` →
-   `Combobox`/`Accordion`).
-
-**Reference — CartPage:** the live checkout is `CartPage.tsx` (`/cart`), a full page; its `Field`/`Form`
-a11y is Phase-4-shaped, not a `Dialog`. Re-map when Phase 4 is scoped.
+0. Read this whole file top-to-bottom (esp. the ⚠️ Base UI `Form`/`Field` gotcha box in Phase 4).
+1. **Cleanup FIRST — no new-feature code.** Phase 4 deleted its own debt inline (`.auth-flow__code-input`
+   + `.account-section` base rule, folded into Stage B). No Phase-4 leftover to sweep. Just re-grep the
+   "Out-of-scope debt flagged" item below and confirm nothing new dangles before Phase 5 migration.
+2. **Owner pushes the Phase-4 stages to GitHub** (A → B → C) if not already done. Wait for confirmation
+   before starting Phase 5.
+3. **Then Phase 5 — Feedback & status:**
+   - `StockNotifier` / order confirmations → **`Toast`**.
+   - dietary badges / upsell hints → **`Tooltip`**.
+   - `OrderTracker` → **`Progress`**.
+   - `MealConcierge` → **`Combobox` / `Accordion`**.
+   Add each `packages/ui` wrapper Phase-0 style first. Re-verify each target is still live before writing
+   a wrapper (the redesign has moved things before). Migrate → verify in browser → delete the debt each
+   migration makes dead. Stage stage-by-stage; owner pushes.
+   - **`OrderGate.tsx` is still the last `useFocusTrap` caller.** It did NOT migrate in Phase 4. If any
+     Phase-5 work migrates it to a Base UI primitive, delete `useFocusTrap` from `@lib/hooks` (grep-confirm
+     zero callers first).
+4. **End the session with a Phase 6 handoff prompt** (Close out: delete spike trio `spike.astro`/
+   `BaseUISpike.tsx`/`BaseUISpike.css`; a11y sweep across migrated flows; finalize `packages/ui/README.md`).
 
 **Verifying islands without the API:** dispatch window events in the console — `dish:open` (mock
-MenuItem), `bundle:edit` (`combo-platter-2`), or open the cart via the navbar. For store-driven
-islands, `await import('/src/lib/core.ts')` to drive nanostores directly. NOTE: proceeding to
-checkout now routes to `/cart` (→ `/signin` if unauthed), because checkout is a page.
+MenuItem), `bundle:edit` (`combo-platter-2`), or open the cart via the navbar. For store-driven islands,
+`await import('/src/lib/core.ts')` to drive nanostores directly (`setAuth(token, user)` for auth-gated
+pages). For pages that fetch auth-gated data (Account `/api/users/me`, Orders `/api/orders/me`), install a
+`window.fetch` shim returning mock JSON, then change the auth token via `setAuth` to re-trigger the load
+effect **without navigating** (navigation resets the shim). The `apps/api` server can also be started for
+real data, but its OTP email send throws in dev (a failing `RESEND_API_KEY` is set — do NOT edit `.env`).
+NOTE: the browser MCP console buffer is session-wide and replays STALE warnings across edits/reloads —
+always confirm "zero console errors" on a **fresh tab**, not the working tab.
 
 **Before any deploy:** run `pnpm build` (full SSR/type build — verified via dev server only so far)
-and QA the live `CartPage` checkout end-to-end.
+and QA the live `CartPage` checkout end-to-end with a real signed-in user.

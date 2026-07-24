@@ -4,6 +4,7 @@ import {
   ShoppingBag, Truck, MapPin, Tag, ChevronDown, X, Plus, Minus, DoorOpen,
 } from 'lucide-react';
 import type { ReadableAtom } from 'nanostores';
+import { Field, Form } from '@joy-curry/ui';
 import {
   cartItems, subtotalCents, taxCents, deliveryFeeCents, totalCents,
   orderType, deliveryAddress, orderGateOpen, scheduledFor,
@@ -421,8 +422,10 @@ export default function CartPage() {
     return `https://wa.me/?text=${encodeURIComponent(msg)}`;
   }, []);
 
-  const fieldChange = (name: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((f) => ({ ...f, [name]: e.target.value }));
+  // Value-based so it plugs into Base UI Field.Control's `onValueChange` (its
+  // controlled API). Same effect as before: update the field + clear its error.
+  const fieldChange = (name: keyof Form) => (value: string) => {
+    setForm((f) => ({ ...f, [name]: value }));
     if (errors[name as keyof Errors]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
@@ -680,7 +683,7 @@ export default function CartPage() {
         {/* ── STEP: Details ──────────────────────────────── */}
         {step === 'details' && (
           <div className="cart-page__layout">
-            <form onSubmit={handleSubmit} noValidate className="cart-page__main">
+            <Form onSubmit={handleSubmit} noValidate unstyled className="cart-page__main">
               <h1 className="cart-page__title">Your Details</h1>
 
               {/* Order type */}
@@ -745,51 +748,56 @@ export default function CartPage() {
                 )}
               </div>
 
-              {/* Name */}
-              <div className="form-group">
-                <label htmlFor="cp-name" className="form-label form-label--required">Name</label>
-                <input id="cp-name" type="text" className={`form-input${errors.name ? ' form-input--error' : ''}`} value={form.name} onChange={fieldChange('name')} autoComplete="name" placeholder="Your full name" />
-                {errors.name && <span className="form-error" role="alert">{errors.name}</span>}
-              </div>
+              {/* Name — Field wires label/error a11y; validation stays in validate()/errors.
+                  Inputs use Base UI's controlled API (value + onValueChange) so Field
+                  owns validity/dirty/filled state without any controlled/uncontrolled
+                  churn; the form-state update + error rules are unchanged. */}
+              <Field.Root name="name" invalid={!!errors.name} unstyled className="form-group">
+                <Field.Label unstyled className="form-label form-label--required">Name</Field.Label>
+                <Field.Control unstyled type="text" className={`form-input${errors.name ? ' form-input--error' : ''}`} value={form.name} onValueChange={fieldChange('name')} autoComplete="name" placeholder="Your full name" />
+                {errors.name && <Field.Error match unstyled className="form-error" role="alert">{errors.name}</Field.Error>}
+              </Field.Root>
 
               {/* Phone */}
-              <div className="form-group">
-                <label htmlFor="cp-phone" className="form-label form-label--required">Phone</label>
-                <input id="cp-phone" type="tel" className={`form-input${errors.phone ? ' form-input--error' : ''}`} value={form.phone} onChange={fieldChange('phone')} autoComplete="tel" placeholder="(212) 555-0100" />
-                {errors.phone && <span className="form-error" role="alert">{errors.phone}</span>}
-              </div>
+              <Field.Root name="phone" invalid={!!errors.phone} unstyled className="form-group">
+                <Field.Label unstyled className="form-label form-label--required">Phone</Field.Label>
+                <Field.Control unstyled type="tel" className={`form-input${errors.phone ? ' form-input--error' : ''}`} value={form.phone} onValueChange={fieldChange('phone')} autoComplete="tel" placeholder="(212) 555-0100" />
+                {errors.phone && <Field.Error match unstyled className="form-error" role="alert">{errors.phone}</Field.Error>}
+              </Field.Root>
 
-              {/* Email */}
-              <div className="form-group">
-                <label htmlFor="cp-email" className="form-label form-label--required">Email</label>
-                <input id="cp-email" type="email" className={`form-input${errors.email ? ' form-input--error' : ''}`} value={form.email} onChange={fieldChange('email')} autoComplete="email" placeholder="you@example.com" />
-                {errors.email && <span className="form-error" role="alert">{errors.email}</span>}
-              </div>
+              {/* Email — type="text" + inputMode="email" so Base UI Form never blocks
+                  on a native typeMismatch; the EMAIL_RE check in validate() stays authoritative. */}
+              <Field.Root name="email" invalid={!!errors.email} unstyled className="form-group">
+                <Field.Label unstyled className="form-label form-label--required">Email</Field.Label>
+                <Field.Control unstyled type="text" inputMode="email" className={`form-input${errors.email ? ' form-input--error' : ''}`} value={form.email} onValueChange={fieldChange('email')} autoComplete="email" placeholder="you@example.com" />
+                {errors.email && <Field.Error match unstyled className="form-error" role="alert">{errors.email}</Field.Error>}
+              </Field.Root>
 
               {/* Delivery address */}
               {deliveryType === 'delivery' && (
                 <>
-                  <div className="form-group">
-                    <label htmlFor="cp-address" className="form-label form-label--required">Delivery Address</label>
-                    <input id="cp-address" type="text" className={`form-input${errors.address ? ' form-input--error' : ''}`} value={form.address} onChange={fieldChange('address')} autoComplete="street-address" placeholder="123 Main St, New York, NY" />
-                    {errors.address && <span className="form-error" role="alert">{errors.address}</span>}
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="cp-apt" className="form-label">Apt / Floor <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span></label>
-                    <input id="cp-apt" type="text" className="form-input" value={form.apt} onChange={fieldChange('apt')} autoComplete="address-line2" placeholder="Apt 4B" />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="cp-dropoff" className="form-label">Drop-off Instructions <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span></label>
-                    <input id="cp-dropoff" type="text" className="form-input" value={form.dropOffInstructions} onChange={fieldChange('dropOffInstructions')} placeholder="Leave at door, ring buzzer 4B…" />
-                  </div>
+                  <Field.Root name="address" invalid={!!errors.address} unstyled className="form-group">
+                    <Field.Label unstyled className="form-label form-label--required">Delivery Address</Field.Label>
+                    <Field.Control unstyled type="text" className={`form-input${errors.address ? ' form-input--error' : ''}`} value={form.address} onValueChange={fieldChange('address')} autoComplete="street-address" placeholder="123 Main St, New York, NY" />
+                    {errors.address && <Field.Error match unstyled className="form-error" role="alert">{errors.address}</Field.Error>}
+                  </Field.Root>
+                  <Field.Root name="apt" unstyled className="form-group">
+                    <Field.Label unstyled className="form-label">Apt / Floor <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span></Field.Label>
+                    <Field.Control unstyled type="text" className="form-input" value={form.apt} onValueChange={fieldChange('apt')} autoComplete="address-line2" placeholder="Apt 4B" />
+                  </Field.Root>
+                  <Field.Root name="dropOffInstructions" unstyled className="form-group">
+                    <Field.Label unstyled className="form-label">Drop-off Instructions <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span></Field.Label>
+                    <Field.Control unstyled type="text" className="form-input" value={form.dropOffInstructions} onValueChange={fieldChange('dropOffInstructions')} placeholder="Leave at door, ring buzzer 4B…" />
+                  </Field.Root>
                 </>
               )}
 
-              {/* Special instructions */}
-              <div className="form-group">
-                <label htmlFor="cp-notes" className="form-label">Special Instructions <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span></label>
-                <textarea id="cp-notes" className="form-textarea" value={form.specialInstructions} onChange={fieldChange('specialInstructions')} placeholder="Allergies, spice preferences, extra napkins…" rows={3} />
-              </div>
+              {/* Special instructions — textarea via render for the element type; value
+                  stays on Field.Control (Base UI controlled API). */}
+              <Field.Root name="specialInstructions" unstyled className="form-group">
+                <Field.Label unstyled className="form-label">Special Instructions <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span></Field.Label>
+                <Field.Control unstyled render={<textarea rows={3} />} className="form-textarea" value={form.specialInstructions} onValueChange={fieldChange('specialInstructions')} placeholder="Allergies, spice preferences, extra napkins…" />
+              </Field.Root>
 
               {globalError && <p role="alert" className="form-error" style={{ marginTop: 'var(--space-3)' }}>{globalError}</p>}
 
@@ -799,7 +807,7 @@ export default function CartPage() {
                   {submitting ? 'Placing order…' : isStripeEnabled() ? `Continue to Payment · ${formatPrice(total)}` : `Place Order · ${formatPrice(total)}`}
                 </button>
               </div>
-            </form>
+            </Form>
 
             {/* Right: order summary */}
             <div className="cart-page__sidebar">

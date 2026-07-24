@@ -1,0 +1,7 @@
+/* Form — the brand default is intentionally minimal: Base UI Form is just a
+   native <form>, and islands own their own layout. Kept as a hook for future
+   form-level styling and to satisfy the side-effect CSS-import convention. */
+
+.jc-form {
+  display: block;
+}

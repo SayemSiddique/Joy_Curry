@@ -1,0 +1,53 @@
+/* Field — Base UI parts are unstyled; every value here comes from the global.css
+   design tokens. This is the brand default any *new* field gets for free; islands
+   that already own the `.form-*` classes pass `unstyled` and keep their own look.
+   No Tailwind. */
+
+.jc-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.jc-field__label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.jc-field__control {
+  width: 100%;
+  padding: var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+}
+.jc-field__control:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+.jc-field__control[data-invalid] {
+  border-color: var(--color-error);
+}
+
+.jc-field__description {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.jc-field__error {
+  font-size: var(--text-sm);
+  color: var(--color-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jc-field__control {
+    transition-duration: 1ms;
+  }
+}

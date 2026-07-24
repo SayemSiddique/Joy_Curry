@@ -18,3 +18,9 @@ export { Dialog } from './Dialog/Dialog';
 export { Select } from './Select/Select';
 export { ToggleGroup, Toggle } from './ToggleGroup/ToggleGroup';
 export { NavigationMenu } from './NavigationMenu/NavigationMenu';
+
+// Phase 4 — auth & account
+export { Field } from './Field/Field';
+export { Form } from './Form/Form';
+export { OtpField } from './OtpField/OtpField';
+export { Tabs } from './Tabs/Tabs';

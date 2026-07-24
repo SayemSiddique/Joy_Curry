@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ShoppingBag, Bike, Receipt } from 'lucide-react';
+import { Tabs } from '@joy-curry/ui';
 import type { ReadableAtom } from 'nanostores';
 import { authState, ordersApi, addToCart, cartOpen, formatPrice, formatDateTime } from '@lib/core';
 import type { Order } from '@lib/core';
@@ -130,6 +131,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState('active');
 
   // Auth gate — redirect to home if not logged in
   useEffect(() => {
@@ -152,6 +154,20 @@ export default function OrdersPage() {
   }, [auth.token]);
 
   if (!auth.token) return null;
+
+  const activeOrders = orders.filter((o) => ACTIVE_STATUSES.has(o.status));
+  const completedOrders = orders.filter((o) => o.status === 'completed');
+
+  const renderList = (list: Order[], emptyLabel: string) =>
+    list.length > 0 ? (
+      <div className="orders-page__list">
+        {list.map((order) => (
+          <OrderCard key={order.id} order={order} />
+        ))}
+      </div>
+    ) : (
+      <p className="orders-page__panel-empty">{emptyLabel}</p>
+    );
 
   return (
     <section className="orders-page">
@@ -183,11 +199,20 @@ export default function OrdersPage() {
         )}
 
         {!loading && !error && orders.length > 0 && (
-          <div className="orders-page__list">
-            {orders.map((order) => (
-              <OrderCard key={order.id} order={order} />
-            ))}
-          </div>
+          <Tabs.Root value={tab} onValueChange={(v) => setTab(v as string)} className="orders-tabs">
+            <Tabs.List className="orders-tabs__list">
+              <Tabs.Tab value="active">
+                Active{activeOrders.length > 0 && <span className="orders-tabs__count">{activeOrders.length}</span>}
+              </Tabs.Tab>
+              <Tabs.Tab value="completed">Completed</Tabs.Tab>
+              <Tabs.Tab value="all">All</Tabs.Tab>
+              <Tabs.Indicator />
+            </Tabs.List>
+
+            <Tabs.Panel value="active">{renderList(activeOrders, 'No active orders right now.')}</Tabs.Panel>
+            <Tabs.Panel value="completed">{renderList(completedOrders, 'No completed orders yet.')}</Tabs.Panel>
+            <Tabs.Panel value="all">{renderList(orders, 'No orders yet.')}</Tabs.Panel>
+          </Tabs.Root>
         )}
       </div>
     </section>

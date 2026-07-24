@@ -80,12 +80,19 @@ Standard/new dialogs omit `unstyled` and get the brand card chrome for free
 | `Select` | `select` | Phase 3 |
 | `ToggleGroup` / `Toggle` | `toggle-group` / `toggle` | Phase 3 |
 | `NavigationMenu` | `navigation-menu` | Phase 3 |
+| `Field` | `field` | Phase 4 |
+| `Form` | `form` | Phase 4 |
+| `OtpField` | `otp-field` | Phase 4 |
+| `Tabs` | `tabs` | Phase 4 |
 
 Consumers so far: `BaseUISpike` (styled default), `DishDetailModal` (unstyled,
 bespoke two-column), `BundleModal` (unstyled, `.modal` shell + `--bui` overlay),
 `CartDrawer` (unstyled, Dialog-as-right-sheet + `--bui` overlay),
 `SearchFilterBar` (`Select` for category/spice, `ToggleGroup` unstyled for the
 dietary toolbar), `NavBar` (`NavigationMenu` unstyled for the desktop MENU
-dropdown, `Dialog` unstyled as the mobile left-sheet drawer).
+dropdown, `Dialog` unstyled as the mobile left-sheet drawer), `AuthFlow`
+(`Field`/`Form` unstyled for a11y, `OtpField` styled segmented code entry),
+`CartPage` (`Field`/`Form` unstyled on the contact/address fields — Stripe
+untouched), `AccountPage` + `OrdersPage` (`Tabs` styled default).
 
 _(more added per phase — see `/BASE_UI_MIGRATION.md`)_

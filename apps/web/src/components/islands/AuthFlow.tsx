@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { Field, Form, OtpField } from '@joy-curry/ui';
 import { otpApi, setAuth, loadRewards, authState } from '@lib/core';
 
 type Step = 'email' | 'code' | 'details';
@@ -24,18 +25,10 @@ export default function AuthFlow() {
   const [busy, setBusy] = useState(false);
   const [devHint, setDevHint] = useState('');
 
-  const codeRef = useRef<HTMLInputElement>(null);
-  const nameRef = useRef<HTMLInputElement>(null);
-
   // Already signed in? Skip straight to the destination.
   useEffect(() => {
     if (authState.get().token) window.location.href = nextUrl();
   }, []);
-
-  useEffect(() => {
-    if (step === 'code') codeRef.current?.focus();
-    if (step === 'details') nameRef.current?.focus();
-  }, [step]);
 
   const finish = (token: string, user: { id: number; name: string; email: string; role: string }) => {
     setAuth(token, { id: user.id, name: user.name, email: user.email, role: user.role as 'customer' | 'admin' });
@@ -129,26 +122,32 @@ export default function AuthFlow() {
         />
 
         {step === 'email' && (
-          <form onSubmit={handleEmail} noValidate>
+          <Form onSubmit={handleEmail} noValidate unstyled>
             <h1 className="auth-flow__title">Welcome to Joy Curry</h1>
             <p className="auth-flow__sub">Enter your email to sign in or create an account.</p>
 
-            <div className="form-group">
-              <label className="form-label form-label--required" htmlFor="auth-email">Email Address</label>
-              <input
-                id="auth-email"
-                type="email"
+            <Field.Root name="email" invalid={!!error} unstyled className="form-group">
+              <Field.Label unstyled className="form-label form-label--required">Email Address</Field.Label>
+              {/* type="text" + inputMode="email" (not type="email") so Base UI's
+                  Form validation never sees a `typeMismatch` and always hands off
+                  to handleEmail — the EMAIL_RE check + custom message stay authoritative.
+                  aria-required replaces `required` for the same reason (valueMissing
+                  would otherwise block submit before our handler runs). value +
+                  onValueChange is Base UI's controlled API. */}
+              <Field.Control
+                unstyled
+                type="text"
+                inputMode="email"
                 className="form-input"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onValueChange={(value) => setEmail(value)}
                 autoComplete="email"
                 placeholder="you@example.com"
-                required
+                aria-required="true"
                 autoFocus
               />
-            </div>
-
-            {error && <div className="form-error auth-flow__error" role="alert">{error}</div>}
+              {error && <Field.Error match unstyled className="form-error auth-flow__error" role="alert">{error}</Field.Error>}
+            </Field.Root>
 
             <button type="submit" className="btn btn--primary auth-flow__submit" disabled={busy}>
               {busy ? 'Sending code…' : 'Continue'}
@@ -157,11 +156,11 @@ export default function AuthFlow() {
               By continuing you agree to our{' '}
               <a href="/terms">Terms of Use</a> and <a href="/privacy">Privacy Policy</a>.
             </p>
-          </form>
+          </Form>
         )}
 
         {step === 'code' && (
-          <form onSubmit={handleCode} noValidate>
+          <Form onSubmit={handleCode} noValidate unstyled>
             <h1 className="auth-flow__title">Verify your email</h1>
             <p className="auth-flow__sub">Enter the 6-digit code sent to your email.</p>
 
@@ -170,22 +169,20 @@ export default function AuthFlow() {
               <button type="button" className="auth-flow__edit" onClick={editEmail}>Edit</button>
             </div>
 
-            <div className="form-group">
-              <label className="form-label form-label--required" htmlFor="auth-code">6-digit code</label>
-              <input
-                id="auth-code"
-                ref={codeRef}
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                className="form-input auth-flow__code-input"
+            <Field.Root name="code" invalid={!!error} unstyled className="form-group">
+              <Field.Label unstyled className="form-label form-label--required">6-digit code</Field.Label>
+              <OtpField.Root
+                length={6}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onValueChange={(value) => setCode(value)}
+                validationType="numeric"
                 autoComplete="one-time-code"
-                placeholder="••••••"
-                required
-              />
-            </div>
+              >
+                {Array.from({ length: 6 }, (_, i) => (
+                  <OtpField.Input key={i} autoFocus={i === 0} />
+                ))}
+              </OtpField.Root>
+            </Field.Root>
 
             {devHint && <p className="auth-flow__dev-hint">{devHint}</p>}
             {error && <div className="form-error auth-flow__error" role="alert">{error}</div>}
@@ -197,46 +194,45 @@ export default function AuthFlow() {
               Didn't receive a code?{' '}
               <button type="button" onClick={handleResend} disabled={busy}>Resend</button>
             </p>
-          </form>
+          </Form>
         )}
 
         {step === 'details' && (
-          <form onSubmit={handleDetails} noValidate>
+          <Form onSubmit={handleDetails} noValidate unstyled>
             <h1 className="auth-flow__title">Create your account</h1>
             <p className="auth-flow__sub">Just a couple details so we can personalize your orders.</p>
 
-            <div className="form-group">
-              <label className="form-label form-label--required" htmlFor="auth-name">Full Name</label>
-              <input
-                id="auth-name"
-                ref={nameRef}
+            <Field.Root name="name" invalid={!!error} unstyled className="form-group">
+              <Field.Label unstyled className="form-label form-label--required">Full Name</Field.Label>
+              <Field.Control
+                unstyled
                 type="text"
                 className="form-input"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onValueChange={(value) => setName(value)}
                 autoComplete="name"
-                required
+                aria-required="true"
+                autoFocus
               />
-            </div>
+              {error && <Field.Error match unstyled className="form-error auth-flow__error" role="alert">{error}</Field.Error>}
+            </Field.Root>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="auth-phone">Phone number <span className="auth-flow__optional">(optional)</span></label>
-              <input
-                id="auth-phone"
+            <Field.Root name="phone" unstyled className="form-group">
+              <Field.Label unstyled className="form-label">Phone number <span className="auth-flow__optional">(optional)</span></Field.Label>
+              <Field.Control
+                unstyled
                 type="tel"
                 className="form-input"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onValueChange={(value) => setPhone(value)}
                 autoComplete="tel"
               />
-            </div>
-
-            {error && <div className="form-error auth-flow__error" role="alert">{error}</div>}
+            </Field.Root>
 
             <button type="submit" className="btn btn--primary auth-flow__submit" disabled={busy}>
               {busy ? 'Creating account…' : 'Create Account'}
             </button>
-          </form>
+          </Form>
         )}
       </div>
     </div>

@@ -1,0 +1,72 @@
+/* OTP Field — segmented one-time-code boxes. Every value comes from the
+   global.css design tokens. Base UI renders `length` <input> slots + a hidden
+   validation input; we style the visible slots to the brand. No Tailwind. */
+
+.jc-otp {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.jc-otp__input {
+  width: 3rem;
+  height: 3.5rem;
+  padding: 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  caret-color: var(--color-primary);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast),
+    background-color var(--ease-fast);
+}
+
+/* Filled slot reads as "done" without shouting. */
+.jc-otp__input[data-filled] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+/* Active slot — the one the caret is in. */
+.jc-otp__input:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Whole group invalid (wired through Field.Root invalid). */
+.jc-otp[data-invalid] .jc-otp__input {
+  border-color: var(--color-error);
+}
+
+.jc-otp__input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.jc-otp__separator {
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+/* Narrow phones — shrink the slots so all six fit on one row. */
+@media (max-width: 400px) {
+  .jc-otp {
+    gap: var(--space-1, 4px);
+  }
+  .jc-otp__input {
+    width: 2.5rem;
+    height: 3rem;
+    font-size: var(--text-lg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jc-otp__input {
+    transition-duration: 1ms;
+  }
+}
