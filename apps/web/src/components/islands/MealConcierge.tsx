@@ -1,35 +1,34 @@
 import { useState } from 'react';
-import { Sparkles, Flame } from 'lucide-react';
+import { Sparkles, Flame, ChevronDown } from 'lucide-react';
+import { Dialog, Accordion } from '@joy-curry/ui';
 import type { MenuItem } from '@lib/core';
+import { showToast } from '@lib/toast';
 
 interface Props {
   menuItems: MenuItem[];
 }
 
-type Step = 0 | 1 | 2 | 3; // 0 = closed, 1-3 = steps
-
 const OCCASIONS = ['Lunch', 'Dinner', 'Date Night', 'Office'];
 const SPICE_OPTIONS = ['Mild', 'Medium', 'Hot'];
 const DIETARY_OPTIONS = ['No restriction', 'Veg', 'Vegan', 'GF'];
 
-function showToast(msg: string) {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-  const el = document.createElement('div');
-  el.className = 'toast toast--success';
-  el.textContent = msg;
-  container.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
-}
-
-export default function MealConcierge({ menuItems }: Props) {
-  const [step, setStep] = useState<Step>(0);
+export default function MealConcierge({ menuItems: _menuItems }: Props) {
+  const [open, setOpen] = useState(false);
   const [occasion, setOccasion] = useState('');
   const [spice, setSpice] = useState('');
   const [dietary, setDietary] = useState('No restriction');
+  // Which accordion sections are expanded. Controlled so picking an answer can
+  // guide the guest to the next question (the old wizard's auto-advance).
+  const [openSections, setOpenSections] = useState<string[]>(['occasion']);
 
-  const openModal = () => { setStep(1); setOccasion(''); setSpice(''); setDietary('No restriction'); };
-  const closeModal = () => setStep(0);
+  const openModal = () => {
+    setOccasion('');
+    setSpice('');
+    setDietary('No restriction');
+    setOpenSections(['occasion']);
+    setOpen(true);
+  };
+  const closeModal = () => setOpen(false);
 
   const applyRecommendations = () => {
     const cards = document.querySelectorAll<HTMLElement>('.menu-card');
@@ -61,9 +60,13 @@ export default function MealConcierge({ menuItems }: Props) {
     if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     const label = count === 1 ? '1 dish' : `${count} dishes`;
-    showToast(`We picked ${label} for you`);
+    showToast(`We picked ${label} for you`, 'success');
     closeModal();
   };
+
+  // Chip picked → record it and guide the guest to the next unanswered section.
+  const pickOccasion = (o: string) => { setOccasion(o); setOpenSections(['spice']); };
+  const pickSpice = (s: string) => { setSpice(s); setOpenSections(['dietary']); };
 
   return (
     <>
@@ -72,91 +75,115 @@ export default function MealConcierge({ menuItems }: Props) {
         <Sparkles size={14} aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 5 }} /> Build my meal
       </button>
 
-      {/* Modal */}
-      {step > 0 && (
-        <div
-          className="dish-modal-overlay"
-          onClick={e => { if (e.target === e.currentTarget) closeModal(); }}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Build my meal concierge"
-        >
-          <div className="concierge-modal">
-            <button className="dish-modal__close" onClick={closeModal} aria-label="Close">✕</button>
+      <Dialog.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) closeModal(); }}>
+        <Dialog.Portal>
+          <Dialog.Backdrop unstyled className="dish-modal__backdrop" />
+          <div className="dish-modal__positioner">
+            <Dialog.Popup unstyled className="concierge-modal">
+              <Dialog.Close className="dish-modal__close" aria-label="Close">✕</Dialog.Close>
 
-            <div className="concierge-modal__header">
-              <Sparkles size={28} className="concierge-modal__icon" aria-hidden="true" />
-              <h2 className="concierge-modal__title">Build My Meal</h2>
-              <p className="concierge-modal__sub">Answer 3 quick questions</p>
-              {/* Step dots */}
-              <div className="concierge-modal__steps">
-                {[1, 2, 3].map(s => (
-                  <span key={s} className={`concierge-modal__step-dot${step >= s ? ' concierge-modal__step-dot--active' : ''}`} />
-                ))}
+              <div className="concierge-modal__header">
+                <Sparkles size={28} className="concierge-modal__icon" aria-hidden="true" />
+                <Dialog.Title className="concierge-modal__title">Build My Meal</Dialog.Title>
+                <Dialog.Description className="concierge-modal__sub">Answer 3 quick questions</Dialog.Description>
               </div>
-            </div>
 
-            <div className="concierge-modal__body">
-              {step === 1 && (
-                <div className="concierge-modal__section">
-                  <p className="concierge-modal__question">What's the occasion?</p>
-                  <div className="concierge-modal__chips">
-                    {OCCASIONS.map(o => (
-                      <button
-                        key={o}
-                        type="button"
-                        className={`concierge-chip${occasion === o ? ' concierge-chip--active' : ''}`}
-                        onClick={() => { setOccasion(o); setStep(2); }}
-                      >
-                        {o}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="concierge-modal__body">
+                <Accordion.Root
+                  className="concierge-accordion"
+                  value={openSections}
+                  onValueChange={(v) => setOpenSections(v as string[])}
+                >
+                  <Accordion.Item value="occasion">
+                    <Accordion.Header>
+                      <Accordion.Trigger>
+                        <span className="concierge-accordion__q">What's the occasion?</span>
+                        <span className="concierge-accordion__meta">
+                          <span className="concierge-accordion__value">{occasion || 'Any'}</span>
+                          <ChevronDown className="jc-accordion__chevron" size={18} aria-hidden="true" />
+                        </span>
+                      </Accordion.Trigger>
+                    </Accordion.Header>
+                    <Accordion.Panel>
+                      <div className="concierge-modal__chips">
+                        {OCCASIONS.map(o => (
+                          <button
+                            key={o}
+                            type="button"
+                            className={`concierge-chip${occasion === o ? ' concierge-chip--active' : ''}`}
+                            aria-pressed={occasion === o}
+                            onClick={() => pickOccasion(o)}
+                          >
+                            {o}
+                          </button>
+                        ))}
+                      </div>
+                    </Accordion.Panel>
+                  </Accordion.Item>
 
-              {step === 2 && (
-                <div className="concierge-modal__section">
-                  <p className="concierge-modal__question">How spicy do you like it?</p>
-                  <div className="concierge-modal__chips">
-                    {SPICE_OPTIONS.map(s => (
-                      <button
-                        key={s}
-                        type="button"
-                        className={`concierge-chip${spice === s ? ' concierge-chip--active' : ''}`}
-                        onClick={() => { setSpice(s); setStep(3); }}
-                      >
-                        {s === 'Mild' ? 'Mild' : s === 'Medium' ? <><Flame size={12} aria-hidden="true" /> Medium</> : <><Flame size={12} aria-hidden="true" /><Flame size={12} aria-hidden="true" /> Hot</>}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                  <Accordion.Item value="spice">
+                    <Accordion.Header>
+                      <Accordion.Trigger>
+                        <span className="concierge-accordion__q">How spicy do you like it?</span>
+                        <span className="concierge-accordion__meta">
+                          <span className="concierge-accordion__value">{spice || 'Any'}</span>
+                          <ChevronDown className="jc-accordion__chevron" size={18} aria-hidden="true" />
+                        </span>
+                      </Accordion.Trigger>
+                    </Accordion.Header>
+                    <Accordion.Panel>
+                      <div className="concierge-modal__chips">
+                        {SPICE_OPTIONS.map(s => (
+                          <button
+                            key={s}
+                            type="button"
+                            className={`concierge-chip${spice === s ? ' concierge-chip--active' : ''}`}
+                            aria-pressed={spice === s}
+                            onClick={() => pickSpice(s)}
+                          >
+                            {s === 'Mild' ? 'Mild' : s === 'Medium' ? <><Flame size={12} aria-hidden="true" /> Medium</> : <><Flame size={12} aria-hidden="true" /><Flame size={12} aria-hidden="true" /> Hot</>}
+                          </button>
+                        ))}
+                      </div>
+                    </Accordion.Panel>
+                  </Accordion.Item>
 
-              {step === 3 && (
-                <div className="concierge-modal__section">
-                  <p className="concierge-modal__question">Any dietary preferences?</p>
-                  <div className="concierge-modal__chips">
-                    {DIETARY_OPTIONS.map(d => (
-                      <button
-                        key={d}
-                        type="button"
-                        className={`concierge-chip${dietary === d ? ' concierge-chip--active' : ''}`}
-                        onClick={() => setDietary(d)}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-                  <button className="dish-modal__add-btn" style={{ marginTop: '1.5rem' }} onClick={applyRecommendations}>
-                    Show My Picks →
-                  </button>
-                </div>
-              )}
-            </div>
+                  <Accordion.Item value="dietary">
+                    <Accordion.Header>
+                      <Accordion.Trigger>
+                        <span className="concierge-accordion__q">Any dietary preferences?</span>
+                        <span className="concierge-accordion__meta">
+                          <span className="concierge-accordion__value">{dietary}</span>
+                          <ChevronDown className="jc-accordion__chevron" size={18} aria-hidden="true" />
+                        </span>
+                      </Accordion.Trigger>
+                    </Accordion.Header>
+                    <Accordion.Panel>
+                      <div className="concierge-modal__chips">
+                        {DIETARY_OPTIONS.map(d => (
+                          <button
+                            key={d}
+                            type="button"
+                            className={`concierge-chip${dietary === d ? ' concierge-chip--active' : ''}`}
+                            aria-pressed={dietary === d}
+                            onClick={() => setDietary(d)}
+                          >
+                            {d}
+                          </button>
+                        ))}
+                      </div>
+                    </Accordion.Panel>
+                  </Accordion.Item>
+                </Accordion.Root>
+
+                <button className="dish-modal__add-btn concierge-modal__submit" onClick={applyRecommendations}>
+                  Show My Picks →
+                </button>
+              </div>
+            </Dialog.Popup>
           </div>
-        </div>
-      )}
+        </Dialog.Portal>
+      </Dialog.Root>
     </>
   );
 }

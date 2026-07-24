@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChefHat, Bell, Truck, ShoppingBag } from 'lucide-react';
+import { Progress } from '@joy-curry/ui';
 import type { ReadableAtom } from 'nanostores';
 import type { Order } from '@lib/core';
 import { formatPrice, activeOrder } from '@lib/core';
@@ -115,13 +116,27 @@ export default function OrderTracker() {
           )}
         </div>
 
-        {/* Stage progress bar */}
-        <div className="order-tracker__stages" role="list">
+        {/* Determinate progress — carries the a11y (role=progressbar +
+            aria-valuetext = current stage). The dot stepper below is the brand
+            visual, marked aria-hidden so the status is announced once. */}
+        <Progress.Root
+          className="order-tracker__progress"
+          value={stageIdx}
+          max={stages.length - 1}
+          getAriaValueText={() => `${stages[stageIdx].label} — step ${stageIdx + 1} of ${stages.length}`}
+        >
+          <Progress.Label className="sr-only">Order progress</Progress.Label>
+          <Progress.Track className="order-tracker__progress-track">
+            <Progress.Indicator className="order-tracker__progress-indicator" />
+          </Progress.Track>
+        </Progress.Root>
+
+        {/* Stage stepper — decorative brand visual (a11y is on the Progress). */}
+        <div className="order-tracker__stages" aria-hidden="true">
           {stages.map((stage, i) => (
             <div
               key={stage.id}
               className={`order-tracker__stage${i < stageIdx ? ' order-tracker__stage--done' : i === stageIdx ? ' order-tracker__stage--active' : ''}`}
-              role="listitem"
             >
               <div className="order-tracker__stage-dot">
                 {i < stageIdx ? '✓' : i === stageIdx ? <span className="order-tracker__pulse" /> : null}

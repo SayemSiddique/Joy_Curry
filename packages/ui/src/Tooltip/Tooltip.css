@@ -1,0 +1,50 @@
+/*
+ * Tooltip — compact dark bubble on the brand hero background. Tokens only;
+ * enter/leave keys off Base UI's [data-starting-style]/[data-ending-style],
+ * placement off [data-side].
+ */
+
+.jc-tooltip__positioner {
+  z-index: var(--z-modal, 1000);
+  outline: none;
+}
+
+.jc-tooltip__popup {
+  max-width: 220px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-hero-bg);
+  color: var(--color-hero-text);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1.35;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transform-origin: var(--transform-origin);
+  transition: opacity var(--ease-fast), transform var(--ease-fast);
+}
+
+.jc-tooltip__popup[data-starting-style],
+.jc-tooltip__popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.jc-tooltip__arrow {
+  display: flex;
+  color: var(--color-hero-bg);
+}
+
+.jc-tooltip__arrow[data-side='top'] { bottom: -6px; }
+.jc-tooltip__arrow[data-side='bottom'] { top: -6px; transform: rotate(180deg); }
+.jc-tooltip__arrow[data-side='left'] { right: -6px; transform: rotate(-90deg); }
+.jc-tooltip__arrow[data-side='right'] { left: -6px; transform: rotate(90deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .jc-tooltip__popup {
+    transition: opacity var(--ease-fast);
+  }
+  .jc-tooltip__popup[data-starting-style],
+  .jc-tooltip__popup[data-ending-style] {
+    transform: none;
+  }
+}

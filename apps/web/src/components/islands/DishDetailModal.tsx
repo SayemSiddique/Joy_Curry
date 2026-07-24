@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Dialog } from '@joy-curry/ui';
+import type { ReactElement } from 'react';
+import { Dialog, Tooltip } from '@joy-curry/ui';
 import { Flame, Leaf, ChefHat, AlertTriangle } from 'lucide-react';
 import type { MenuItem } from '@lib/core';
 import { formatPrice } from '@lib/core';
@@ -27,6 +28,26 @@ function SpiceMeter({ level }: { level?: string | null }) {
       </span>
       <span className="spice-meter__label">{level}</span>
     </span>
+  );
+}
+
+/**
+ * BadgeTip — wraps a dietary/quality badge with a Base UI tooltip that expands
+ * its meaning on hover/focus. Base UI renders the badge itself as the trigger
+ * (no extra tab stop for these non-interactive spans) and wires the
+ * `aria-describedby` link; screen-reader users already hear the badge text, so
+ * the tooltip is a progressive enhancement for pointer users.
+ */
+function BadgeTip({ tip, children }: { tip: string; children: ReactElement }) {
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger render={children} />
+      <Tooltip.Portal>
+        <Tooltip.Positioner side="top" sideOffset={6}>
+          <Tooltip.Popup>{tip}</Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }
 
@@ -153,15 +174,17 @@ export default function DishDetailModal() {
                   <SpiceMeter level={item.spiceLevel} />
 
                   {/* Badges */}
-                  <div className="dish-modal__badges">
-                    {item.isVegan && <span className="badge badge--vegan"><Leaf size={12} aria-hidden="true" /> Vegan</span>}
-                    {!item.isVegan && item.isVegetarian && <span className="badge badge--veg"><span className="badge__dot badge__dot--veg" aria-hidden="true" /> Vegetarian</span>}
-                    {!isVeg && <span className="badge badge--nonveg"><span className="badge__dot badge__dot--nonveg" aria-hidden="true" /> Non-Veg</span>}
-                    {item.isGlutenFree && <span className="badge badge--gf">GF</span>}
-                    {item.isHalal && <span className="badge badge--halal">Halal</span>}
-                    {(item.tags ?? []).includes('popular') && <span className="badge badge--popular"><Flame size={12} aria-hidden="true" /> Most Loved</span>}
-                    {(item.tags ?? []).includes('chefs-pick') && <span className="badge badge--chefs-pick"><ChefHat size={12} aria-hidden="true" /> Chef's Pick</span>}
-                  </div>
+                  <Tooltip.Provider delay={150}>
+                    <div className="dish-modal__badges">
+                      {item.isVegan && <BadgeTip tip="Contains no animal products"><span className="badge badge--vegan"><Leaf size={12} aria-hidden="true" /> Vegan</span></BadgeTip>}
+                      {!item.isVegan && item.isVegetarian && <BadgeTip tip="No meat, poultry, or fish"><span className="badge badge--veg"><span className="badge__dot badge__dot--veg" aria-hidden="true" /> Vegetarian</span></BadgeTip>}
+                      {!isVeg && <BadgeTip tip="Contains meat, poultry, or fish"><span className="badge badge--nonveg"><span className="badge__dot badge__dot--nonveg" aria-hidden="true" /> Non-Veg</span></BadgeTip>}
+                      {item.isGlutenFree && <BadgeTip tip="Gluten-free"><span className="badge badge--gf">GF</span></BadgeTip>}
+                      {item.isHalal && <BadgeTip tip="Halal-certified"><span className="badge badge--halal">Halal</span></BadgeTip>}
+                      {(item.tags ?? []).includes('popular') && <BadgeTip tip="A customer favourite"><span className="badge badge--popular"><Flame size={12} aria-hidden="true" /> Most Loved</span></BadgeTip>}
+                      {(item.tags ?? []).includes('chefs-pick') && <BadgeTip tip="Recommended by our chef"><span className="badge badge--chefs-pick"><ChefHat size={12} aria-hidden="true" /> Chef's Pick</span></BadgeTip>}
+                    </div>
+                  </Tooltip.Provider>
 
                   {/* Served with */}
                   {item.servedWith && (

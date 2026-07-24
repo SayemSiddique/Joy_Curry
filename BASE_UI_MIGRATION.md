@@ -168,11 +168,68 @@ if any field is natively invalid (`required` empty → `valueMissing`; `type="em
    `<textarea>`, add `render={<textarea/>}` for the element type but keep `value`/`onValueChange` on
    `Field.Control`. Verified: no controlled/uncontrolled React warnings with this pattern.
 
-## Phase 5 — Feedback & status ⬜ TODO
-- [ ] `StockNotifier` / order confirmations → `Toast`.
-- [ ] Dietary badges / upsell hints → `Tooltip`.
-- [ ] `OrderTracker` → `Progress`.
-- [ ] `MealConcierge` → `Combobox` / `Accordion`.
+## Phase 5 — Feedback & status ✅ DONE
+- [x] **Wrappers added (Phase-0 style):** `Toast` (`toast`), `Tooltip` (`tooltip`),
+  `Progress` (`progress`), `Accordion` (`accordion`) — each a `styled()` part factory +
+  brand-token CSS + reduced-motion guard + side-effect CSS import, exported from
+  `src/index.ts`. **`Combobox` was NOT added** — see the dropped target below; per the
+  package convention (a wrapper exists only once a real island needs it) no speculative
+  wrapper was created.
+- [x] **`showToast()` façade → `Toast`** ✅ Owner-approved strategy: **Toast backs the
+  existing `showToast()`** rather than replacing 14 call sites. The old hand-rolled
+  `#toast-container` DOM-injection was replaced by a single `ToastRegion` island (Base UI
+  `Toast.Provider`+`Viewport`, `client:load` in `BaseLayout`); `showToast()` now dispatches
+  a `jc:toast` window event that `ToastRegion` bridges into `Toast.useToastManager().add()`.
+  **All 14 callers unchanged** (same signature). Gained: a real `region "Notifications"`
+  landmark + `aria-live=polite`/`role=status`, hover/focus pause, keyboard + swipe dismiss,
+  focus management. Brand pill look preserved (`data-type` success/error → brand colors);
+  dismiss X reveals on hover/focus only, so the resting pill is unchanged. **Browser-verified.**
+  - ⚠️ **`StockNotifier` was NOT migrated** — re-verify found it does **not** produce toasts.
+    It injects persistent `.stock-urgency` "Sold out today" *badges* onto menu cards (honest
+    inline status, not a transient toast). Left as-is; the plan's "StockNotifier → Toast"
+    mapping was a mis-scope. Order *confirmations* are the `order:confirmed` → OrderTracker
+    overlay, also not a toast.
+- [x] **Dietary badges → `Tooltip`** ✅ `DishDetailModal`'s dietary/quality badges (Vegan,
+  Vegetarian, Non-Veg, GF, Halal, Most Loved, Chef's Pick) each wrapped in a `Tooltip` that
+  reveals its meaning on hover (`BadgeTip` local helper; `Tooltip.Trigger render={badge}`).
+  Base UI renders the badge span as the trigger with **no added tabindex** → zero tab-stop
+  bloat, and **no AT regression** (badges keep their visible text). **Browser-verified**:
+  hover shows the "Gluten-free" popup, side=top, no `unstyled` leak.
+  - ⚠️ **Honest scope note:** Base UI `Tooltip` v1.6 **does not** wire `aria-describedby`/
+    `role="tooltip"` (verified in source — it's a pointer/focus *reveal*, not an ARIA
+    description). So this is a **sighted-pointer enhancement, not a screen-reader a11y win**;
+    it does not regress AT. Documented in `packages/ui/README.md`.
+  - **`upsell hints` → NOT tooltipped.** The `CartPage` `.cp-suggestions` rail is already
+    self-describing (per-group headline + subline inline), so a tooltip would be redundant.
+    Evaluated and left as-is.
+- [x] **`OrderTracker` → `Progress`** ✅ Added a determinate `Progress` bar above the stage
+  stepper: `role="progressbar"` + `aria-valuenow`/`aria-valuemax` + a human
+  `aria-valuetext` ("In the Kitchen — step 2 of 4") via `getAriaValueText`. The decorative
+  dot-stepper is now `aria-hidden` (dropped its `role="list"`/`"listitem"`) so status is
+  announced once. A slim maroon bar (on-brand, phase-appropriate visual addition).
+  **Browser-verified** (mock `order:confirmed`): progressbar semantics correct, bar advances
+  with the stages, stepper `aria-hidden`.
+- [x] **`MealConcierge` → `Dialog` + `Accordion` (owner-approved redesign)** ✅ Combobox fit
+  poorly (3–4 fixed chip options/question), so owner opted into an **Accordion redesign**
+  (visual change, like Account/Orders in Phase 4). The hand-rolled overlay → `Dialog`
+  (unstyled, reusing `.dish-modal__backdrop`/`__positioner` + `.concierge-modal`) so it now
+  has focus trap / ESC / backdrop-dismiss it never had; the 3-step wizard → a controlled
+  `Accordion` (Occasion / Spice / Dietary), each panel a chip group, **auto-advancing** to
+  the next section on pick (preserves the guided flow). `Dialog.Title`/`Description` for
+  a11y. All filter/scroll/toast logic preserved. **Browser-verified**: dialog a11y, accordion
+  `aria-expanded`/`aria-controls`, auto-advance, filters applied + toast fired on submit.
+  - **`useFocusTrap` KEPT** — MealConcierge migrated to `Dialog` (Base UI owns its focus
+    trap), but `OrderGate.tsx` is **still** the sole live `useFocusTrap` caller. Grep-confirmed.
+    Do not delete the hook until OrderGate migrates.
+
+### ⚠️ Toast architecture note (read before touching notifications)
+`showToast(message, type, duration)` in `@lib/toast` is the **only** public toast API and its
+signature is frozen — it now just `dispatchEvent(new CustomEvent('jc:toast', {detail}))`. The
+single `ToastRegion` island (mounted in `BaseLayout`, `client:load`) owns the Base UI
+`Toast.Provider`/`Viewport` and bridges that event into the manager. To add a toast from
+anywhere (island or plain function), call `showToast()` — do **not** try to mount a second
+provider or call `useToastManager()` outside `ToastRegion` (Astro islands are independent React
+roots; a second provider would be a separate, empty region).
 
 ## Phase 6 — Close out ⬜ TODO
 - [ ] Delete spike trio: `spike.astro`, `BaseUISpike.tsx`, `BaseUISpike.css`.
@@ -222,10 +279,10 @@ lives in the shared `@joy-curry/core` package (mobile may reference it), and thi
 | NavBar ✅ | `navigation-menu` (desktop dropdown) + `dialog` (mobile drawer, not `collapsible` — it's modal) |
 | AccountPage ✅ | `tabs` (Profile/Preferences/Rewards) + `field`/`form` (profile) |
 | OrdersPage ✅ | `tabs` (Active/Completed/All) |
-| StockNotifier, confirmations | `toast` |
-| dietary badges, upsells | `tooltip` |
-| OrderTracker | `progress` |
-| MealConcierge | `combobox`, `accordion` |
+| `showToast()` façade (14 callers) ✅ | `toast` (one `ToastRegion` host backs the façade; ~~StockNotifier~~ injects badges, not toasts) |
+| dietary badges (DishDetailModal) ✅ | `tooltip` (pointer reveal; ~~CartPage upsells~~ already self-describing) |
+| OrderTracker ✅ | `progress` (semantic status bar; stepper now decorative/`aria-hidden`) |
+| MealConcierge ✅ | `dialog` + `accordion` (redesign; ~~`combobox`~~ dropped — poor fit) |
 
 ## Mobile (RN) note
 Base UI is **web-only** — it does NOT go into `apps/mobile`. Cross-platform parity comes
@@ -259,30 +316,61 @@ from `@joy-curry/tokens` (already architected). Web `<Dialog>` ↔ RN modal shar
   sub-classes are still used and kept). `useFocusTrap` **kept** (OrderGate still calls it). Staged in
   3 stages (A: wrappers; B: island migrations + global.css incl. inline debt deletion; C: this tracker)
   — nothing committed/pushed.
+- 2026-07-24 (Phase-5 session): **Completed Phase 5 — Feedback & status.** Re-verified targets
+  first (all live in `/order` + `BaseLayout`): discovered **StockNotifier injects badges, not
+  toasts** and **dietary badges live in a static `MenuCard.astro`** (only `DishDetailModal`'s are a
+  React island). Two owner decisions: (1) **Toast backs the existing `showToast()`** (one bridged
+  `ToastRegion` host, 14 callers unchanged) over per-island replacement; (2) **MealConcierge →
+  Accordion redesign** (Combobox fit poorly). Added `Toast`/`Tooltip`/`Progress`/`Accordion`
+  wrappers (Stage A); **Combobox intentionally skipped** (no consumer). Migrated: `showToast`
+  façade → `Toast` (new `ToastRegion` island + `jc:toast` event bridge, old `#toast-container`
+  removed), `DishDetailModal` badges → `Tooltip` (pointer reveal — see the honest a11y note; no AT
+  regression, no tab-stop bloat), `OrderTracker` → `Progress` (semantic status bar, stepper now
+  `aria-hidden`), `MealConcierge` → `Dialog`+`Accordion` (auto-advancing wizard; gained focus trap).
+  Left as-is with reasons: StockNotifier badges, CartPage upsell rail (self-describing).
+  **Browser-verified all four** against the running API + fresh-tab console (zero errors/warnings):
+  toast region landmark + brand pill + variants, badge tooltip "Gluten-free" on hover, progressbar
+  `aria-valuetext`, concierge dialog+accordion+auto-advance+filters+toast. **Debt deleted inline
+  (folded into Stage B, all in shared `global.css`):** old `#toast-container` + `.toast*` styles
+  (print rule repointed to `.jc-toast__viewport`), orphaned `.dish-modal-overlay` selector +
+  its mobile override (kept the `dish-modal-overlay-in/out` keyframes — still used by
+  `.dish-modal__backdrop`), and MealConcierge's duplicate local `showToast` (now imports the shared
+  one). Grep-verified each dead before deleting. `useFocusTrap` **kept** (OrderGate still calls it).
+  **Findings surfaced:** Base UI `Tooltip` v1.6 doesn't wire `aria-describedby`/`role=tooltip`
+  (pointer reveal only) — documented in README + the Phase-5 Tooltip note. Staged in **2 effective
+  stages** (A: wrappers; B: island migrations + `global.css` incl. inline debt deletion — Stage C
+  folded into B since all debt was inline in shared files) — nothing committed/pushed.
 - 2026-07-23 (Phase-3 migration): **Completed Phase 3.** Re-verified targets first: `SearchFilterBar` live on `/order` (already migrated to `Select`+`ToggleGroup`); `CategoryRail` **gone** — dropped from scope (island + mount + `.category-nav*` CSS all deleted in the earlier redesign); `NavBar` live. Added the `Select`/`ToggleGroup`/`NavigationMenu` wrappers. Migrated **`NavBar`**: desktop MENU dropdown → `NavigationMenu` (owner accepted hover+focus+click open; panel restructured into the portaled Positioner→Popup→Viewport, brand CSS preserved), mobile drawer → `Dialog` left side-sheet (owner picked `Dialog` over the plan's "Collapsible" since the drawer is modal). Removed NavBar's `useFocusTrap` call + manual outside-click/ESC/keydown effects + `.navbar__menu-trigger--open`/`navMenuIn`/`.nav-drawer-overlay--visible` dead CSS. `useFocusTrap` **kept** (OrderGate still calls it). **Browser-verified** both islands across desktop + mobile: correct roles/ARIA, pixel-identical look (screenshots), ESC + backdrop dismiss, focus trap, store sync, no `unstyled` leaks, zero console/dev-server errors. Static typecheck note: no standalone `tsc` in the workspace and `astro check` needs an interactive install — relied on the dev-server transform (islands executed live) per the established Phase-2 convention. Staged in 3 stages (A: wrappers; B: NavBar migration + `global.css`; C: SearchFilterBar migration + CategoryRail deletion + `order.astro` + `.category-nav` CSS removal) — nothing committed/pushed.
 
-## Next session — start here (STRICT ORDER) → Phase 5: Feedback & status
-**Phase 4 is done. Phases 0–4 are uncommitted (Phase 4 staged, awaiting owner push).** Follow the workflow rules above:
+## Next session — start here (STRICT ORDER) → Phase 6: Close out
+**Phase 5 is done. Phases 0–4 are pushed; Phase 5 is staged (2 stages), awaiting owner push.**
+Follow the workflow rules above:
 
-0. Read this whole file top-to-bottom (esp. the ⚠️ Base UI `Form`/`Field` gotcha box in Phase 4).
-1. **Cleanup FIRST — no new-feature code.** Phase 4 deleted its own debt inline (`.auth-flow__code-input`
-   + `.account-section` base rule, folded into Stage B). No Phase-4 leftover to sweep. Just re-grep the
-   "Out-of-scope debt flagged" item below and confirm nothing new dangles before Phase 5 migration.
-2. **Owner pushes the Phase-4 stages to GitHub** (A → B → C) if not already done. Wait for confirmation
-   before starting Phase 5.
-3. **Then Phase 5 — Feedback & status:**
-   - `StockNotifier` / order confirmations → **`Toast`**.
-   - dietary badges / upsell hints → **`Tooltip`**.
-   - `OrderTracker` → **`Progress`**.
-   - `MealConcierge` → **`Combobox` / `Accordion`**.
-   Add each `packages/ui` wrapper Phase-0 style first. Re-verify each target is still live before writing
-   a wrapper (the redesign has moved things before). Migrate → verify in browser → delete the debt each
-   migration makes dead. Stage stage-by-stage; owner pushes.
-   - **`OrderGate.tsx` is still the last `useFocusTrap` caller.** It did NOT migrate in Phase 4. If any
-     Phase-5 work migrates it to a Base UI primitive, delete `useFocusTrap` from `@lib/hooks` (grep-confirm
-     zero callers first).
-4. **End the session with a Phase 6 handoff prompt** (Close out: delete spike trio `spike.astro`/
-   `BaseUISpike.tsx`/`BaseUISpike.css`; a11y sweep across migrated flows; finalize `packages/ui/README.md`).
+0. Read this whole file top-to-bottom (esp. the ⚠️ Toast architecture note + Base UI `Tooltip`
+   a11y note in Phase 5, and the `Form`/`Field` gotcha in Phase 4).
+1. **Cleanup FIRST — no new-feature code.** Phase 5 deleted its own debt inline (old
+   `#toast-container`/`.toast*`, orphaned `.dish-modal-overlay`, MealConcierge's dup `showToast`
+   — all folded into Stage B). No Phase-5 leftover to sweep. Just re-grep the "Out-of-scope debt
+   flagged" item below (`checkoutOpen`) and confirm nothing new dangles.
+2. **Owner pushes the Phase-5 stages to GitHub** (A → B) if not already done. Wait for confirmation
+   before starting Phase 6.
+3. **Then Phase 6 — Close out:**
+   - **Delete the spike trio** — `apps/web/src/pages/spike.astro`, `BaseUISpike.tsx`,
+     `BaseUISpike.css`. These were the scratch verification page kept through Phases 0–5; grep-confirm
+     no other referrers, then remove. (Phase 5 verified islands via events/JS on real pages, not the
+     spike — it's now unused.)
+   - **Accessibility sweep (keyboard-only + screen reader)** across every migrated flow: Dialogs
+     (Dish/Bundle/Cart/Nav-drawer/**MealConcierge**), `Select`/`ToggleGroup`/`NavigationMenu`,
+     `Field`/`Form`/`OtpField`/`Tabs`, and the Phase-5 `Toast`/`Tooltip`/`Progress`/`Accordion`.
+     Confirm focus trap/return, ESC, roving tabindex, `aria-*` wiring, and the Toast region landmark.
+   - **Finalize `packages/ui/README.md`** — it's current through Phase 5; do a final polish pass
+     (usage snippets, the full component table, the `unstyled` + Tooltip a11y notes).
+   - **`OrderGate.tsx` is the LAST `useFocusTrap` caller.** It has never migrated. If the a11y sweep
+     (or a decision to migrate it to `Dialog`) touches it, that makes `useFocusTrap` dead — **delete
+     `useFocusTrap` from `@lib/hooks` only after grep-confirming zero callers.** Otherwise leave it.
+   - **Decide the `checkoutOpen` orphan** (see below) — prune from `@joy-curry/core` or keep for mobile.
+4. Phase 6 is the last phase — end with a wrap-up (no further phase handoff needed), or a short
+   "post-migration maintenance" note if debt remains.
 
 **Verifying islands without the API:** dispatch window events in the console — `dish:open` (mock
 MenuItem), `bundle:edit` (`combo-platter-2`), or open the cart via the navbar. For store-driven islands,

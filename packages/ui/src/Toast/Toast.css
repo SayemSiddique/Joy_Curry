@@ -1,0 +1,103 @@
+/*
+ * Toast — brand pill notifications, ported from the legacy `.toast` look
+ * (bottom-centre stack, hero-bg pill, success/error variants) onto Base UI's
+ * region + timer + swipe behavior. Colors/spacing are tokens only; enter/leave
+ * key off Base UI's [data-starting-style]/[data-ending-style], variants off the
+ * [data-type] Base UI stamps from the toast's `type`.
+ */
+
+.jc-toast__viewport {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast, 1100);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: max-content;
+  max-width: min(360px, calc(100vw - var(--space-8)));
+  outline: none;
+}
+
+.jc-toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-hero-bg);
+  color: var(--color-hero-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  /* Swipe feedback — Base UI publishes the live drag offset as CSS vars. */
+  transform: translateX(var(--toast-swipe-movement-x, 0)) translateY(var(--toast-swipe-movement-y, 0));
+  transition: opacity var(--ease-normal), transform var(--ease-normal);
+  touch-action: none;
+}
+
+/* Enter/leave — Base UI toggles these data-attrs around mount/unmount. */
+.jc-toast[data-starting-style],
+.jc-toast[data-ending-style] {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.jc-toast[data-type='success'] { background: var(--color-success); }
+.jc-toast[data-type='error']   { background: var(--color-error); }
+
+.jc-toast__title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  margin: 0;
+}
+
+.jc-toast__description {
+  font-size: var(--text-xs);
+  opacity: 0.85;
+  margin: 0;
+}
+
+.jc-toast__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0 -6px 0 var(--space-1);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: inherit;
+  /* Resting pill stays clean (unchanged look); the dismiss affordance reveals
+     on hover/focus. Touch users dismiss by swipe. */
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--ease-fast);
+}
+
+.jc-toast:hover .jc-toast__close,
+.jc-toast__close:focus-visible { opacity: 0.7; }
+
+.jc-toast__close:hover { opacity: 1; }
+
+.jc-toast__close:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jc-toast {
+    transition: opacity var(--ease-fast);
+  }
+  .jc-toast[data-starting-style],
+  .jc-toast[data-ending-style] {
+    transform: none;
+  }
+}

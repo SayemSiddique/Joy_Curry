@@ -84,15 +84,35 @@ Standard/new dialogs omit `unstyled` and get the brand card chrome for free
 | `Form` | `form` | Phase 4 |
 | `OtpField` | `otp-field` | Phase 4 |
 | `Tabs` | `tabs` | Phase 4 |
+| `Toast` | `toast` | Phase 5 |
+| `Tooltip` | `tooltip` | Phase 5 |
+| `Progress` | `progress` | Phase 5 |
+| `Accordion` | `accordion` | Phase 5 |
+
+> **Not added:** `Combobox`. Phase 5 evaluated it for `MealConcierge`, but the
+> concierge questions have 3–4 fixed chip options each — a combobox (typeahead
+> over a list) fits worse than an `Accordion`, which is what shipped. Per the
+> convention above, a wrapper exists only once a real island needs it, so no
+> speculative `Combobox` was added.
 
 Consumers so far: `BaseUISpike` (styled default), `DishDetailModal` (unstyled,
-bespoke two-column), `BundleModal` (unstyled, `.modal` shell + `--bui` overlay),
-`CartDrawer` (unstyled, Dialog-as-right-sheet + `--bui` overlay),
-`SearchFilterBar` (`Select` for category/spice, `ToggleGroup` unstyled for the
-dietary toolbar), `NavBar` (`NavigationMenu` unstyled for the desktop MENU
-dropdown, `Dialog` unstyled as the mobile left-sheet drawer), `AuthFlow`
-(`Field`/`Form` unstyled for a11y, `OtpField` styled segmented code entry),
-`CartPage` (`Field`/`Form` unstyled on the contact/address fields — Stripe
-untouched), `AccountPage` + `OrdersPage` (`Tabs` styled default).
+bespoke two-column; `Tooltip` on the dietary/quality badges), `BundleModal`
+(unstyled, `.modal` shell + `--bui` overlay), `CartDrawer` (unstyled,
+Dialog-as-right-sheet + `--bui` overlay), `SearchFilterBar` (`Select` for
+category/spice, `ToggleGroup` unstyled for the dietary toolbar), `NavBar`
+(`NavigationMenu` unstyled for the desktop MENU dropdown, `Dialog` unstyled as
+the mobile left-sheet drawer), `AuthFlow` (`Field`/`Form` unstyled for a11y,
+`OtpField` styled segmented code entry), `CartPage` (`Field`/`Form` unstyled on
+the contact/address fields — Stripe untouched), `AccountPage` + `OrdersPage`
+(`Tabs` styled default), `ToastRegion` (`Toast` — one mounted host that backs
+the app-wide `showToast()` façade), `OrderTracker` (`Progress` for the live
+order-status bar), `MealConcierge` (`Dialog` + `Accordion` — the redesigned
+"Build my meal" wizard).
+
+**Tooltip a11y note:** Base UI's `Tooltip` (v1.6) intentionally does **not** set
+`aria-describedby`/`role="tooltip"` — it's a pointer/focus *reveal*, not an ARIA
+description. Use it to progressively disclose extra context to sighted users on
+top of an element that is **already** labelled (e.g. a badge whose visible text
+a screen reader reads anyway). It is not a substitute for an accessible name.
 
 _(more added per phase — see `/BASE_UI_MIGRATION.md`)_

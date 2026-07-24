@@ -24,3 +24,9 @@ export { Field } from './Field/Field';
 export { Form } from './Form/Form';
 export { OtpField } from './OtpField/OtpField';
 export { Tabs } from './Tabs/Tabs';
+
+// Phase 5 — feedback & status
+export { Toast } from './Toast/Toast';
+export { Tooltip } from './Tooltip/Tooltip';
+export { Progress } from './Progress/Progress';
+export { Accordion } from './Accordion/Accordion';

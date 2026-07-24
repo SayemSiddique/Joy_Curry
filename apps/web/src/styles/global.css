@@ -2955,43 +2955,9 @@ input, textarea, select {
   cursor: pointer;
 }
 
-/* ── Toast Notifications ─────────────────────────────────── */
-#toast-container {
-  position: fixed;
-  bottom: var(--space-6);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--z-toast);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  pointer-events: none;
-  align-items: center;
-}
-
-.toast {
-  padding: var(--space-3) var(--space-6);
-  background: var(--color-hero-bg);
-  color: var(--color-hero-text);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-lg);
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity var(--ease-normal), transform var(--ease-normal);
-  pointer-events: none;
-  max-width: 360px;
-  text-align: center;
-}
-
-.toast--visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.toast--success { background: var(--color-success); }
-.toast--error   { background: var(--color-error); }
+/* Toast notifications now live in @joy-curry/ui (Base UI Toast, mounted via the
+   ToastRegion island). The old hand-rolled #toast-container + .toast* styles
+   were removed in the Phase 5 migration. */
 
 /* ── Skeleton Loading ────────────────────────────────────── */
 @keyframes skeleton-shimmer {
@@ -4647,7 +4613,7 @@ input, textarea, select {
 /* ── Print ───────────────────────────────────────────────── */
 @media print {
   .navbar, .toolbar, .cart-drawer, .modal-overlay,
-  .order-history-drawer, .admin-panel, .vault-panel, #toast-container {
+  .order-history-drawer, .admin-panel, .vault-panel, .jc-toast__viewport {
     display: none !important;
   }
 }
@@ -5057,20 +5023,6 @@ input, textarea, select {
 @keyframes dish-modal-scale-out   { from { opacity: 1; transform: none } to { opacity: 0; transform: scale(0.93) translateY(8px) } }
 @keyframes dish-modal-slide-down  { from { opacity: 1; transform: translateY(0) } to { opacity: 0; transform: translateY(100%) } }
 
-/* Shared dim + flex-center overlay — still used by MealConcierge's hand-rolled
-   modal (.concierge-modal). The dish detail modal moved to Base UI's
-   backdrop + positioner below. */
-.dish-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: calc(var(--z-modal) + 10);
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: dish-modal-overlay-in 200ms ease-out forwards;
-}
-
 /* Base UI Dialog: Backdrop (dim layer) + positioner (flex-centers the popup so
    the popup itself keeps its transform-based scale/slide animation). Exit
    animations run off Base UI's [data-ending-style] state instead of a manual
@@ -5331,8 +5283,7 @@ input, textarea, select {
   .dish-modal[data-ending-style] {
     animation: dish-modal-slide-down 260ms ease-in forwards;
   }
-  .dish-modal__positioner,
-  .dish-modal-overlay { align-items: flex-end; }
+  .dish-modal__positioner { align-items: flex-end; }
   .dish-modal__image-col {
     flex: 0 0 220px;
     min-height: 220px;
@@ -5511,27 +5462,30 @@ input, textarea, select {
   margin: 0 0 var(--space-1);
   color: var(--color-cta);
 }
-.concierge-modal__sub { font-size: var(--text-sm); color: var(--color-hero-subtext); margin: 0 0 var(--space-4); }
-
-.concierge-modal__steps { display: flex; gap: var(--space-2); justify-content: center; }
-.concierge-modal__step-dot {
-  width: 8px; height: 8px;
-  border-radius: var(--radius-full);
-  background: rgba(245,235,220,0.3);
-  transition: background var(--ease-fast);
-}
-.concierge-modal__step-dot--active { background: var(--color-cta); }
+.concierge-modal__sub { font-size: var(--text-sm); color: var(--color-hero-subtext); margin: 0; }
 
 .concierge-modal__body { padding: var(--space-6); }
-.concierge-modal__section { display: flex; flex-direction: column; gap: var(--space-4); }
-.concierge-modal__question {
+
+/* Base UI Accordion — the three concierge questions as disclosure sections. */
+.concierge-accordion .jc-accordion__trigger {
   font-family: var(--font-display);
-  font-size: var(--text-md);
-  font-weight: var(--weight-bold);
-  color: var(--color-text-primary);
-  margin: 0;
-  text-align: center;
+  font-size: var(--text-base);
 }
+.concierge-accordion__q { flex: 1; }
+.concierge-accordion__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.concierge-accordion__value {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+}
+.concierge-accordion .concierge-modal__chips { padding: 0 var(--space-5) var(--space-5); }
+.concierge-modal__submit { width: 100%; margin-top: var(--space-5); }
+
 .concierge-modal__chips { display: flex; flex-wrap: wrap; gap: var(--space-3); justify-content: center; }
 
 .concierge-chip {
@@ -5672,11 +5626,23 @@ input, textarea, select {
 }
 
 /* Stage progress */
+/* Base UI Progress bar (semantic status) sits above the decorative stepper. */
+.order-tracker__progress {
+  padding: 0 var(--space-6);
+  margin-top: var(--space-5);
+}
+.order-tracker__progress-track {
+  height: 4px;
+  background: var(--color-border);
+}
+.order-tracker__progress-indicator {
+  background: var(--color-primary);
+}
 .order-tracker__stages {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: var(--space-6) var(--space-6) var(--space-4);
+  padding: var(--space-4) var(--space-6);
   gap: 0;
   position: relative;
 }
